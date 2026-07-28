@@ -1,0 +1,105 @@
+---
+title: "Quickstart"
+description: "Mint an API key and make your first authenticated call."
+---
+
+This page takes you from nothing to a successful API response.
+
+<Steps>
+  <Step title="Create an account and connect LinkedIn">
+    Sign up at [app.gtm-api.com](https://app.gtm-api.com/login). The trial runs 7 days and needs no card. Connect a LinkedIn account you own: it opens in a dedicated anti-detect cloud browser with its own proxy, and the platform starts an initial sync of your inbox, connections and profile.
+
+    You can make read calls right away. Outbound actions (connection requests, messages) stay blocked with a `conflict` error until the initial sync finishes.
+  </Step>
+  <Step title="Mint an API key">
+    In the app, create an API key. The full secret looks like `gtm_live_` followed by 40 characters and is shown exactly once: store it now, because the API only ever returns the prefix and last 4 characters afterwards. If you lose it, rotate the key to get a new secret.
+
+    Keys can also be minted over the API with [`POST /api/api-keys`](/api-reference/id) once you have a first key or a session token to call it with.
+  </Step>
+  <Step title="Make your first call">
+    Search your connected LinkedIn accounts. The key goes in the `Authorization` header as a bearer token.
+
+    <CodeGroup>
+
+    ```bash curl
+    curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/search" \
+      -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+      -H "Content-Type: application/json" \
+      -d '{"page_size": 5}'
+    ```
+
+    ```typescript TypeScript
+    const res = await fetch(
+      "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/search",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.GTM_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ page_size: 5 }),
+      },
+    );
+    const data = await res.json();
+    ```
+
+    ```python Python
+    import os, requests
+
+    res = requests.post(
+        "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/search",
+        headers={"Authorization": f"Bearer {os.environ['GTM_API_KEY']}"},
+        json={"page_size": 5},
+    )
+    data = res.json()
+    ```
+
+    </CodeGroup>
+  </Step>
+  <Step title="Read the response">
+    Every success is the same envelope: `success`, the `operation` shape, and a `meta` block with a `trace_id` for support. Fields below are trimmed for the example.
+
+    ```json
+    {
+      "success": true,
+      "operation": "search",
+      "items": [
+        {
+          "item": {
+            "sid": "ln_ac_Hx7kQ3mN2pL4",
+            "status": "active",
+            "full_name": "Jane Cooper"
+          },
+          "included": {}
+        }
+      ],
+      "counts": { "total_count": 1, "groups": { "status": { "active": 1 } } },
+      "pagination": { "next_cursor": null, "has_more": false, "total_count": 1 },
+      "applied_filters": {},
+      "includes": [],
+      "meta": {
+        "trace_id": "0198f2ab-7c11-7e32-9a41-d2b64f2a91c3"
+      }
+    }
+    ```
+
+    The `sid` is the account's stable identifier. Every entity in the platform has one, with a type-specific prefix (`ln_ac_` for LinkedIn accounts, `id_ak_` for API keys, `wh_hk_` for webhooks).
+  </Step>
+</Steps>
+
+## Next steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" href="/authentication">
+    Key rotation, permissions and the Team-SID header.
+  </Card>
+  <Card title="Envelopes and errors" href="/concepts/envelopes-and-errors">
+    The response contract and the 16 error codes.
+  </Card>
+  <Card title="Run a mass action" href="/guides/run-a-mass-action">
+    Preview, commit and monitor a bulk dispatch.
+  </Card>
+  <Card title="Connect the MCP server" href="/mcp/connect">
+    The same tools, callable by an AI agent.
+  </Card>
+</CardGroup>

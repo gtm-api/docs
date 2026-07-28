@@ -1,0 +1,135 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "GTM API",
+  "description": "REST API and MCP server for LinkedIn outreach infrastructure: connected accounts, messaging, enrichment, mass actions and webhooks.",
+  "colors": {
+    "primary": "#65A30D",
+    "light": "#C4F148",
+    "dark": "#4D7C0F"
+  },
+  "favicon": "/favicon.svg",
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg",
+    "href": "https://gtm-api.com"
+  },
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Guides",
+        "groups": [
+          {
+            "group": "Get started",
+            "pages": ["index", "quickstart", "authentication"]
+          },
+          {
+            "group": "Concepts",
+            "pages": [
+              "concepts/envelopes-and-errors",
+              "concepts/pagination-and-filtering"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "guides/connect-a-linkedin-account",
+              "guides/run-a-mass-action",
+              "guides/receive-webhooks"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": ["api-reference/overview"]
+          },
+          {
+            "group": "LinkedIn API",
+            "openapi": {
+              "source": "api-reference/linkedin/openapi.yaml",
+              "directory": "api-reference/linkedin"
+            }
+          },
+          {
+            "group": "ID and Teams API",
+            "openapi": {
+              "source": "api-reference/id/openapi.yaml",
+              "directory": "api-reference/id"
+            }
+          },
+          {
+            "group": "Orchestration API",
+            "openapi": {
+              "source": "api-reference/orchestration/openapi.yaml",
+              "directory": "api-reference/orchestration"
+            }
+          }
+        ]
+      },
+      {
+        "tab": "MCP",
+        "groups": [
+          {
+            "group": "MCP server",
+            "pages": ["mcp/overview", "mcp/connect", "mcp/use-docs-with-ai"]
+          }
+        ]
+      },
+      {
+        "tab": "Changelog",
+        "groups": [
+          {
+            "group": "Changelog",
+            "pages": ["changelog"]
+          }
+        ]
+      }
+    ]
+  },
+  "navbar": {
+    "links": [
+      {
+        "label": "Pricing",
+        "href": "https://gtm-api.com/pricing/"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Get your API key",
+      "href": "https://app.gtm-api.com/login"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/gtm-api",
+      "website": "https://gtm-api.com"
+    },
+    "links": [
+      {
+        "header": "Product",
+        "items": [
+          { "label": "Home", "href": "https://gtm-api.com" },
+          { "label": "Pricing", "href": "https://gtm-api.com/pricing/" },
+          { "label": "App", "href": "https://app.gtm-api.com/login" }
+        ]
+      },
+      {
+        "header": "Resources",
+        "items": [
+          { "label": "Blog", "href": "https://gtm-api.com/blog/" },
+          {
+            "label": "LinkedIn MCP server",
+            "href": "https://gtm-api.com/linkedin-mcp-server/"
+          }
+        ]
+      }
+    ]
+  },
+  "contextual": {
+    "options": ["copy", "view", "chatgpt", "claude"]
+  }
+}

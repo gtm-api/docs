@@ -1,0 +1,44 @@
+---
+title: "Connect a LinkedIn account"
+description: "Connect an account in the app, wait out the initial sync, then work with it over the API."
+---
+
+Connecting is the one step that happens in the app rather than the API: the account owner signs in to LinkedIn inside a dedicated anti-detect cloud browser, because a live human login is what keeps the session real. Everything after that is API territory.
+
+## 1. Connect in the app
+
+In [app.gtm-api.com](https://app.gtm-api.com/login), add a LinkedIn account. The platform provisions an isolated cloud browser with a dedicated proxy for it (one account, one browser, one device signature) and starts the initial sync: profile, conversations, connections.
+
+## 2. Find the account and watch its status
+
+```bash
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/search" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"filter": {"q": "cooper"}}'
+```
+
+The `status` field is the account lifecycle:
+
+| Status | Meaning |
+|---|---|
+| `new` | Connected, sync not started |
+| `initial_syncing` | First sync in progress |
+| `active` | Usable; outbound actions allowed |
+| `sync_failed` | The sync hit a problem; check the account in the app |
+| `shared_out` | Lent to another team via account sharing |
+| `subscription_required` | The plan lapsed; renew to reactivate |
+
+Until the account reaches `active`, outbound endpoints (connection requests, messages) answer with a `conflict` error. Read endpoints work as soon as data lands.
+
+## 3. Check capabilities and limits
+
+- `POST /api/linkedin-accounts/{sid}/check-sales-nav`, `/check-premium`, `/check-recruiter` report what the account's LinkedIn subscription actually supports. Sales Navigator endpoints on an account without Sales Navigator fail upfront with `validation_failed` rather than mid-run.
+- `POST /api/linkedin-account-smart-limits/search` returns the account's current per-action daily budgets. A newly connected account starts well below platform maximums and is warmed up programmatically as it ages; read these limits instead of assuming a number.
+- `POST /api/linkedin-account-snapshots/search` gives the health timeline the platform records for the account.
+
+## 4. First action
+
+Once `active`, the account's sid (`ln_ac_...`) is the handle every LinkedIn endpoint takes. A sensible first write is something low-risk, for example reacting to a post, before you schedule real outreach through a [mass action](/guides/run-a-mass-action) with pacing.
+
+Every outbound call re-checks the smart limits server-side before dispatch. Hitting a budget answers `limit_exceeded`, and the action can resume the next day or after the limit is raised; the account is not penalized for your retry logic.

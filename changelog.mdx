@@ -1,0 +1,16 @@
+---
+title: "Changelog"
+description: "What changed in the GTM API platform and this documentation."
+---
+
+<Update label="July 2026" description="Initial public release of the reference">
+  **The public API contract is published.** 248 operations across three services: LinkedIn (150), ID and Teams (77), Orchestration (21). The reference is generated from the MCP tool registry, one endpoint per tool, and regenerates with it.
+
+  **The MCP server is live** at `mcp.gtm-api.com/mcp`, exposing the same contract as 160+ typed tools across 10 toolsets. Connect guides for Claude, Cursor and Docker-based clients are in the [MCP tab](/mcp/overview).
+
+  **Webhooks are platform-wide.** Subscriptions, signed deliveries (`X-Webhook-Signature`, HMAC-SHA256 with a timestamp), a queryable delivery log, and a test endpoint live on the Orchestration service.
+
+  **Mass actions ship with a two-phase consent flow.** Preview validates the whole plan and mints a 15-minute commit token; commit consumes it. Canary mode, randomized pacing and per-item retry are part of the same surface.
+
+  15 LinkedIn operations are published as `stub_501`: their request contracts are final and validated, the capability behind them is still rolling out. They are marked deprecated in the reference until live.
+</Update>

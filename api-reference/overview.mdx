@@ -1,0 +1,39 @@
+---
+title: "API reference overview"
+sidebarTitle: "Overview"
+description: "How to read the reference: base URLs, auth, the envelope, and the x-gtm operation flags."
+---
+
+The reference documents the public contract of three services. Every page is generated from the same registry that defines the MCP tools (one endpoint per tool), so it matches what the server validates, not what someone remembered to write down.
+
+## Base URLs
+
+| Service | Base URL |
+|---|---|
+| LinkedIn | `https://app.gtm-api.com/linkedin/v4` |
+| ID and Teams | `https://app.gtm-api.com/id/v4` |
+| Orchestration | `https://app.gtm-api.com/orchestration/v4` |
+
+Auth is the same everywhere: `Authorization: Bearer <token>` with an [API key or JWT](/authentication). The playground on each page can send real requests; point it at production and use a test team.
+
+## Reading an operation
+
+Beyond the request and response schemas, each operation carries flags from the registry. They render in the description and as `x-gtm-*` extensions in the raw spec, so both a person and a client generator can act on them:
+
+| Flag | Meaning |
+|---|---|
+| `dangerous` | The MCP layer gates this call behind a preview and confirm step, and the effect cannot be undone through the API |
+| `creditable` | The response carries a [credits block](/concepts/envelopes-and-errors#the-credits-block) and the call can debit the team ledger |
+| `mass action` | The verb's own request accepts a `filter` or `targets[]` set, which the owning service drains |
+| `step eligible` | Orchestration can run the verb as a step of a [mass action plan](/guides/run-a-mass-action) |
+| `schedule required` | Bulk use of the verb must be paced with a schedule |
+| `availability` | `ga`, or `stub_501` for endpoints whose contract is final but not yet live |
+
+## Deprecated means "not yet", not "going away"
+
+Operations marked deprecated are `stub_501` endpoints: they validate the full request and then answer `501 not_implemented`. The request contract is final, so you can build against it today; the marker exists so a generated client tells you not to ship against it yet. The reason is in the operation's description.
+
+## Two serialization details
+
+- On `GET` and `DELETE`, object parameters (`filter`, `sort`) travel as JSON text in the query string, and array parameters repeat as `name[]=value`. Details in [Pagination and filtering](/concepts/pagination-and-filtering).
+- Success and error bodies are envelopes shared by every endpoint. Details in [Envelopes and errors](/concepts/envelopes-and-errors).

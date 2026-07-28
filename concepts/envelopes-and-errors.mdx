@@ -1,0 +1,123 @@
+---
+title: "Envelopes and errors"
+description: "One response wrapper for every success, one error format with a closed 16-code taxonomy."
+---
+
+Every endpoint in every service answers with one of two envelopes. You write the parsing code once.
+
+## The success envelope
+
+A success body always carries `success: true`, the `operation` that names the payload shape, the payload itself, and a `meta` block.
+
+| `operation` | Payload | Returned by |
+|---|---|---|
+| `search` | `items[]`, `counts`, `pagination`, `applied_filters`, `includes` | `POST /api/{entity}/search` |
+| `get` | `item`, `included` | `GET /api/{entity}/{sid}` |
+| `create` | `item`, plus flags such as `already_exists` where relevant | `POST /api/{entity}` |
+| `update` | `item`, `changed_fields` | `PATCH /api/{entity}/{sid}` |
+| `delete` | deletion report | `DELETE /api/{entity}/{sid}` |
+| `metrics` | period-bound aggregates | `POST /api/{entity}/metrics` |
+| `action` | `action` name plus a verb-specific result | verb endpoints like `POST /api/mass-actions/{sid}/pause` |
+
+A `search` response in full:
+
+```json
+{
+  "success": true,
+  "operation": "search",
+  "items": [
+    {
+      "item": { "sid": "wh_hk_Jk2mP9nR4qW1", "status": "active" },
+      "included": {}
+    }
+  ],
+  "counts": {
+    "total_count": 247,
+    "groups": { "status": { "active": 240, "disabled": 7 } }
+  },
+  "pagination": {
+    "next_cursor": "eyJpZCI6MTAwfQ==",
+    "has_more": true,
+    "total_count": 247
+  },
+  "applied_filters": { "status": { "eq": "active" } },
+  "includes": [],
+  "meta": {
+    "trace_id": "0198f2ab-7c11-7e32-9a41-d2b64f2a91c3",
+    "span_id": "9a41d2b64f2a91c3",
+    "timestamp": "2026-07-28T12:00:00Z",
+    "duration_ms": 42
+  }
+}
+```
+
+Points worth knowing:
+
+- **`items[]` splits `item` from `included`.** The `item` is always the same typed shape; relations you request via `include` arrive next to it under `included`, never mixed into it.
+- **`counts` covers the full filter scope, not the page.** With 50 rows shown out of 1,000 matching, `counts.total_count` is 1000.
+- **`applied_filters` echoes what the server actually applied**, so a client (or an AI agent) can confirm the query it asked for is the query that ran.
+- **`meta.trace_id` is the support handle.** It is a UUID v7, identical to the `X-Trace-Id` response header. Quote it when reporting an issue.
+
+### The credits block
+
+Operations marked `creditable` in the reference can debit the team's credit ledger, and their responses carry a `credits` block:
+
+```json
+"credits": {
+  "charged": 1,
+  "reason": "infra_pool",
+  "executed_on": "infra_pool",
+  "balance_after": 4999
+}
+```
+
+`charged` is the debit for this call (0 on an own-account execution or a cache hit), `executed_on` says whether your own account or the infrastructure pool did the work, and `balance_after` is the team balance after the debit (`null` when the ledger was untouched).
+
+## The error envelope
+
+Every failure, from any service, is the same shape:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "validation_failed",
+    "message": "URL does not match the Sales Navigator format",
+    "recoverable": true,
+    "suggestion": "Make sure the URL starts with linkedin.com/sales/ and contains search parameters",
+    "field_errors": {
+      "source_url": [
+        { "rule": "regex", "message": "Expected URL like linkedin.com/sales/search/*" }
+      ]
+    }
+  }
+}
+```
+
+- `code` is always one of the 16 values below, never an arbitrary string.
+- `recoverable` says whether retrying with corrected input can succeed (`true`) or the state itself is the problem (`false`).
+- `field_errors` appears only on `validation_failed`, keyed by field.
+- `delete_blocked` errors additionally carry `error.blockers[]`: each blocker names its `type`, a `hard` or `soft` severity, and the `resolution` that clears it.
+
+## The 16 error codes
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `validation_failed` | 422 | Invalid input; details in `field_errors` |
+| `nothing_to_update` | 422 | PATCH with no real changes |
+| `not_found` | 404 | The sid does not exist in this team's scope |
+| `relation_not_found` | 422 | A referenced entity (for example a `*_sid` field) does not exist |
+| `invalid_transition` | 409 | The state machine forbids this move |
+| `limit_exceeded` | 429 | A business limit was hit (daily budgets, plan caps) |
+| `payment_required` | 402 | Not enough credits, or the plan does not include this |
+| `duplicate_rejected` | 409 | An entity with the same natural key already exists |
+| `conflict` | 409 | The request conflicts with current state; editing fields will not fix it |
+| `delete_blocked` | 409 | Blockers exist; see `error.blockers[]` |
+| `unauthorized` | 401 | Missing or invalid token |
+| `forbidden` | 403 | No rights on this team or resource |
+| `rate_limited` | 429 | Throttled; slow down and retry |
+| `not_implemented` | 501 | Contract is final, capability not shipped; do not retry |
+| `internal_error` | 500 | A bug on our side; report the `trace_id` |
+| `service_unavailable` | 503 | A downstream dependency is down; retry with backoff |
+
+A practical mapping: retry `rate_limited` and `service_unavailable` with backoff, fix and resend `validation_failed` and `relation_not_found`, treat the 409 family as "re-read the current state first", and never auto-retry `not_implemented` or `internal_error`.

@@ -1,0 +1,56 @@
+---
+title: "Pagination and filtering"
+description: "Cursor paging, typed per-field filters, includes, and how objects travel in query strings."
+---
+
+Every list endpoint (`POST /api/{entity}/search`) takes the same four inputs: `filter`, `sort`, `page_size` and `cursor`, plus an optional `include` list.
+
+## Paging
+
+- `page_size` ranges 0 to 500 and defaults to 50.
+- Responses return `pagination.next_cursor`, an opaque string. Pass it back as `cursor` to get the next page; `null` means the last page. Cursors are forward-only, and there is no offset or page number.
+- `page_size: 0` is count-only mode: `items` comes back empty and you read `counts.total_count`. It is the cheapest way to answer "how many match".
+
+```json
+{
+  "filter": { "status": { "eq": "active" } },
+  "page_size": 100,
+  "cursor": "eyJpZCI6MTAwfQ=="
+}
+```
+
+## Filtering
+
+`filter` is a typed object, validated per entity. Each filterable field takes an object of operators; which operators a field supports is spelled out in the reference for that endpoint.
+
+```json
+{
+  "filter": {
+    "status": { "in": ["active", "sync_failed"] },
+    "created_at": { "gte": "2026-07-01T00:00:00Z" },
+    "q": "cooper"
+  }
+}
+```
+
+- Common operators: `eq`, `ne`, `in`, `nin` on enums and sids, `lt`, `lte`, `gt`, `gte` on dates and numbers.
+- `q` is full-text search where the entity supports it; each endpoint's description says which fields it scans.
+- An unknown filter field or an unsupported operator is a `validation_failed` error, not a silent no-op.
+- The response echoes what ran in `applied_filters`.
+
+## Sorting
+
+`sort` is an object of `field: direction` pairs, for example `{ "created_at": "desc" }`. Sortable fields are listed per endpoint.
+
+## Includes
+
+`include` names relations to load with each row, for example `["metrics"]` on API keys. Loaded relations arrive under `items[].included`, keyed by relation name, and the response's top-level `includes` echoes what you asked for. If a requested relation is absent under `included` for a row, that row has none; if it was never in `includes`, it was not requested. The two cases stay distinguishable.
+
+## Objects in query strings
+
+Search runs over `POST` with a JSON body, so this mostly concerns `GET` and `DELETE` endpoints that accept the same parameters:
+
+- An object parameter (`filter`, `sort`) travels as JSON text in the query string: `?filter={"status":{"eq":"active"}}` (URL-encoded).
+- An array parameter repeats as `name[]=value`: `?include[]=metrics&include[]=owner`.
+
+The playground on each reference page builds these for you, which is the quickest way to see the exact wire format.

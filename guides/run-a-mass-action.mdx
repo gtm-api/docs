@@ -1,0 +1,66 @@
+---
+title: "Run a mass action"
+description: "Preview a bulk plan, commit it with the consent token, then monitor the run to settlement."
+---
+
+A mass action is a bulk dispatch on the Orchestration service: up to 100 items, each run through a plan of 1 to 3 steps, paced by a randomized schedule. The API forces a two-phase flow so nothing bulk ever fires from a single call: first a preview that validates everything and mints a consent token, then a commit that consumes it.
+
+## 1. Preview the plan
+
+`POST /api/mass-actions/preview` validates the whole plan without persisting, charging or sending anything, and reports every finding at once.
+
+```json
+{
+  "title": "July outreach, batch 3",
+  "target_entity": "linkedin-connection-requests",
+  "scope": {
+    "kind": "targets",
+    "targets": [
+      { "linkedin_account_sid": "ln_ac_Hx7kQ3mN2pL4", "ln_member_id": "jcooper" }
+    ]
+  },
+  "plan": {
+    "steps": [
+      {
+        "tool": "linkedin-connection-requests.send-linkedin-connection-request",
+        "args": { "message": "Hi, enjoyed your post on pipeline reviews." }
+      }
+    ]
+  },
+  "schedule": { "interval_seconds_min": 120, "interval_seconds_max": 600 },
+  "canary_mode": "first_item"
+}
+```
+
+What the validator enforces:
+
+- **Step vocabulary.** Only step-eligible verbs can appear in `plan.steps[].tool`. Anything else fails with `validation_failed` and a `field_errors` entry naming the authorable set, so the plan is repairable in one pass.
+- **Scope shape.** `objects` (existing rows by sid), `targets` (per-item payload identities), `generate` (N slots, step 1 must create the object), or `none` (a standing run an auto-scrape feeds later). All bounded at 100 items.
+- **Schedule mandate.** A plan with a send-class step must carry a `schedule`; the per-gap interval is randomized between your min and max, because a fixed cadence is itself a detectable pattern. Omit `schedule` only for plans that can drain immediately.
+
+On success the `action` envelope returns a `preview` block (`items_count`, `credits_estimate`, `dangerous_steps`, `eta`, warnings) plus `commit_token` and `expires_at`.
+
+## 2. Commit it
+
+`POST /api/mass-actions` takes the exact same inputs plus the `commit_token`. The token is an HMAC over those inputs and the caller: edit anything, and the commit fails with `validation_failed`; wait past 15 minutes, and it expires. Re-preview in either case.
+
+Two behaviors to design around:
+
+- **The run is always asynchronous**, even for one item. The returned `sid` is your monitoring handle.
+- **A still-valid token can be replayed**, and a replay creates a second identical run. Discard the token the moment the commit succeeds.
+
+With `canary_mode: "first_item"`, only item 1 dispatches until it succeeds. A canary failure pauses the whole run with `paused_reason: canary_failed`, so a broken template costs you one send, not a hundred.
+
+## 3. Monitor to settlement
+
+- `GET /api/mass-actions/{sid}?include[]=metrics` returns the run with per-status item counts.
+- `POST /api/mass-action-items/search` with `filter: { "mass_action_sid": { "eq": "..." } }` lists the individual items and their step logs.
+- Or skip polling: subscribe a [webhook](/guides/receive-webhooks) to the `mass-actions.settled` and `mass-actions.paused` events.
+
+Control verbs while it runs: `POST /api/mass-actions/{sid}/pause` and `/resume`, and `/release` for a standing run.
+
+## 4. Retry failures
+
+`POST /api/mass-action-items/retry` re-enters failed items at their current step. Completed steps are never re-executed, so there are no duplicate creates and no double sends. Target exactly one of a single item `sid` or a `filter` (pass `mass_action_sid` in the filter unless you mean every run). Only `status: failed` rows match; a retry matching nothing returns `retried_count: 0`, not an error.
+
+One caveat from the description worth repeating: an `item_timeout:` failure means the outbound call may have landed. Check the target before retrying a non-idempotent step such as a send.

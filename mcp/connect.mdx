@@ -1,0 +1,77 @@
+---
+title: "Connect a client"
+description: "Add the GTM API MCP server to Claude, Cursor or any MCP-compatible runtime."
+---
+
+The server speaks streamable HTTP at `https://mcp.gtm-api.com/mcp` and authenticates with your [API key](/authentication) as a bearer token. Clients that implement MCP OAuth discovery can also connect through the standard OAuth flow; the server advertises it, and the client walks you through consent.
+
+## Claude Code
+
+```bash
+claude mcp add --transport http gtm-api https://mcp.gtm-api.com/mcp \
+  --header "Authorization: Bearer gtm_live_YOUR_KEY"
+```
+
+Then `claude mcp list` should show `gtm-api` as connected, and any session can use the tools ("search my LinkedIn accounts").
+
+## Claude Desktop
+
+Add to `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "gtm-api": {
+      "url": "https://mcp.gtm-api.com/mcp",
+      "headers": { "Authorization": "Bearer gtm_live_YOUR_KEY" }
+    }
+  }
+}
+```
+
+## Cursor
+
+Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
+
+```json
+{
+  "mcpServers": {
+    "gtm-api": {
+      "url": "https://mcp.gtm-api.com/mcp",
+      "headers": { "Authorization": "Bearer gtm_live_YOUR_KEY" }
+    }
+  }
+}
+```
+
+## Docker (stdio clients)
+
+For clients that only launch command-based servers, the same server is packaged as a launcher image:
+
+```json
+{
+  "mcpServers": {
+    "gtm-api": {
+      "command": "docker",
+      "args": ["run", "-i", "--rm", "-e", "GTM_API_KEY", "gtmapi/linkedin-mcp"],
+      "env": { "GTM_API_KEY": "gtm_live_YOUR_KEY" }
+    }
+  }
+}
+```
+
+## Anything else
+
+Any MCP-compatible runtime works the same way: streamable HTTP transport, the URL above, and the `Authorization` header. For a quick smoke test without a client:
+
+```bash
+npx @modelcontextprotocol/inspector
+```
+
+Choose the streamable HTTP transport, enter the URL, add the header, connect, and list tools.
+
+## First prompt to try
+
+> "Check the smart limits on my LinkedIn account, then draft, preview and send a connection request to the profile at this URL."
+
+The agent chains the tools on its own; the preview step and the server-side limit check run before anything is sent.

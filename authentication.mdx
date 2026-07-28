@@ -1,0 +1,51 @@
+---
+title: "Authentication"
+description: "API keys, session JWTs and team scoping."
+---
+
+Every request to every service authenticates with one header:
+
+```
+Authorization: Bearer <token>
+```
+
+Two token kinds are accepted, and the server tells them apart by shape.
+
+## API keys (recommended for integrations)
+
+An API key is an opaque bearer token of the form `gtm_live_` plus 40 characters. There is no OAuth handshake: you paste it into your runtime and send it as the bearer token on every call.
+
+- **The secret is shown once.** `POST /api/api-keys` returns the full token in `plaintext_token` in that one response. Afterwards the API returns only `token_prefix` and `token_last4` for display. The server stores a SHA-256 hash, not the key.
+- **Rotation replaces the secret.** `POST /api/api-keys/{sid}/rotate` mints a new `gtm_live_` secret for the same key record and invalidates the old one. Rotate on any suspicion of a leak, or on a schedule.
+- **Keys expire.** Default expiry is 3 years from creation; pass `expires_at: null` on create for a perpetual key.
+- **Keys carry permissions.** A key created by another key can only hold a subset of the parent's permissions. Downscoping is allowed, escalation is a `forbidden` error.
+- **Keys are team-scoped.** A key belongs to the team it was created in and acts on that team's data.
+
+Manage keys in the app or over the [ID and Teams API](/api-reference/id): search them for an access audit (`last_used_at` shows stale keys worth revoking), check `expires_at` for keys about to lapse, and revoke what you no longer use.
+
+## Session JWTs
+
+Signing in to [app.gtm-api.com](https://app.gtm-api.com/login) issues a short-lived JWT. It goes in the same `Authorization: Bearer` header. This is what the app itself uses; for server-to-server integrations prefer an API key, which does not expire mid-job.
+
+## The Team-SID header
+
+A token is normally already scoped to one team, and that scope is authoritative. The optional `Team-SID` header exists for tokens that do not carry a team: it selects which of your teams the call acts on.
+
+```
+Team-SID: ts_tm_Hx7kQ3mN2pL4
+```
+
+When the token already names a team, `Team-SID` is ignored. With an API key you can leave it out entirely.
+
+## Auth failures
+
+| Code | HTTP | Meaning |
+|---|---|---|
+| `unauthorized` | 401 | Missing, expired, revoked or malformed token |
+| `forbidden` | 403 | Valid token, but no rights on this team or resource |
+
+Both arrive as the standard [error envelope](/concepts/envelopes-and-errors), so they are machine-readable like every other failure.
+
+## Handling the secret
+
+Treat `gtm_live_` tokens like passwords: keep them in a secret manager or environment variable, never in client-side code or a repository, and never in logs. If a key leaks, rotate it; the old secret stops working immediately.

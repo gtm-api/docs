@@ -1,0 +1,47 @@
+---
+title: "GTM API documentation"
+sidebarTitle: "Introduction"
+description: "A typed REST API and MCP server for LinkedIn outreach infrastructure: connected accounts, messaging, enrichment, mass actions and webhooks."
+---
+
+GTM API runs LinkedIn accounts as managed infrastructure. Each account you connect gets its own anti-detect cloud browser and dedicated proxy, and everything an account can do (search, connect, message, enrich, post) is exposed twice from one schema: as typed REST endpoints, and as MCP tools an AI agent can call. Server-side limits, warm-up and pacing run under every call, whichever surface it arrives on.
+
+## The API surface
+
+Three services, one contract style. Every endpoint authenticates the same way, returns the same response envelope, and fails with the same error taxonomy.
+
+| Service | Base URL | What it covers |
+|---|---|---|
+| LinkedIn | `https://app.gtm-api.com/linkedin/v4` | Connected accounts, health and smart limits, conversations and messages, the connection graph, posting, scraping, profile and company enrichment, anti-detect browsers |
+| ID and Teams | `https://app.gtm-api.com/id/v4` | Users, teams, API keys, OAuth, billing, subscriptions, the credit ledger, notifications |
+| Orchestration | `https://app.gtm-api.com/orchestration/v4` | Mass actions (preview, commit, pace, canary) and the platform-wide webhook registry |
+
+Paths in the reference are relative to these base URLs. `GET /api/linkedin-accounts/{sid}` means `https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/{sid}`.
+
+## Start here
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" href="/quickstart">
+    Mint an API key and make your first call in a few minutes.
+  </Card>
+  <Card title="Authentication" href="/authentication">
+    API keys, JWTs and the Team-SID header.
+  </Card>
+  <Card title="API reference" href="/api-reference/overview">
+    Every endpoint of the three services, with an interactive playground.
+  </Card>
+  <Card title="MCP server" href="/mcp/overview">
+    Give Claude, Cursor or ChatGPT the same tools over the Model Context Protocol.
+  </Card>
+</CardGroup>
+
+## How the contract behaves
+
+- Every success body is an envelope: `success: true`, one typed `operation` shape (`search`, `get`, `create`, `update`, `delete`, `metrics`, `action`), and a `meta` block with a `trace_id` you can quote to support.
+- Every failure is one `McpError` envelope with a code from a fixed 16-code taxonomy, so you map errors once and reuse the mapping everywhere. See [Envelopes and errors](/concepts/envelopes-and-errors).
+- Lists page with `page_size` plus an opaque forward `cursor`, and filters are typed per field. See [Pagination and filtering](/concepts/pagination-and-filtering).
+- Endpoints marked deprecated in the reference are `501` stubs: the request contract is final and validated, but the capability has not shipped yet. Build against them, do not ship against them. The reason is in each operation's description.
+
+## Where the reference comes from
+
+The reference is generated from the same registry that defines the MCP tools, one endpoint per tool. It is not written by hand, so what the playground shows is what the server actually validates.

@@ -1,0 +1,40 @@
+---
+title: "MCP server"
+sidebarTitle: "Overview"
+description: "The same platform, exposed as Model Context Protocol tools an AI agent can call."
+---
+
+GTM API ships a managed MCP server at `https://mcp.gtm-api.com/mcp`. It exposes 160+ typed tools across 10 toolsets, so Claude, Cursor, ChatGPT or a custom agent runtime can search, connect, message and enrich on a LinkedIn account you own.
+
+MCP and REST are the same contract. Every tool maps 1:1 to an endpoint in the [API reference](/api-reference/overview): one Zod schema defines the tool, the endpoint and this documentation, so an agent and your backend code see identical shapes. If you can do it over REST, an agent can do it over MCP, under the same server-side safety layer.
+
+## What the tools cover
+
+| Area | Examples |
+|---|---|
+| Messaging | send a message, voice message or InMail, search and sync the inbox |
+| Network | send, accept, withdraw or ignore connection requests, list connections and followers |
+| Content | track posts and their metrics, comment, react, pull engagers |
+| Enrichment | lite and full profiles, experience, skills, education, company data |
+| Search | people, companies and posts, similar profiles, employees, decision-makers |
+| Account health | smart limits, health snapshots, quota, block and activity logs |
+| Infrastructure | anti-detect cloud browsers, dedicated proxies, webhooks |
+
+## Guardrails that matter for agents
+
+- **Preview then confirm.** Outward actions (sends, bulk dispatches) return a preview and require an explicit confirmation step before anything reaches LinkedIn, so an over-eager agent cannot burn an account on its own.
+- **Server-side limits.** Per-action daily budgets are checked before dispatch, under every tool call. The agent does not need to count; the server refuses when a budget is spent.
+- **Typed errors.** Tools fail with the same 16-code taxonomy as REST, with `recoverable` and a `suggestion` field written for an LLM to act on.
+
+## Where to go
+
+<CardGroup cols={2}>
+  <Card title="Connect a client" href="/mcp/connect">
+    Claude, Cursor, and anything else that speaks MCP.
+  </Card>
+  <Card title="Search these docs from AI tools" href="/mcp/use-docs-with-ai">
+    The documentation's own MCP endpoint.
+  </Card>
+</CardGroup>
+
+The public interface, connect examples and safety notes also live in the open repository: [github.com/gtm-api/linkedin-mcp](https://github.com/gtm-api/linkedin-mcp).

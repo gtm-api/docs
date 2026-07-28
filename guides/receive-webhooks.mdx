@@ -1,0 +1,94 @@
+---
+title: "Receive webhooks"
+description: "Register an endpoint, verify signed deliveries, and use the delivery log."
+---
+
+Webhooks live on the Orchestration service and cover events from the whole platform, so one subscription endpoint serves every service.
+
+## 1. Register an endpoint
+
+`POST /api/webhooks` with your `target_url` and the `events[]` you want:
+
+```json
+{
+  "target_url": "https://example.com/hooks/gtm",
+  "events": ["mass-actions.settled", "mass-actions.paused"]
+}
+```
+
+- `target_url` must be `https://` and publicly reachable (no private-network addresses).
+- Each `events[]` value is validated against the event-type enum; the reference lists the valid values.
+- The same `target_url` cannot be registered twice in one team.
+
+The response returns the webhook's `secret`, a 32-character hex string, exactly once. Store it: every later read masks it, and it is what you verify signatures with.
+
+## 2. Verify deliveries
+
+Every delivery is an HTTPS `POST` with a JSON body and these headers:
+
+| Header | Content |
+|---|---|
+| `X-Webhook-Event` | The event type, for example `mass-actions.settled` |
+| `X-Webhook-Signature` | `t={unix_seconds},v1={hex_hmac}` |
+| `X-Webhook-Timestamp` | The same unix timestamp as `t` |
+| `X-Webhook-Id` | The subscription's sid |
+| `X-Webhook-Log-Id` | This delivery's sid in the delivery log |
+| `X-Trace-Id` | Trace id, also present in the body |
+
+The signature is `HMAC-SHA256(secret, "{t}.{raw_body}")` over the raw request body, with the timestamp mixed in to block replays. Verify before parsing, and reject signatures older than about 5 minutes:
+
+<CodeGroup>
+
+```typescript Node
+import crypto from "node:crypto";
+
+function verify(rawBody: string, header: string, secret: string): boolean {
+  const parts = Object.fromEntries(
+    header.split(",").map((p) => p.split("=") as [string, string]),
+  );
+  const age = Math.abs(Date.now() / 1000 - Number(parts.t));
+  if (age > 300) return false;
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${parts.t}.${rawBody}`)
+    .digest("hex");
+  return crypto.timingSafeEqual(
+    Buffer.from(expected),
+    Buffer.from(parts.v1 ?? ""),
+  );
+}
+```
+
+```python Python
+import hashlib, hmac, time
+
+def verify(raw_body: bytes, header: str, secret: str) -> bool:
+    parts = dict(p.split("=", 1) for p in header.split(","))
+    if abs(time.time() - int(parts["t"])) > 300:
+        return False
+    expected = hmac.new(
+        secret.encode(), f"{parts['t']}.".encode() + raw_body, hashlib.sha256
+    ).hexdigest()
+    return hmac.compare_digest(expected, parts.get("v1", ""))
+```
+
+</CodeGroup>
+
+Compute the HMAC over the raw bytes you received, before any JSON re-serialization: parsing and re-encoding the body can reorder keys and break the signature.
+
+## 3. Test before relying on it
+
+`POST /api/webhooks/{sid}/test` fires a synthetic delivery at your endpoint, so you can confirm reachability, signature handling and parsing without waiting for a real event.
+
+## 4. Use the delivery log
+
+Every attempt is a row you can query:
+
+- `POST /api/webhook-logs/search` lists deliveries with status, response code and timing; filter by webhook or event type.
+- `POST /api/webhook-logs/{sid}/retry` re-sends a failed delivery.
+- `POST /api/webhook-logs/{sid}/cancel` drops a pending one.
+- `POST /api/webhook-logs/metrics` aggregates delivery outcomes over a period, useful for an endpoint health dashboard.
+
+## Rotating the secret
+
+Rotation replaces the secret immediately, with no overlap window: deliveries sent between the rotation and your config update will fail your verification. Rotate at a quiet moment, update your verifier, then use the test endpoint to confirm the new secret end to end.
