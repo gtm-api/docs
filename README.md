@@ -1,7 +1,17 @@
-# gtm.docs
+# gtm-docs
 
-The Mintlify site behind `docs.gtm-api.com`: hand-written guides plus the generated API
-reference for the public GTM API contract.
+Developer documentation for the GTM API, served at [docs.gtm-api.com](https://docs.gtm-api.com):
+quickstart, guides, MCP setup, and the generated reference for the whole public contract. The
+largest part is the LinkedIn API reference (150 endpoints: accounts, people and company search,
+messaging, enrichment, mass actions), next to the identity and orchestration services.
+
+Related:
+
+- [docs.gtm-api.com](https://docs.gtm-api.com) - the live site
+- [linkedin-mcp](https://github.com/gtm-api/linkedin-mcp) - the same LinkedIn API packaged as an
+  MCP server for AI agents
+- [LinkedIn MCP Server](https://gtm-api.com/linkedin-mcp-server/) - when MCP beats calling the
+  REST API directly
 
 ## Layout
 
