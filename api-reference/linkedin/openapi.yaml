@@ -6257,7 +6257,7 @@ paths:
       operationId: scrape_linkedin_sales_nav_param_id_lookup
       summary: Look up Sales Navigator facet id
       description: |-
-        Sales Navigator facet-id typeahead: resolve one SN filter facet (type) into the opaque ids the SN people search-by-params needs. type is a node salesApiFacetTypeahead kind passed through verbatim; the seven text facets (COMPANY_WITH_LIST/BING_GEO/INDUSTRY/TITLE/GROUP/SCHOOL/CONNECTION_OF) resolve query, the rest return their fixed / account-scoped list. SN executor required. Cost 1 credit.
+        Sales Navigator facet-id typeahead: resolve one SN facet (type) into the opaque ids the SN search-by-params filters need. type is a node salesApiFacetTypeahead kind passed through verbatim; the seven text facets resolve query, the rest return their fixed / account-scoped list. Type → target filter member: TITLE → current_titles/past_titles; BING_GEO → locations/company_headquarters; INDUSTRY → industries; COMPANY_WITH_LIST → current_companies/past_companies; GROUP → groups; SCHOOL → schools; CONNECTION_OF → connections_of; ACCOUNT_LIST → account_lists (company search). Skip it for the static kinds (COMPANY_SIZE/FUNCTION/SENIORITY_V2/RELATIONSHIP/COMPANY_TYPE/TENURE/PROFILE_LANGUAGE): their full id sets are inlined in the search filter schemas. PERSONA/LEAD_LIST/LEAD_INTERACTIONS/SAVED_LEADS_AND_ACCOUNTS have no by-params member yet. SN executor required. Cost 1 credit.
 
         Contract:
         - MCP tool `scrape_linkedin_sales_nav_param_id_lookup`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -6551,7 +6551,7 @@ paths:
       operationId: scrape_linkedin_search_sales_nav_companies_by_params
       summary: Scrape Sales Navigator companies by params
       description: |-
-        Structured-filter form of the SN account search, the one engine that filters on revenue and headcount growth. SN-capable executor required. Cost 2 credits.
+        Structured-filter form of the SN account search, carrying the COMPLETE node vocabulary (15 members) - the one engine that filters on annual revenue (range, in millions), company AND per-department headcount growth (ranges, percent), department headcount, follower buckets, Fortune tier, buying signals (leadership changes / funding events), hiring status, 1st-degree relationship, saved accounts and account lists. Typeahead facet ids come from scrape_linkedin_sales_nav_param_id_lookup (type named per member); static-enum members carry their full id sets inline; exclude: true negates a typeahead value. SN-capable executor required. Cost 2 credits.
 
         Contract:
         - MCP tool `scrape_linkedin_search_sales_nav_companies_by_params`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -6635,7 +6635,7 @@ paths:
       operationId: scrape_linkedin_search_sales_nav_people_by_params
       summary: Scrape Sales Navigator people by params
       description: |-
-        Structured-filter form of the SN people search (SN facet vocabulary: seniority, function, headcount, tenure). Same engine and cost (2 credits) as the by-url variant; SN-capable executor required.
+        Structured-filter form of the SN people search, carrying the COMPLETE Sales Navigator facet vocabulary (22 members): titles (current/past), seniority, function, tenure (company/position/career), geography, company HQ, current/past employers, company size and type, industries, groups, schools, profile languages, relationship degree, connections-of, first/last name. HOW TO BUILD A SEARCH: (1) typeahead facets take [{id, text, exclude}] values - resolve ids with scrape_linkedin_sales_nav_param_id_lookup (each member description names its lookup type), or skip the lookup and pass {text: "..."} free text; (2) static-enum members list their FULL id sets inline - never call the lookup for those; (3) exclude: true on a value negates it (closed enums negate by including the complement). Same engine and cost (2 credits) as the by-url variant; SN-capable executor required.
 
         Contract:
         - MCP tool `scrape_linkedin_search_sales_nav_people_by_params`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -9916,7 +9916,7 @@ components:
         source_input:
           type: object
           additionalProperties: {}
-          description: "The verb's own arguments. One key is mandatory per family: url, filters, anchor_company_ln_id, anchor_nickname (similar-profiles takes the vanity slug, never a URN), or activity_urn."
+          description: "The verb's own arguments. One key is mandatory per family: url, filters, anchor_company_ln_id, anchor_nickname (similar-profiles takes the vanity slug, never a URN), or activity_urn. filters takes the SAME schema as the matching scrape_linkedin_search_*_by_params tool (see it for the facet vocabulary and typeahead workflow)."
         replay_frequency:
           type: string
           nullable: true
@@ -30317,39 +30317,270 @@ components:
               type: string
               nullable: true
               maxLength: 256
-            geo_ids:
+            company_headquarters:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'HQ region. Ids via lookup(type: "BING_GEO"); exclude supported (e.g. exclude APAC).'
+            industries:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Industries. Ids via lookup(type: "INDUSTRY").'
+            account_lists:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Your SN account lists. Ids via lookup(type: "ACCOUNT_LIST") - numeric list ids or the "ALL" sentinel; exclude: true skips a list (e.g. current book of business).'
+            company_headcounts:
               type: array
               nullable: true
               items:
                 type: string
+                enum:
+                  - B
+                  - C
+                  - D
+                  - E
+                  - F
+                  - G
+                  - H
+                  - I
               maxItems: 10
-            industry_ids:
+              description: "Company size: 'B' 1-10, 'C' 11-50, 'D' 51-200, 'E' 201-500, 'F' 501-1000, 'G' 1001-5000, 'H' 5001-10000, 'I' 10001+ (account search has no 'A')."
+            num_of_followers:
               type: array
               nullable: true
               items:
                 type: string
-              maxItems: 10
-            headcounts:
+                enum:
+                  - NFR1
+                  - NFR2
+                  - NFR3
+                  - NFR4
+                  - NFR5
+              maxItems: 5
+              description: "LinkedIn page followers: NFR1 1-50, NFR2 51-100, NFR3 101-1000, NFR4 1001-5000, NFR5 5001+."
+            fortune:
               type: array
               nullable: true
               items:
                 type: string
-              maxItems: 10
-              description: SN headcount bucket ids.
-            annual_revenues:
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+              maxItems: 4
+              description: "Fortune 500 tier: '1' Fortune 50, '2' 51-100, '3' 101-250, '4' 251-500."
+            account_activities:
               type: array
               nullable: true
               items:
                 type: string
-              maxItems: 10
-              description: SN revenue bucket ids.
-            headcount_growth_min:
-              type: integer
+                enum:
+                  - SLC
+                  - RFE
+              maxItems: 2
+              description: "Buying signals: 'SLC' senior-leadership changes in the last 3 months, 'RFE' funding event in the past 12 months."
+            annual_revenue:
+              type: object
               nullable: true
-              minimum: -100
-              maximum: 1000
-              description: Department/company headcount-growth floor (int percent).
-          description: Sales Navigator account-search filters. At least one member must be non-empty.
+              properties:
+                min:
+                  type: integer
+                  minimum: 0
+                  maximum: 100000000
+                max:
+                  type: integer
+                  minimum: 0
+                  maximum: 100000000
+                currency:
+                  type: string
+                  nullable: true
+                  pattern: ^[A-Z]{3}$
+                  description: ISO-4217 code; default USD.
+              required:
+                - min
+                - max
+              description: "Annual revenue range in MILLIONS (e.g. {min: 10, max: 100} = $10M-$100M)."
+            company_headcount_growth:
+              type: object
+              nullable: true
+              properties:
+                min:
+                  type: integer
+                  minimum: -100
+                  maximum: 1000
+                max:
+                  type: integer
+                  minimum: -100
+                  maximum: 1000
+              required:
+                - min
+                - max
+              description: Company-wide headcount growth range, percent (negative = shrinking).
+            department_headcount:
+              type: object
+              nullable: true
+              properties:
+                department:
+                  type: string
+                  enum:
+                    - "1"
+                    - "2"
+                    - "3"
+                    - "4"
+                    - "5"
+                    - "6"
+                    - "7"
+                    - "8"
+                    - "9"
+                    - "10"
+                    - "11"
+                    - "12"
+                    - "13"
+                    - "14"
+                    - "15"
+                    - "16"
+                    - "17"
+                    - "18"
+                    - "19"
+                    - "20"
+                    - "21"
+                    - "22"
+                    - "23"
+                    - "24"
+                    - "25"
+                    - "26"
+                  description: 'Numeric SN department id - the same taxonomy as the people-search functions facet (see its legend, or lookup(type: "FUNCTION")).'
+                min:
+                  type: integer
+                  minimum: 0
+                  maximum: 1000000
+                max:
+                  type: integer
+                  minimum: 0
+                  maximum: 1000000
+              required:
+                - department
+                - min
+                - max
+              description: 'Headcount of ONE department (e.g. department "25" Sales, {min: 20, max: 99999}).'
+            department_headcount_growth:
+              type: object
+              nullable: true
+              properties:
+                department:
+                  type: string
+                  enum:
+                    - "1"
+                    - "2"
+                    - "3"
+                    - "4"
+                    - "5"
+                    - "6"
+                    - "7"
+                    - "8"
+                    - "9"
+                    - "10"
+                    - "11"
+                    - "12"
+                    - "13"
+                    - "14"
+                    - "15"
+                    - "16"
+                    - "17"
+                    - "18"
+                    - "19"
+                    - "20"
+                    - "21"
+                    - "22"
+                    - "23"
+                    - "24"
+                    - "25"
+                    - "26"
+                  description: 'Numeric SN department id - the same taxonomy as the people-search functions facet (see its legend, or lookup(type: "FUNCTION")).'
+                min:
+                  type: integer
+                  minimum: -100
+                  maximum: 1000
+                max:
+                  type: integer
+                  minimum: -100
+                  maximum: 1000
+              required:
+                - department
+                - min
+                - max
+              description: Growth of ONE department, percent - e.g. engineering team growing 10%+.
+            hiring_on_linkedin:
+              type: boolean
+              nullable: true
+              description: true → only accounts currently hiring on LinkedIn.
+            first_degree_connection:
+              type: boolean
+              nullable: true
+              description: true → only accounts where you have a 1st-degree connection.
+            saved_accounts_only:
+              type: boolean
+              nullable: true
+              description: true → only your saved SN accounts.
+          description: Sales Navigator account-search filters - the COMPLETE SN vocabulary. At least one member must be non-empty (a false toggle counts as empty). lookup = scrape_linkedin_sales_nav_param_id_lookup.
         page:
           type: integer
           minimum: 1
@@ -30711,58 +30942,398 @@ components:
               type: string
               nullable: true
               maxLength: 256
-            title:
+            first_name:
               type: string
               nullable: true
-              maxLength: 256
-              description: Current title.
+              maxLength: 100
+              description: Text-only wire facet (no id space).
+            last_name:
+              type: string
+              nullable: true
+              maxLength: 100
+              description: Text-only wire facet (no id space).
+            current_titles:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Current job titles. Ids via lookup(type: "TITLE") (numeric, e.g. "5" Director) - or just free text: [{text: "VP Marketing"}].'
+            past_titles:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Past job titles. Ids via lookup(type: "TITLE") or free text.'
+            locations:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Person geography. Ids via lookup(type: "BING_GEO") (e.g. "103644278" United States); regions like DACH/EMEA exist too.'
+            company_headquarters:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'CURRENT COMPANY HQ region (not the person’s own location). Ids via lookup(type: "BING_GEO").'
+            industries:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Industries. Ids via lookup(type: "INDUSTRY") (numeric).'
+            current_companies:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Current employer. Ids via lookup(type: "COMPANY_WITH_LIST") - id shape urn:li:organization:N. exclude: true is the classic "not my customers" move.'
+            past_companies:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Past employer. Ids via lookup(type: "COMPANY_WITH_LIST").'
+            groups:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'LinkedIn group membership. Ids via lookup(type: "GROUP").'
+            schools:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
+                description: "One facet value: at least one of id / text."
+              maxItems: 10
+              description: 'Schools attended. Ids via lookup(type: "SCHOOL") or free text.'
             seniority_levels:
               type: array
               nullable: true
               items:
                 type: string
+                enum:
+                  - "100"
+                  - "110"
+                  - "120"
+                  - "130"
+                  - "200"
+                  - "210"
+                  - "220"
+                  - "300"
+                  - "310"
+                  - "320"
               maxItems: 10
-              description: SN seniority facet ids.
+              description: "SENIORITY_V2: '100' In Training, '110' Entry Level, '120' Senior, '130' Strategic, '200' Entry Level Manager, '210' Experienced Manager, '220' Director, '300' Vice President, '310' CXO, '320' Owner/Partner."
             functions:
               type: array
               nullable: true
               items:
                 type: string
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+                  - "6"
+                  - "7"
+                  - "8"
+                  - "9"
+                  - "10"
+                  - "11"
+                  - "12"
+                  - "13"
+                  - "14"
+                  - "15"
+                  - "16"
+                  - "17"
+                  - "18"
+                  - "19"
+                  - "20"
+                  - "21"
+                  - "22"
+                  - "23"
+                  - "24"
+                  - "25"
+                  - "26"
               maxItems: 10
-              description: SN function facet ids.
-            geo_ids:
-              type: array
-              nullable: true
-              items:
-                type: string
-              maxItems: 10
-            industry_ids:
-              type: array
-              nullable: true
-              items:
-                type: string
-              maxItems: 10
-            current_company_ids:
-              type: array
-              nullable: true
-              items:
-                type: string
-              maxItems: 10
-            company_headcounts:
-              type: array
-              nullable: true
-              items:
-                type: string
-              maxItems: 10
-              description: SN headcount bucket ids.
+              description: "Job function: '1' Accounting, '2' Administrative, '3' Arts and Design, '4' Business Development, '5' Community and Social Services, '6' Consulting, '7' Education, '8' Engineering, '9' Entrepreneurship, '10' Finance, '11' Healthcare Services, '12' Human Resources, '13' Information Technology, '14' Legal, '15' Marketing, '16' Media and Communication, '17' Military and Protective Services, '18' Operations, '19' Product Management, '20' Program and Project Management, '21' Purchasing, '22' Quality Assurance, '23' Real Estate, '24' Research, '25' Sales, '26' Customer Success and Support."
             years_in_current_company:
               type: array
               nullable: true
               items:
                 type: string
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
               maxItems: 5
-              description: SN tenure bucket ids.
-          description: Sales Navigator people-search filters. At least one member must be non-empty.
+              description: "Tenure at current company: '1' <1 year, '2' 1-2, '3' 3-5, '4' 6-10, '5' 10+ years."
+            years_in_current_position:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+              maxItems: 5
+              description: "Tenure in current position: '1' <1 year, '2' 1-2, '3' 3-5, '4' 6-10, '5' 10+ years."
+            years_of_experience:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+              maxItems: 5
+              description: "Total career length: '1' <1 year, '2' 1-2, '3' 3-5, '4' 6-10, '5' 10+ years."
+            company_headcounts:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - A
+                  - B
+                  - C
+                  - D
+                  - E
+                  - F
+                  - G
+                  - H
+                  - I
+              maxItems: 10
+              description: "Company size: 'A' Self-employed, 'B' 1-10, 'C' 11-50, 'D' 51-200, 'E' 201-500, 'F' 501-1000, 'G' 1001-5000, 'H' 5001-10000, 'I' 10001+."
+            company_types:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - C
+                  - P
+                  - N
+                  - D
+                  - S
+                  - E
+                  - O
+                  - G
+              maxItems: 10
+              description: "Company type: 'C' Public, 'P' Privately Held, 'N' Non-profit, 'D' Educational, 'S' Partnership, 'E' Self-Employed, 'O' Self-Owned, 'G' Government."
+            profile_languages:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - ar
+                  - en
+                  - es
+                  - pt
+                  - zh
+                  - fr
+                  - it
+                  - ru
+                  - de
+                  - nl
+                  - tr
+                  - tl
+                  - pl
+                  - ko
+                  - ja
+                  - ms
+                  - no
+                  - da
+                  - ro
+                  - sv
+                  - in
+                  - cs
+              maxItems: 10
+              description: Profile language, ISO 639-1.
+            network:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - F
+                  - S
+                  - A
+                  - O
+              maxItems: 4
+              description: "Relationship degree: 'F' 1st, 'S' 2nd, 'A' group members, 'O' 3rd+."
+            connections_of:
+              type: array
+              nullable: true
+              items:
+                type: string
+                maxLength: 64
+              maxItems: 10
+              description: 'People connected to these members. Tokens (ACwA…) via lookup(type: "CONNECTION_OF").'
+          description: Sales Navigator people-search filters - the COMPLETE SN facet vocabulary. At least one member must be non-empty. lookup = scrape_linkedin_sales_nav_param_id_lookup.
         page:
           type: integer
           minimum: 1
