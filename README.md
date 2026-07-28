@@ -64,12 +64,16 @@ pages before publishing.
 
 ## Deploying
 
-Mintlify deploys this directory through its GitHub App on push. The rollout steps (workspace
-subdomain rename, GitHub repo creation, custom domain `docs.gtm-api.com`, redirects for the
-old `/docs/*` links) live in `marketing/aeo/DOCS_MINTLIFY_RUNBOOK.md`.
+Push to `main` and the site rebuilds. That is the whole flow: Mintlify watches this repo
+through its GitHub App, runs a `Mintlify Deployment` check on the push, and
+[docs.gtm-api.com](https://docs.gtm-api.com) picks the build up within about a minute.
 
-This directory IS the standalone GitHub repo the Mintlify GitHub App watches:
-`github.com/gtm-api/gtm-docs` (Mintlify deploys from GitHub, not Bitbucket). The working
-copy lives inside the monorepo checkout at `marketing/docs/gtm.docs/`, gitignored by the
-umbrella repo (same pattern as `product/openapi/gtm.openapi.tech`), so `sync-openapi.sh`
-keeps working: the monorepo checkout is its expected home. Push to `master` to deploy.
+This directory IS the standalone GitHub repo Mintlify watches: **`github.com/gtm-api/docs`**,
+branch **`main`** (the branch is `main`, not `master` like the rest of the monorepo, because
+Mintlify's connect wizard creates the repo itself from its template and seeds it that way).
+The working copy lives inside the monorepo checkout at `marketing/docs/gtm.docs/`, gitignored
+by the umbrella repo, so `sync-openapi.sh` keeps working: the monorepo checkout is its
+expected home.
+
+Workspace details, the domain setup and the connect-flow gotchas are in
+`marketing/aeo/DOCS_MINTLIFY_RUNBOOK.md`.
