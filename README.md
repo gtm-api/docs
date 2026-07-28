@@ -8,8 +8,12 @@ messaging, enrichment, mass actions), next to the identity and orchestration ser
 Related:
 
 - [docs.gtm-api.com](https://docs.gtm-api.com) - the live site
+- [linkedin-api-examples](https://github.com/gtm-api/linkedin-api-examples) - runnable curl and
+  TypeScript snippets for the LinkedIn endpoints
 - [linkedin-mcp](https://github.com/gtm-api/linkedin-mcp) - the same LinkedIn API packaged as an
   MCP server for AI agents
+- [LinkedIn API in 2026: The Developer Guide](https://gtm-api.com/linkedin-api/) - how the
+  official, third-party and MCP options compare
 - [LinkedIn MCP Server](https://gtm-api.com/linkedin-mcp-server/) - when MCP beats calling the
   REST API directly
 
