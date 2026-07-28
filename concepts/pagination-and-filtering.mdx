@@ -7,7 +7,7 @@ Every list endpoint (`POST /api/{entity}/search`) takes the same four inputs: `f
 
 ## Paging
 
-- `page_size` ranges 0 to 500 and defaults to 50.
+- `page_size` defaults to 50. The ceiling is per endpoint, usually 200 or 500; the reference page for each endpoint states its own range.
 - Responses return `pagination.next_cursor`, an opaque string. Pass it back as `cursor` to get the next page; `null` means the last page. Cursors are forward-only, and there is no offset or page number.
 - `page_size: 0` is count-only mode: `items` comes back empty and you read `counts.total_count`. It is the cheapest way to answer "how many match".
 
@@ -40,7 +40,7 @@ Every list endpoint (`POST /api/{entity}/search`) takes the same four inputs: `f
 
 ## Sorting
 
-`sort` is an object of `field: direction` pairs, for example `{ "created_at": "desc" }`. Sortable fields are listed per endpoint.
+`sort` is a single object with a `field` and an optional `direction`, for example `{ "field": "created_at", "direction": "desc" }`. Direction defaults to `desc`, and one sort field applies per request. The sortable fields are listed per endpoint.
 
 ## Includes
 
