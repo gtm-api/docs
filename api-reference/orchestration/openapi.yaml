@@ -31,8 +31,6 @@ info:
 servers:
   - url: https://app.gtm-api.com/orchestration/v4
     description: Production, through the app.gtm-api.com gateway
-  - url: http://localhost:8025
-    description: Local Docker (gtm_orchestration_nginx_dev)
 security:
   - BearerJwt: []
     TeamSid: []

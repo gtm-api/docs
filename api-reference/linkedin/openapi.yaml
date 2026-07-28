@@ -31,8 +31,6 @@ info:
 servers:
   - url: https://app.gtm-api.com/linkedin/v4
     description: Production, through the app.gtm-api.com gateway
-  - url: http://localhost:8020
-    description: Local Docker (gtm_linkedin_nginx_dev)
 security:
   - BearerJwt: []
     TeamSid: []

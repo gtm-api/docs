@@ -31,8 +31,6 @@ info:
 servers:
   - url: https://app.gtm-api.com/id/v4
     description: Production, through the app.gtm-api.com gateway
-  - url: http://localhost:8021
-    description: Local Docker (gtm_id_nginx_dev)
 security:
   - BearerJwt: []
     TeamSid: []
