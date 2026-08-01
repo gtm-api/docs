@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 150 operations. Internal (`/internal`) and health endpoints are deliberately absent; the code-faithful spec that documents those lives in `product/openapi/gtm.openapi.tech`.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 155 operations. Internal (`/internal`) and health endpoints are deliberately absent; the code-faithful spec that documents those lives in `product/openapi/gtm.openapi.tech`.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -263,7 +263,7 @@ paths:
       operationId: create_antidetect_browser
       summary: Create antidetect browser
       description: |-
-        Provision an antidetect browser for the team. The main flow mints a fresh vendor (GoLogin) profile and pushes the resolved proxy into it, so supply exactly one proxy source (antidetect_browser_proxy_sid | proxy_country_code | custom_proxy_config). Bind an existing vendor_profile_id for the customer bring-your-own path (no proxy source then). DANGEROUS: creates real vendor + proxy infrastructure.
+        Provision ONE antidetect browser for the team. The main flow mints a fresh vendor (GoLogin) profile and pushes the resolved proxy into it, so supply exactly one proxy source (antidetect_browser_proxy_sid | proxy_country_code | custom_proxy_config). Bind an existing vendor_profile_id for the customer bring-your-own path (no proxy source then). DANGEROUS: creates real vendor + proxy infrastructure. To provision SEVERAL browsers under a SINGLE approval (e.g. "create 3 browsers with connect links"), do not call this per browser: author a mass action on /mcp/orchestration/mass-actions with scope {kind:"generate", count:N} and a plan of antidetect-browsers.create (+ antidetect-browsers.generate-cloud-browser-access-key). One preview/confirm covers the whole batch and returns a ma_ sid you monitor in the background; the connect links are read back from each browser row when it finishes.
 
         Contract:
         - MCP tool `create_antidetect_browser`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -574,7 +574,7 @@ paths:
       operationId: delete_antidetect_browser
       summary: Delete antidetect browser
       description: |-
-        Decommission (soft-delete) a single antidetect browser by sid: outward, destructive, one-way through MCP. Variant B cascade: the bound linkedin-account is soft-deleted and pending plugin tasks transition to failed; the cascade block reports the counts. The vendor profile is left intact.
+        Decommission (soft-delete) a single antidetect browser by sid: outward, destructive, one-way through MCP. Variant B cascade: the bound linkedin-account is soft-deleted and pending plugin tasks transition to failed; the cascade block reports the counts. A platform-minted GoLogin profile is reclaimed (deleted) at the vendor unless another live browser row still holds it; customer BYO vendor profiles are left intact.
 
         Contract:
         - MCP tool `delete_antidetect_browser`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -1448,6 +1448,58 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+    patch:
+      operationId: update_linkedin_account
+      summary: Update account display fields
+      description: |-
+        Set the account's operator display fields: display_name and label. These are team-authored (never synced from LinkedIn) and are the only editable fields on the account row - sync cadence has its own tool (update_linkedin_account_sync_config), premium flags have their checks, and lifecycle is driven by the browser. Send only the fields to change; an explicit null clears a field. Returns the updated account. To edit these across many accounts at once, author a mass action with the linkedin-accounts.update step instead.
+
+        Contract:
+        - MCP tool `update_linkedin_account`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
+        - Operation `update`, response envelope `update`.
+        - Flags: none.
+      tags:
+        - linkedin_accounts
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: LinkedIn account sid (ln_ac_…).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^ln_ac_
+            description: LinkedIn account sid (ln_ac_…).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLinkedinAccountRequest"
+      responses:
+        "200":
+          description: "`update` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateLinkedinAccountResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: update_linkedin_account
+      x-gtm-mcp-mount: linkedin.accounts
+      x-gtm-entity: linkedin_accounts
+      x-gtm-operation: update
+      x-gtm-envelope: update
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-creditable: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
   /api/linkedin-accounts/{sid}/check-premium:
     post:
       operationId: check_linkedin_account_premium_subscription
@@ -1698,11 +1750,9 @@ paths:
   /api/linkedin-accounts/{sid}/get-my-analytics:
     post:
       operationId: get_linkedin_account_my_analytics
-      summary: Get my analytics (not shipped)
+      summary: Get my analytics
       description: |-
-        ⛔ NOT SHIPPED YET: returns creator/profile analytics. Contract locked, capability not built; calling it returns not_implemented.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        Read the connected account's creator content analytics over a date window: per metric (impressions, engagements) the daily series, the period total, and the percentage change against the prior period. Omit both dates to get the trailing 28 days, which is what the LinkedIn dashboard itself opens on. Supplying one date without the other is refused rather than half-defaulted, and a window running into the future is refused too (LinkedIn has no data there and would answer with zeroes that read like a collapse in reach). Non-creditable and identity-bound: this is the account's own dashboard, not a competitor read. The metrics map is open: new cards LinkedIn adds show up as extra keys. The 'Discovery' card (in-network vs out-of-network reach) is a separate component and is NOT included.
 
         Contract:
         - MCP tool `get_linkedin_account_my_analytics`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -1721,6 +1771,12 @@ paths:
             maxLength: 18
             pattern: ^ln_ac_
             description: LinkedIn account sid (ln_ac_…).
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetLinkedinAccountMyAnalyticsRequest"
       responses:
         "200":
           description: "`action` success envelope."
@@ -1737,15 +1793,13 @@ paths:
       x-gtm-entity: linkedin_accounts
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-accounts/{sid}/get-my-credits:
     post:
       operationId: get_linkedin_account_my_credits
@@ -1990,11 +2044,9 @@ paths:
   /api/linkedin-accounts/{sid}/get-my-ssi:
     post:
       operationId: get_linkedin_account_my_ssi
-      summary: Get my SSI (not shipped)
+      summary: Get my SSI
       description: |-
-        ⛔ NOT SHIPPED YET: returns the Social Selling Index. Contract locked, capability not built; calling it returns not_implemented.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        Read the connected account's Social Selling Index: the overall score, the four pillars it is the sum of (professional brand, finding the right people, engaging with insights, building relationships), and where the account stands inside its industry and its own network. Answers WITHOUT a Sales Navigator seat, reporting that as active_seat: false with the scores still filled in, so it is a health signal for any account rather than a premium-only read. Non-creditable and identity-bound: the sid names the account whose own dashboard is read; there is no way to read someone else's SSI. Every score is FRACTIONAL (a real reading is 53.496, not 53), so do not round before comparing runs, the week-over-week movement is usually under a point.
 
         Contract:
         - MCP tool `get_linkedin_account_my_ssi`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -2029,23 +2081,19 @@ paths:
       x-gtm-entity: linkedin_accounts
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-accounts/{sid}/my-profile:
     patch:
       operationId: edit_linkedin_account_my_profile
-      summary: Edit my profile (not shipped)
+      summary: Edit my profile
       description: |-
-        ⛔ NOT SHIPPED YET: edits the connected account's own profile (name/headline/summary). Contract locked, capability not built; calling it returns not_implemented.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        Edit the connected account's OWN LinkedIn profile intro card: name, headline, additional name, industry, location, the current position/education pins and their visibility, website, and pronouns. Send only what changes; the backend reads the current card first and submits the complete form, because the LinkedIn form is a REPLACE and anything omitted would be blanked. The About section is NOT editable here (LinkedIn uses a separate form), so passing summary is rejected rather than ignored. Industry, city, position and education take LinkedIn's own numeric ids, which this API does not resolve: omit them and their current values are kept. Spends the tight edit_profile budget (10/day, 600 s apart), because rapid profile churn is a bot signal. LinkedIn returns no confirmation of what it saved, so updated_fields reflects what was ASKED for; read the profile back to confirm.
 
         Contract:
         - MCP tool `edit_linkedin_account_my_profile`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -2086,15 +2134,13 @@ paths:
       x-gtm-entity: linkedin_accounts
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: true
       x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-accounts/{sid}/reset-sync:
     post:
       operationId: reset_linkedin_account_sync
@@ -4347,6 +4393,48 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+  /api/linkedin-enrichment/company-lite-profile:
+    post:
+      operationId: enrich_linkedin_company_lite_profile
+      summary: Enrich company lite profile
+      description: |-
+        The cheap company read: id, vanity, name and logo, nothing else. Deliberately sparse, the company twin of the lite person profile. Use it to confirm a company exists and to pin its identifiers before joining data; use enrich_linkedin_company_profile when you actually need industry, size, HQ or the about text. 1 credit, cached 7d. COST NOTE: a /company/<slug>/ URL is ONE small request on LinkedIn's side, while a Sales Navigator /sales/company/<id> URL costs TWO, because the vanity has to be resolved first (measured: 433 ms vs 2479 ms). Prefer the vanity URL, or resolve the id once with enrich_linkedin_company_public_identifier and reuse it.
+
+        Contract:
+        - MCP tool `enrich_linkedin_company_lite_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
+        - Operation `action`, response envelope `action`.
+        - Flags: creditable: the response carries a `credits` block and the call can debit the team ledger.
+      tags:
+        - linkedin_enrichment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrichLinkedinCompanyLiteProfileRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichLinkedinCompanyLiteProfileResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: enrich_linkedin_company_lite_profile
+      x-gtm-mcp-mount: linkedin.enrichment
+      x-gtm-entity: linkedin_enrichment
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-creditable: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
   /api/linkedin-enrichment/company-posts:
     post:
       operationId: enrich_linkedin_company_posts
@@ -4431,6 +4519,48 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+  /api/linkedin-enrichment/company-public-identifier:
+    post:
+      operationId: enrich_linkedin_company_public_identifier
+      summary: Resolve company vanity
+      description: |-
+        Resolve a numeric LinkedIn company id to its vanity slug. Its own method because this resolution is the single most expensive company request LinkedIn serves: a ~164KB organizational-page download, the only id-native request that reveals the vanity. Cached 30d, since the mapping does not change. The pattern that keeps company work cheap: resolve the id ONCE here, then call every other company read by vanity. 1 credit.
+
+        Contract:
+        - MCP tool `enrich_linkedin_company_public_identifier`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
+        - Operation `action`, response envelope `action`.
+        - Flags: creditable: the response carries a `credits` block and the call can debit the team ledger.
+      tags:
+        - linkedin_enrichment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrichLinkedinCompanyPublicIdentifierRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichLinkedinCompanyPublicIdentifierResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: enrich_linkedin_company_public_identifier
+      x-gtm-mcp-mount: linkedin.enrichment
+      x-gtm-entity: linkedin_enrichment
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-creditable: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: trivial
   /api/linkedin-enrichment/get-activity-urn-by-url:
     post:
       operationId: enrich_linkedin_get_activity_urn_by_url
@@ -4473,14 +4603,54 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+  /api/linkedin-enrichment/person-basic-profile:
+    post:
+      operationId: enrich_linkedin_person_basic_profile
+      summary: Enrich person basic profile
+      description: |-
+        The middle person read, between the lite identity stub and the full dossier: name PARTS (first / last, which no other read splits out), headline, country and display location, profile and background imagery, and the premium / influencer / creator / verified flags. One request, 1 credit, cached 24h. Reach for this when you want to know WHO someone is without paying 5 credits for experience and education cards you will not read. Addressed by public_identifier ONLY: the underlying query keys on the vanity slug, so a urn-only call is refused before any browser work (resolve the slug with enrich_linkedin_person_lite_profile first). NOTE primary_language and supported_languages are the profile's LOCALE settings, i.e. which language the profile is written in. They are NOT the Languages section and carry no proficiency; do not read them as 'this person speaks these languages'.
+
+        Contract:
+        - MCP tool `enrich_linkedin_person_basic_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
+        - Operation `action`, response envelope `action`.
+        - Flags: creditable: the response carries a `credits` block and the call can debit the team ledger.
+      tags:
+        - linkedin_enrichment
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrichLinkedinPersonBasicProfileRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichLinkedinPersonBasicProfileResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: enrich_linkedin_person_basic_profile
+      x-gtm-mcp-mount: linkedin.enrichment
+      x-gtm-entity: linkedin_enrichment
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-creditable: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
   /api/linkedin-enrichment/person-certifications:
     post:
       operationId: enrich_linkedin_person_certifications
-      summary: Enrich person certifications (not shipped)
+      summary: Enrich person certifications
       description: |-
-        ⛔ NOT SHIPPED YET. Contract locked, capability not built; returns not_implemented, do not retry. Licenses & certifications: issuing authority, license number, validity window. Qualification/compliance signal for recruiting and technical ICP fit. 1 credit, cached 7d.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        Licenses and certifications from the target profile: issuing authority, license number, validity window. A qualification and compliance signal for recruiting and technical ICP fit. 1 credit, cached 7d. Most profiles have NONE, so an empty list is a real answer about the person rather than a failed read. license_number and url are frequently null even on real entries (LinkedIn own certifications carry neither). This screen needs BOTH the vanity slug and the member urn: pass profile_id AND public_identifier together to save a resolve round trip, otherwise the backend resolves the missing half for you at no credit cost.
 
         Contract:
         - MCP tool `enrich_linkedin_person_certifications`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -4510,23 +4680,19 @@ paths:
       x-gtm-entity: linkedin_enrichment
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-creditable: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-enrichment/person-comment-activity:
     post:
       operationId: enrich_linkedin_person_comment_activity
-      summary: Enrich person comment activity (not shipped)
+      summary: Enrich person comment activity
       description: |-
-        ⛔ NOT SHIPPED YET. Contract locked, capability not built; returns not_implemented, do not retry. The target's recent comments across OTHER people's posts (activity feed → Comments): where the target spends attention, and warm entry points. 3 credits/page, cached 7d, paginated. The target's OWN posts are person-posts; the commenters OF a post are scraping.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        The target's recent comments across OTHER people's posts (activity feed, Comments tab): where the target spends attention, and warm entry points for an opener. Each item carries the PARENT POST too, so you can read what they were reacting to without a second call. 3 credits/page, cached 7d, paginated. Addressed by profile_id alone. PAGING: the end of the feed is a MISSING paging.next_page_cursor, never an empty page, because member filtering can empty a page mid-feed; there is no total, LinkedIn reports 0 for this feed whatever is in it. The target's OWN posts are person-posts; the commenters OF a post are scraping.
 
         Contract:
         - MCP tool `enrich_linkedin_person_comment_activity`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -4556,15 +4722,13 @@ paths:
       x-gtm-entity: linkedin_enrichment
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-creditable: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-enrichment/person-contact-info:
     post:
       operationId: enrich_linkedin_person_contact_info
@@ -5000,11 +5164,9 @@ paths:
   /api/linkedin-enrichment/person-recommendations:
     post:
       operationId: enrich_linkedin_person_recommendations
-      summary: Enrich person recommendations (not shipped)
+      summary: Enrich person recommendations
       description: |-
-        ⛔ NOT SHIPPED YET. Contract locked, capability not built; returns not_implemented, do not retry. Received and given recommendations: who vouches for the target and in what words. Each counterpart's identifier quad makes the recommendation a lead-graph edge. 2 credits, cached 7d.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        Recommendations on the target profile: who vouches for them and in what words. `direction` picks received (the default, what LinkedIn opens on) or given; these are two SEPARATE reads of the same screen, so asking for both spends the method twice. 2 credits, cached 7d. The counterpart carries a nickname, name, headline and network distance but NO ln_id: LinkedIn does not put the member urn in this payload, so enrich the nickname separately if you need the urn. created_at is parsed out of the free-text context line and is null when that line has no date. Needs BOTH the vanity slug and the member urn: pass profile_id AND public_identifier together to skip the resolve round trip.
 
         Contract:
         - MCP tool `enrich_linkedin_person_recommendations`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5034,15 +5196,13 @@ paths:
       x-gtm-entity: linkedin_enrichment
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-creditable: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-enrichment/person-services:
     post:
       operationId: enrich_linkedin_person_services
@@ -5823,7 +5983,7 @@ paths:
       operationId: create_linkedin_comment
       summary: Create LinkedIn comment
       description: |-
-        Leave ONE outbound comment on any LinkedIn post, addressed by its activity URN (wire create-comment). Outward and fire-on-success: the post does NOT need to be tracked or owned by us, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the messaging_general bucket, saturation returns 429 with no pool fallback. Reply to an existing comment by passing parent_comment_urn. The comment text comes in text; templates and AI generation are outside this API. Returns the created comment ref plus the activity-log row. To react instead use react_linkedin_post; to read a post's existing comments or commenters use the linkedin-scraping get-post-comments / get-post-commenters tools; to resolve a post URL to its activity URN use get_activity_urn_by_url.
+        Leave ONE outbound comment on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-comment): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. Outward and fire-on-success: the post does NOT need to be tracked or owned by us, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the messaging_general bucket, saturation returns 429 with no pool fallback. Reply to an existing comment by passing parent_comment_urn. The comment text comes in text; templates and AI generation are outside this API. Returns the created comment ref plus the activity-log row. To react instead use react_linkedin_post; to read a post's existing comments or commenters use the linkedin-scraping get-post-comments / get-post-commenters tools; to resolve a post URL to its activity URN use get_activity_urn_by_url.
 
         Contract:
         - MCP tool `create_linkedin_comment`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -5911,7 +6071,7 @@ paths:
       operationId: react_linkedin_post
       summary: React to LinkedIn post
       description: |-
-        Leave OUR reaction on any LinkedIn post, addressed by its activity URN (wire create-reaction). The social-selling counterpart of create_linkedin_comment, e.g. warm a prospect up by reacting to their post before a connect. Outward and fire-on-success: the post does NOT need to be tracked, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the messaging_general bucket, saturation returns 429 with no pool fallback. Two different managed accounts reacting to the same post are two independent calls. Returns the activity-log row. To comment use create_linkedin_comment; to read who already reacted use the linkedin-scraping get-post-reactors tool.
+        Leave OUR reaction on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-reaction): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. The social-selling counterpart of create_linkedin_comment, e.g. warm a prospect up by reacting to their post before a connect. Outward and fire-on-success: the post does NOT need to be tracked, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the messaging_general bucket, saturation returns 429 with no pool fallback. Two different managed accounts reacting to the same post are two independent calls. Returns the activity-log row. To comment use create_linkedin_comment; to read who already reacted use the linkedin-scraping get-post-reactors tool.
 
         Contract:
         - MCP tool `react_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -6715,11 +6875,9 @@ paths:
   /api/linkedin-scraping/search-service-providers:
     post:
       operationId: scrape_linkedin_search_service_providers
-      summary: Scrape service providers (not shipped)
+      summary: Scrape service providers
       description: |-
-        ⛔ NOT SHIPPED YET. The contract is locked and validated now but the plugin verb is not built. Every valid, allowed call returns 501 not_implemented (context.reason=blocked_on_plugin) with no ledger row and no credit spend; do not retry. Search LinkedIn’s service-provider marketplace (freelancers / agencies). Returns people previews extended with service labels and marketplace rating. Cost 2 credits.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        Search LinkedIn's service-provider marketplace (freelancers and agencies) by filters. Returns the same person previews as the people search: the services screen carries no ratings or service labels in its results, only provider profiles. 2 credits per page. Filters are keywords plus LinkedIn's own numeric service-category and geo ids; anything else on that screen is reachable by pasting the UI URL into the by-url twin.
 
         Contract:
         - MCP tool `scrape_linkedin_search_service_providers`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -6749,15 +6907,55 @@ paths:
       x-gtm-entity: linkedin_scraping
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-creditable: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
+  /api/linkedin-scraping/search-service-providers-by-url:
+    post:
+      operationId: scrape_linkedin_search_service_providers_by_url
+      summary: Scrape service providers by URL
+      description: |-
+        Run ONE page of a pasted LinkedIn services-search URL. Use this when the marketplace facets you need are not in the by-filters tool: build the search in LinkedIn's own UI, copy the /search/results/services/ URL, and page through it here. A URL from any other search screen is refused, because it would silently scrape the wrong thing. 2 credits per page, same person-preview rows as the by-filters tool.
+
+        Contract:
+        - MCP tool `scrape_linkedin_search_service_providers_by_url`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
+        - Operation `action`, response envelope `action`.
+        - Flags: creditable: the response carries a `credits` block and the call can debit the team ledger.
+      tags:
+        - linkedin_scraping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeLinkedinSearchServiceProvidersByUrlRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeLinkedinSearchServiceProvidersByUrlResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: scrape_linkedin_search_service_providers_by_url
+      x-gtm-mcp-mount: linkedin.scraping
+      x-gtm-entity: linkedin_scraping
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-creditable: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
   /api/linkedin-scraping/similar-companies:
     post:
       operationId: scrape_linkedin_similar_companies
@@ -7694,6 +7892,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -7979,6 +8183,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -8125,6 +8331,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -8410,6 +8622,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -8556,6 +8770,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -8841,6 +9061,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -9009,6 +9231,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -9294,6 +9522,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -9905,6 +10135,8 @@ components:
             - get-post-commenters
             - get-post-reactors
             - get-post-resharers
+            - search-service-providers
+            - search-service-providers-by-url
             - search-companies-by-url
             - search-companies-by-params
             - search-sales-nav-companies-by-url
@@ -9966,6 +10198,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -10157,11 +10391,11 @@ components:
           maxLength: 18
           pattern: ^ln_ac_
           description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound and non-creditable: REQUIRED, never a pool account."
-        activity_urn:
+        entity_urn:
           type: string
           minLength: 1
           maxLength: 512
-          description: urn:li:activity:<id>, the post handle. The post does NOT need to be tracked or owned by us. Resolve a linkedin.com post URL first with get_activity_urn_by_url.
+          description: "The post handle: urn:li:activity:<id> for a member post, or urn:li:ugcPost:<id> for a company-page post or a newsletter issue (LinkedIn threads those as ugcPost, not activity). Either form is passed to the wire verbatim. The post does NOT need to be tracked or owned by us. Resolve a linkedin.com post URL first with get_activity_urn_by_url. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
         text:
           type: string
           minLength: 1
@@ -10178,7 +10412,7 @@ components:
           description: "Accepted for contract compatibility and NOT enforced by this service today: per-post dedup left with the content trio (gs.service.signals). Passing it changes nothing."
       required:
         - linkedin_account_sid
-        - activity_urn
+        - entity_urn
         - text
     CreateLinkedinCommentResponse:
       type: object
@@ -10781,12 +11015,59 @@ components:
       properties:
         first_name:
           type: string
+          minLength: 1
+          maxLength: 100
         last_name:
           type: string
+          minLength: 1
+          maxLength: 100
         headline:
           type: string
-        summary:
+          minLength: 1
+          maxLength: 220
+          description: LinkedIn's own cap is 220 characters.
+        additional_name:
           type: string
+          maxLength: 100
+        industry_id:
+          type: string
+          pattern: ^\d+$
+          description: LinkedIn industry id, e.g. '96'.
+        location_geo_id:
+          type: integer
+          minimum: 1
+        sub_location_geo_id:
+          type: integer
+          minimum: 1
+        city_geo_id:
+          type: string
+          pattern: ^\d+$
+        location:
+          type: string
+          maxLength: 200
+          description: Display text for the location, e.g. Buenos Aires.
+        postal_code:
+          type: string
+          maxLength: 20
+        current_position_id:
+          type: string
+          pattern: ^\d+$
+        current_education_id:
+          type: string
+          pattern: ^\d+$
+        show_current_position:
+          type: boolean
+        show_education:
+          type: boolean
+        website:
+          type: string
+          maxLength: 2048
+        website_label:
+          type: string
+          maxLength: 100
+        custom_pronouns:
+          type: string
+          maxLength: 50
     EditLinkedinAccountMyProfileResponse:
       type: object
       properties:
@@ -10847,6 +11128,12 @@ components:
               type: string
               nullable: true
             avatar_url:
+              type: string
+              nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
               type: string
               nullable: true
             has_premium:
@@ -11134,6 +11421,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -11156,7 +11445,19 @@ components:
             - deleted_at
         result:
           type: object
-          additionalProperties: {}
+          properties:
+            activity_log:
+              type: object
+              properties: {}
+              description: The dispatch row (linkedin-account-activity-log), action_type edit_my_profile.
+            updated_fields:
+              type: array
+              items:
+                type: string
+              description: "The fields the caller asked to change. NOT a confirmation: LinkedIn answers with a bare ok and does not echo the saved profile."
+          required:
+            - activity_log
+            - updated_fields
         meta:
           type: object
           properties:
@@ -11304,6 +11605,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -11589,6 +11896,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -11612,6 +11921,135 @@ components:
         result:
           type: object
           additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            debug_url:
+              type: string
+              description: Deep link to the post-call analysis UI.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+            - debug_url
+        credits:
+          type: object
+          properties:
+            charged:
+              type: integer
+              minimum: 0
+              description: Credits debited for THIS call (0 on own-account / cache hit).
+            reason:
+              type: string
+              nullable: true
+              enum:
+                - infra_pool
+                - limit_fallback
+            executed_on:
+              type: string
+              enum:
+                - own_account
+                - infra_pool
+            balance_after:
+              type: integer
+              nullable: true
+              minimum: 0
+              description: Team balance after the debit; null when the ledger was untouched.
+          required:
+            - charged
+            - reason
+            - executed_on
+            - balance_after
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    EnrichLinkedinCompanyLiteProfileRequest:
+      type: object
+      description: Request body of `enrich_linkedin_company_lite_profile`.
+      properties:
+        company_url:
+          type: string
+          maxLength: 2048
+          pattern: ^https:\/\/www\.linkedin\.com\/
+          description: A /company/<slug>/ page (cheap) or a /sales/company/<id> URL (costs an extra resolve).
+        linkedin_account_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "Preferred executor account (ln_ac_…). OPTIONAL: given + enrichment bucket budget → own account, charged 0; given + bucket saturated → pool + credits; omitted → pool + credits. There is no use_credit flag: §9.5 resolution is automatic."
+        idempotency_key:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: "Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome: no re-execution, no double charge."
+      required:
+        - company_url
+    EnrichLinkedinCompanyLiteProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            company:
+              type: object
+              properties:
+                id:
+                  type: string
+                urn:
+                  type: string
+                public_identifier:
+                  type: string
+                name:
+                  type: string
+                logo_url:
+                  type: string
+                  nullable: true
+              required:
+                - id
+                - urn
+                - public_identifier
+                - name
+                - logo_url
+            data_request:
+              type: object
+              properties: {}
+              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+          required:
+            - company
+            - data_request
         meta:
           type: object
           properties:
@@ -12107,6 +12545,119 @@ components:
         - item
         - result
         - meta
+    EnrichLinkedinCompanyPublicIdentifierRequest:
+      type: object
+      description: Request body of `enrich_linkedin_company_public_identifier`.
+      properties:
+        company_id:
+          type: string
+          maxLength: 32
+          pattern: ^\d+$
+          description: Numeric LinkedIn company id, e.g. from a Sales Navigator URL or an organization urn.
+        linkedin_account_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "Preferred executor account (ln_ac_…). OPTIONAL: given + enrichment bucket budget → own account, charged 0; given + bucket saturated → pool + credits; omitted → pool + credits. There is no use_credit flag: §9.5 resolution is automatic."
+        idempotency_key:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: "Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome: no re-execution, no double charge."
+      required:
+        - company_id
+    EnrichLinkedinCompanyPublicIdentifierResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            public_identifier:
+              type: string
+              nullable: true
+              description: The vanity slug, or null when the id resolves to nothing.
+            data_request:
+              type: object
+              properties: {}
+              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+          required:
+            - public_identifier
+            - data_request
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            debug_url:
+              type: string
+              description: Deep link to the post-call analysis UI.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+            - debug_url
+        credits:
+          type: object
+          properties:
+            charged:
+              type: integer
+              minimum: 0
+              description: Credits debited for THIS call (0 on own-account / cache hit).
+            reason:
+              type: string
+              nullable: true
+              enum:
+                - infra_pool
+                - limit_fallback
+            executed_on:
+              type: string
+              enum:
+                - own_account
+                - infra_pool
+            balance_after:
+              type: integer
+              nullable: true
+              minimum: 0
+              description: Team balance after the debit; null when the ledger was untouched.
+          required:
+            - charged
+            - reason
+            - executed_on
+            - balance_after
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     EnrichLinkedinGetActivityUrnByUrlRequest:
       type: object
       description: Request body of `enrich_linkedin_get_activity_urn_by_url`.
@@ -12156,6 +12707,188 @@ components:
               description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - activity_urn
+            - data_request
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            debug_url:
+              type: string
+              description: Deep link to the post-call analysis UI.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+            - debug_url
+        credits:
+          type: object
+          properties:
+            charged:
+              type: integer
+              minimum: 0
+              description: Credits debited for THIS call (0 on own-account / cache hit).
+            reason:
+              type: string
+              nullable: true
+              enum:
+                - infra_pool
+                - limit_fallback
+            executed_on:
+              type: string
+              enum:
+                - own_account
+                - infra_pool
+            balance_after:
+              type: integer
+              nullable: true
+              minimum: 0
+              description: Team balance after the debit; null when the ledger was untouched.
+          required:
+            - charged
+            - reason
+            - executed_on
+            - balance_after
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    EnrichLinkedinPersonBasicProfileRequest:
+      type: object
+      description: Request body of `enrich_linkedin_person_basic_profile`.
+      properties:
+        profile_id:
+          type: string
+          maxLength: 128
+          description: ln_id (ACoAA…) or sn_id (ACwAA…), interchangeable for dispatch. Provide profile_id XOR public_identifier.
+        public_identifier:
+          type: string
+          maxLength: 100
+          description: Vanity slug from /in/…. Provide public_identifier XOR profile_id. On sub-record methods a slug-only call needs a stored URN (run person-lite-profile first) or is refused not_dispatchable.
+        linkedin_account_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "Preferred executor account (ln_ac_…). OPTIONAL: given + enrichment bucket budget → own account, charged 0; given + bucket saturated → pool + credits; omitted → pool + credits. There is no use_credit flag: §9.5 resolution is automatic."
+        idempotency_key:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: "Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome: no re-execution, no double charge."
+    EnrichLinkedinPersonBasicProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            profile:
+              type: object
+              properties:
+                id:
+                  type: string
+                urn:
+                  type: string
+                member_id:
+                  type: string
+                  nullable: true
+                public_identifier:
+                  type: string
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                full_name:
+                  type: string
+                headline:
+                  type: string
+                  nullable: true
+                primary_language:
+                  type: string
+                  description: Profile LOCALE, not a spoken language.
+                supported_languages:
+                  type: array
+                  items:
+                    type: string
+                  description: Profile locales, not spoken languages, and no proficiency.
+                country:
+                  type: string
+                  nullable: true
+                location:
+                  type: string
+                  nullable: true
+                picture_url:
+                  type: string
+                  nullable: true
+                background_picture_url:
+                  type: string
+                  nullable: true
+                is_premium:
+                  type: boolean
+                is_influencer:
+                  type: boolean
+                is_creator:
+                  type: boolean
+                is_memorialized:
+                  type: boolean
+                has_verified_profile:
+                  type: boolean
+                has_premium_subscriber_badge:
+                  type: boolean
+              required:
+                - id
+                - urn
+                - member_id
+                - public_identifier
+                - first_name
+                - last_name
+                - full_name
+                - headline
+                - country
+                - location
+                - picture_url
+                - background_picture_url
+                - is_premium
+                - is_influencer
+                - is_creator
+                - is_memorialized
+                - has_verified_profile
+                - has_premium_subscriber_badge
+            data_request:
+              type: object
+              properties: {}
+              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+          required:
+            - profile
             - data_request
         meta:
           type: object
@@ -12409,72 +13142,81 @@ components:
           type: object
           properties:
             comments:
-              type: object
-              properties:
-                elements:
-                  type: array
-                  items:
+              type: array
+              items:
+                type: object
+                properties:
+                  comment_urn:
+                    type: string
+                  activity_urn:
+                    type: string
+                  post_url:
+                    type: string
+                    nullable: true
+                  post_author:
                     type: object
+                    nullable: true
                     properties:
-                      comment_urn:
+                      name:
                         type: string
-                      activity_urn:
-                        type: string
-                      post_url:
+                      headline:
                         type: string
                         nullable: true
-                      post_author:
-                        type: object
-                        nullable: true
-                        properties:
-                          name:
-                            type: string
-                          headline:
-                            type: string
-                            nullable: true
-                          profile_id:
-                            type: string
-                            nullable: true
-                          public_identifier:
-                            type: string
-                            nullable: true
-                          profile_url:
-                            type: string
-                            nullable: true
-                          picture_url:
-                            type: string
-                            nullable: true
-                        required:
-                          - name
-                          - headline
-                          - profile_id
-                          - public_identifier
-                          - profile_url
-                          - picture_url
-                      text:
+                      profile_id:
                         type: string
-                      created_at:
+                        nullable: true
+                      public_identifier:
+                        type: string
+                        nullable: true
+                      profile_url:
+                        type: string
+                        nullable: true
+                      picture_url:
                         type: string
                         nullable: true
                     required:
-                      - comment_urn
-                      - activity_urn
-                      - post_url
-                      - post_author
-                      - text
-                      - created_at
-                paging:
-                  type: object
-                  properties: {}
+                      - name
+                      - headline
+                      - profile_id
+                      - public_identifier
+                      - profile_url
+                      - picture_url
+                  text:
+                    type: string
+                  created_at:
+                    type: string
+                    nullable: true
+                required:
+                  - comment_urn
+                  - activity_urn
+                  - post_url
+                  - post_author
+                  - text
+                  - created_at
+            paging:
+              type: object
+              properties:
+                page_size:
+                  type: integer
+                  nullable: true
+                page_cursor:
+                  type: string
+                  nullable: true
+                next_page_cursor:
+                  type: string
+                  nullable: true
+                  description: Pass back as `cursor` for the next page. NULL means the feed is over. There is deliberately no total.
               required:
-                - elements
-                - paging
+                - page_size
+                - page_cursor
+                - next_page_cursor
             data_request:
               type: object
               properties: {}
               description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - comments
+            - paging
             - data_request
         meta:
           type: object
@@ -14317,6 +15059,13 @@ components:
           type: string
           maxLength: 100
           description: Vanity slug from /in/…. Provide public_identifier XOR profile_id. On sub-record methods a slug-only call needs a stored URN (run person-lite-profile first) or is refused not_dispatchable.
+        direction:
+          type: string
+          nullable: true
+          enum:
+            - received
+            - given
+          description: received (default) = written ABOUT the target; given = written BY the target. Separate reads, so each spends the method.
         linkedin_account_sid:
           type: string
           nullable: true
@@ -16118,6 +16867,7 @@ components:
               type: string
               enum:
                 - person_lite_profile
+                - person_basic_profile
                 - person_full_profile
                 - person_experience
                 - person_skills
@@ -16133,6 +16883,8 @@ components:
                 - person_interests
                 - person_services
                 - company_profile
+                - company_lite_profile
+                - company_public_identifier
                 - company_posts
                 - post_details
                 - search_people_by_url
@@ -16140,6 +16892,7 @@ components:
                 - search_sales_nav_people_by_url
                 - search_sales_nav_people_by_params
                 - search_service_providers
+                - search_service_providers_by_url
                 - similar_profiles
                 - search_companies_by_url
                 - search_companies_by_params
@@ -16578,6 +17331,20 @@ components:
         - operation
         - metrics
         - meta
+    GetLinkedinAccountMyAnalyticsRequest:
+      type: object
+      description: Request body of `get_linkedin_account_my_analytics`.
+      properties:
+        date_from:
+          type: string
+          nullable: true
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          description: Window start, YYYY-MM-DD. Omit BOTH dates for the trailing 28 days; supplying only one is a 422.
+        date_to:
+          type: string
+          nullable: true
+          pattern: ^\d{4}-\d{2}-\d{2}$
+          description: Window end, YYYY-MM-DD. Must not precede date_from and must not be in the future.
     GetLinkedinAccountMyAnalyticsResponse:
       type: object
       properties:
@@ -16638,6 +17405,12 @@ components:
               type: string
               nullable: true
             avatar_url:
+              type: string
+              nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
               type: string
               nullable: true
             has_premium:
@@ -16925,6 +17698,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -16947,7 +17722,63 @@ components:
             - deleted_at
         result:
           type: object
-          additionalProperties: {}
+          properties:
+            status:
+              type: string
+              description: Plugin dispatch status for this read.
+            analytics:
+              type: object
+              properties:
+                date_from:
+                  type: string
+                  description: Window start actually reported on, YYYY-MM-DD.
+                date_to:
+                  type: string
+                metrics:
+                  type: object
+                  additionalProperties:
+                    type: object
+                    properties:
+                      total:
+                        type: integer
+                        description: Period total, equal to the sum of the daily series.
+                      change_percent:
+                        type: number
+                        nullable: true
+                        description: "Magnitude of the change vs the prior period. UNSIGNED: pair it with change_direction, and when that is null the direction is genuinely unknown."
+                      change_direction:
+                        type: string
+                        nullable: true
+                        enum:
+                          - up
+                          - down
+                        description: Often null in practice, including when change_percent is present. Treat null as unknown, never as flat or as up.
+                      daily:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            date:
+                              type: string
+                            value:
+                              type: integer
+                          required:
+                            - date
+                            - value
+                        description: One point per day in the window, UTC dates.
+                    required:
+                      - total
+                      - change_percent
+                      - change_direction
+                      - daily
+                  description: "Keyed by wire metric name (impressions, engagements today). An OPEN map: new dashboard cards appear as new keys."
+              required:
+                - date_from
+                - date_to
+                - metrics
+          required:
+            - status
+            - analytics
         meta:
           type: object
           properties:
@@ -17071,6 +17902,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -17356,6 +18193,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -17513,6 +18352,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -17798,6 +18643,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -17944,6 +18791,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -18229,6 +19082,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -18375,6 +19230,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -18660,6 +19521,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -18806,6 +19669,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -19091,6 +19960,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -19237,6 +20108,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -19522,6 +20399,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -19544,7 +20423,70 @@ components:
             - deleted_at
         result:
           type: object
-          additionalProperties: {}
+          properties:
+            status:
+              type: string
+              description: Plugin dispatch status for this read.
+            ssi:
+              type: object
+              properties:
+                active_seat:
+                  type: boolean
+                  description: Whether the account holds a live Sales Navigator seat. False does NOT mean the scores are absent.
+                overall:
+                  type: number
+                  description: 0-100, the sum of the four pillars. Fractional.
+                pillars:
+                  type: object
+                  properties:
+                    professional_brand:
+                      type: number
+                    find_right_people:
+                      type: number
+                    insight_engagement:
+                      type: number
+                    strong_relationship:
+                      type: number
+                  required:
+                    - professional_brand
+                    - find_right_people
+                    - insight_engagement
+                    - strong_relationship
+                  description: The four SSI components, each 0-25 and fractional.
+                group_ranks:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      group_type:
+                        type: string
+                        description: "INDUSTRY or NETWORK. Open string: a group LinkedIn adds must surface, not vanish."
+                      rank:
+                        type: integer
+                        description: Percentile standing inside the group, lower is better.
+                      group_size:
+                        type: integer
+                      industry:
+                        type: string
+                        nullable: true
+                        description: Present on the INDUSTRY group only.
+                      overall:
+                        type: number
+                        description: SSI recomputed within this comparison group.
+                    required:
+                      - group_type
+                      - rank
+                      - group_size
+                      - overall
+                  description: Peer-group standings. Empty when the read failed.
+              required:
+                - active_seat
+                - overall
+                - pillars
+                - group_ranks
+          required:
+            - status
+            - ssi
         meta:
           type: object
           properties:
@@ -19664,6 +20606,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -19949,6 +20897,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -20333,6 +21283,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -24563,6 +25515,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -25014,11 +25968,11 @@ components:
           maxLength: 18
           pattern: ^ln_ac_
           description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound and non-creditable: REQUIRED, never a pool account."
-        activity_urn:
+        entity_urn:
           type: string
           minLength: 1
           maxLength: 512
-          description: urn:li:activity:<id>, the post handle. The post does NOT need to be tracked or owned by us. Resolve a linkedin.com post URL first with get_activity_urn_by_url.
+          description: "The post handle: urn:li:activity:<id> for a member post, or urn:li:ugcPost:<id> for a company-page post or a newsletter issue (LinkedIn threads those as ugcPost, not activity). Either form is passed to the wire verbatim. The post does NOT need to be tracked or owned by us. Resolve a linkedin.com post URL first with get_activity_urn_by_url. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
         reaction_type:
           type: string
           nullable: true
@@ -25036,7 +25990,7 @@ components:
           description: "Accepted for contract compatibility and NOT enforced by this service today: per-post dedup left with the content trio (gs.service.signals). Passing it changes nothing."
       required:
         - linkedin_account_sid
-        - activity_urn
+        - entity_urn
     ReactLinkedinPostResponse:
       type: object
       properties:
@@ -25891,6 +26845,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -26176,6 +27136,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -26316,6 +27278,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -27171,6 +28135,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -31680,6 +32646,190 @@ components:
         - item
         - result
         - meta
+    ScrapeLinkedinSearchServiceProvidersByUrlRequest:
+      type: object
+      description: Request body of `scrape_linkedin_search_service_providers_by_url`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "Preferred executor account (ln_ac_…). OPTIONAL everywhere on this surface: omitted → platform pool + credits (reason infra_pool); given with scraping-bucket budget → own account, charged 0; given but the bucket is saturated/held → automatic pool fallback (reason limit_fallback), never a 429 (§9.5)."
+        idempotency_key:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: "Ledger replay guard: a repeat call with the same (team, key) returns the stored outcome; no re-execution, no double charge. Recommended on every paid call."
+        url:
+          type: string
+          maxLength: 2048
+          description: Must start with https://www.linkedin.com/search/results/services/
+        page:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Default 1.
+      required:
+        - url
+    ScrapeLinkedinSearchServiceProvidersByUrlResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  ln_member_id:
+                    type: string
+                    nullable: true
+                    description: Canonical member id (decoded in-process).
+                  ln_id:
+                    type: string
+                    nullable: true
+                  sn_id:
+                    type: string
+                    nullable: true
+                  nickname:
+                    type: string
+                    nullable: true
+                  full_name:
+                    type: string
+                    nullable: true
+                  headline:
+                    type: string
+                    nullable: true
+                  position:
+                    type: string
+                    nullable: true
+                  company_name:
+                    type: string
+                    nullable: true
+                  location:
+                    type: string
+                    nullable: true
+                  avatar_url:
+                    type: string
+                    nullable: true
+                  connection_degree:
+                    type: string
+                    nullable: true
+                required:
+                  - ln_member_id
+                  - ln_id
+                  - sn_id
+                  - nickname
+                  - full_name
+                  - headline
+                  - position
+                  - company_name
+                  - location
+                  - avatar_url
+                  - connection_degree
+              description: The transient result list, in LinkedIn’s order; NOTHING persisted.
+            paging:
+              type: object
+              properties:
+                page:
+                  type: integer
+                page_size:
+                  type: integer
+                has_more:
+                  type: boolean
+                total:
+                  type: integer
+                  nullable: true
+              required:
+                - page
+                - page_size
+                - has_more
+                - total
+              description: "Page-numbered paging: re-call with page + 1 while has_more."
+            data_request:
+              type: object
+              properties: {}
+              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+          required:
+            - rows
+            - paging
+            - data_request
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            debug_url:
+              type: string
+              description: Deep link to the post-call analysis UI.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+            - debug_url
+        credits:
+          type: object
+          properties:
+            charged:
+              type: integer
+              minimum: 0
+              description: Credits debited for THIS call (0 on own-account / cache hit).
+            reason:
+              type: string
+              nullable: true
+              enum:
+                - infra_pool
+                - limit_fallback
+            executed_on:
+              type: string
+              enum:
+                - own_account
+                - infra_pool
+            balance_after:
+              type: integer
+              nullable: true
+              minimum: 0
+              description: Team balance after the debit; null when the ledger was untouched.
+          required:
+            - charged
+            - reason
+            - executed_on
+            - balance_after
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     ScrapeLinkedinSearchServiceProvidersRequest:
       type: object
       description: Request body of `scrape_linkedin_search_service_providers`.
@@ -31699,24 +32849,27 @@ components:
         filters:
           type: object
           properties:
-            service_ids:
-              type: array
-              nullable: true
-              items:
-                type: string
-              maxItems: 10
-              description: service facet ids from param-id-lookup("service").
             keywords:
               type: string
               nullable: true
               maxLength: 256
-            geo_ids:
+            service_categories:
               type: array
               nullable: true
               items:
                 type: string
+                pattern: ^\d+$
               maxItems: 10
-          description: Service-provider marketplace filters. At least one member must be non-empty.
+              description: "LinkedIn's own numeric service-category ids. Not resolvable through this API: read them off a services-search URL, or use the by-url tool."
+            locations:
+              type: array
+              nullable: true
+              items:
+                type: string
+                pattern: ^\d+$
+              maxItems: 10
+              description: Numeric LinkedIn geo ids.
+          description: Service-provider marketplace filters. At least one member must be non-empty. Anything these three cannot express is reachable by pasting the UI URL into scrape_linkedin_search_service_providers_by_url.
         page:
           type: integer
           minimum: 1
@@ -31781,17 +32934,6 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                  services:
-                    type: array
-                    nullable: true
-                    items:
-                      type: string
-                  rating:
-                    type: number
-                    nullable: true
-                  reviews_count:
-                    type: integer
-                    nullable: true
                 required:
                   - ln_member_id
                   - ln_id
@@ -31804,9 +32946,6 @@ components:
                   - location
                   - avatar_url
                   - connection_degree
-                  - services
-                  - rating
-                  - reviews_count
               description: The transient result list, in LinkedIn’s order; NOTHING persisted.
             paging:
               type: object
@@ -33897,6 +35036,7 @@ components:
                   type: string
                   enum:
                     - person_lite_profile
+                    - person_basic_profile
                     - person_full_profile
                     - person_experience
                     - person_skills
@@ -33912,6 +35052,8 @@ components:
                     - person_interests
                     - person_services
                     - company_profile
+                    - company_lite_profile
+                    - company_public_identifier
                     - company_posts
                     - post_details
                     - search_people_by_url
@@ -33919,6 +35061,7 @@ components:
                     - search_sales_nav_people_by_url
                     - search_sales_nav_people_by_params
                     - search_service_providers
+                    - search_service_providers_by_url
                     - similar_profiles
                     - search_companies_by_url
                     - search_companies_by_params
@@ -33942,6 +35085,7 @@ components:
                     type: string
                     enum:
                       - person_lite_profile
+                      - person_basic_profile
                       - person_full_profile
                       - person_experience
                       - person_skills
@@ -33957,6 +35101,8 @@ components:
                       - person_interests
                       - person_services
                       - company_profile
+                      - company_lite_profile
+                      - company_public_identifier
                       - company_posts
                       - post_details
                       - search_people_by_url
@@ -33964,6 +35110,7 @@ components:
                       - search_sales_nav_people_by_url
                       - search_sales_nav_people_by_params
                       - search_service_providers
+                      - search_service_providers_by_url
                       - similar_profiles
                       - search_companies_by_url
                       - search_companies_by_params
@@ -33987,6 +35134,7 @@ components:
                     type: string
                     enum:
                       - person_lite_profile
+                      - person_basic_profile
                       - person_full_profile
                       - person_experience
                       - person_skills
@@ -34002,6 +35150,8 @@ components:
                       - person_interests
                       - person_services
                       - company_profile
+                      - company_lite_profile
+                      - company_public_identifier
                       - company_posts
                       - post_details
                       - search_people_by_url
@@ -34009,6 +35159,7 @@ components:
                       - search_sales_nav_people_by_url
                       - search_sales_nav_people_by_params
                       - search_service_providers
+                      - search_service_providers_by_url
                       - similar_profiles
                       - search_companies_by_url
                       - search_companies_by_params
@@ -34200,6 +35351,7 @@ components:
                     type: string
                     enum:
                       - person_lite_profile
+                      - person_basic_profile
                       - person_full_profile
                       - person_experience
                       - person_skills
@@ -34215,6 +35367,8 @@ components:
                       - person_interests
                       - person_services
                       - company_profile
+                      - company_lite_profile
+                      - company_public_identifier
                       - company_posts
                       - post_details
                       - search_people_by_url
@@ -34222,6 +35376,7 @@ components:
                       - search_sales_nav_people_by_url
                       - search_sales_nav_people_by_params
                       - search_service_providers
+                      - search_service_providers_by_url
                       - similar_profiles
                       - search_companies_by_url
                       - search_companies_by_params
@@ -37247,6 +38402,12 @@ components:
                   avatar_url:
                     type: string
                     nullable: true
+                  display_name:
+                    type: string
+                    nullable: true
+                  label:
+                    type: string
+                    nullable: true
                   has_premium:
                     type: boolean
                   has_sn:
@@ -37532,6 +38693,8 @@ components:
                   - nickname
                   - full_name
                   - avatar_url
+                  - display_name
+                  - label
                   - has_premium
                   - has_sn
                   - has_recruiter
@@ -38446,6 +39609,8 @@ components:
                     - get-post-commenters
                     - get-post-reactors
                     - get-post-resharers
+                    - search-service-providers
+                    - search-service-providers-by-url
                     - search-companies-by-url
                     - search-companies-by-params
                     - search-sales-nav-companies-by-url
@@ -38464,6 +39629,8 @@ components:
                     - get-post-commenters
                     - get-post-reactors
                     - get-post-resharers
+                    - search-service-providers
+                    - search-service-providers-by-url
                     - search-companies-by-url
                     - search-companies-by-params
                     - search-sales-nav-companies-by-url
@@ -38484,6 +39651,8 @@ components:
                       - get-post-commenters
                       - get-post-reactors
                       - get-post-resharers
+                      - search-service-providers
+                      - search-service-providers-by-url
                       - search-companies-by-url
                       - search-companies-by-params
                       - search-sales-nav-companies-by-url
@@ -38504,6 +39673,8 @@ components:
                       - get-post-commenters
                       - get-post-reactors
                       - get-post-resharers
+                      - search-service-providers
+                      - search-service-providers-by-url
                       - search-companies-by-url
                       - search-companies-by-params
                       - search-sales-nav-companies-by-url
@@ -38780,6 +39951,8 @@ components:
                       - get-post-commenters
                       - get-post-reactors
                       - get-post-resharers
+                      - search-service-providers
+                      - search-service-providers-by-url
                       - search-companies-by-url
                       - search-companies-by-params
                       - search-sales-nav-companies-by-url
@@ -42728,6 +43901,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -44522,6 +45697,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -44737,6 +45914,431 @@ components:
         - action
         - item
         - result
+        - meta
+    UpdateLinkedinAccountRequest:
+      type: object
+      description: Request body of `update_linkedin_account`.
+      properties:
+        display_name:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Team-facing display name for the account; null clears it.
+        label:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Free-form label/tag for the account (e.g. a pod or campaign name); null clears it.
+    UpdateLinkedinAccountResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - update
+        item:
+          type: object
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            antidetect_browser_sid:
+              type: string
+            status:
+              type: string
+              enum:
+                - new
+                - initial_syncing
+                - active
+                - sync_failed
+                - shared_out
+                - subscription_required
+            account_share_sid:
+              type: string
+              nullable: true
+            share_role:
+              type: string
+              nullable: true
+              enum:
+                - owner
+                - holder
+                - giver
+                - receiver
+            ln_id:
+              type: string
+              nullable: true
+            ln_member_id:
+              type: string
+              nullable: true
+            sn_id:
+              type: string
+              nullable: true
+            nickname:
+              type: string
+              nullable: true
+            full_name:
+              type: string
+              nullable: true
+            avatar_url:
+              type: string
+              nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
+            has_premium:
+              type: boolean
+            has_sn:
+              type: boolean
+            has_recruiter:
+              type: boolean
+            inmail_credits:
+              type: number
+              nullable: true
+            last_premium_check_at:
+              type: string
+              nullable: true
+            last_connections_sync_at:
+              type: string
+              nullable: true
+            last_conversations_sync_at:
+              type: string
+              nullable: true
+            last_sales_navigator_conversations_sync_at:
+              type: string
+              nullable: true
+            last_connection_requests_sync_at:
+              type: string
+              nullable: true
+            last_connection_invitations_sync_at:
+              type: string
+              nullable: true
+            last_followers_sync_at:
+              type: string
+              nullable: true
+            last_snapshot_at:
+              type: string
+              nullable: true
+            initial_sync_completed_at:
+              type: string
+              nullable: true
+            last_heartbeat_at:
+              type: string
+              nullable: true
+            sync_config:
+              type: object
+              nullable: true
+              properties:
+                entries:
+                  type: object
+                  properties:
+                    connections:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    sales_navigator_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_requests:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_invitations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    premium_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    snapshot_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: Per-track sync-interval overrides, keyed by sync track.
+                timezone:
+                  type: string
+                  description: IANA timezone the window is evaluated in.
+                window:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day_of_week:
+                        type: integer
+                        minimum: 1
+                        maximum: 7
+                      start_minute:
+                        type: integer
+                        minimum: 0
+                        maximum: 1439
+                      end_minute:
+                        type: integer
+                        minimum: 1
+                        maximum: 1440
+                    required:
+                      - day_of_week
+                      - start_minute
+                      - end_minute
+                  description: Weekly sync-activity window blocks; empty = always open.
+            webhook_config:
+              type: object
+              nullable: true
+              properties:
+                connections:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_requests:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_invitations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                sales_navigator_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                messages:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                followers:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                snapshot:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                strike_log:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                limits:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+            created_by:
+              type: object
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+                - reason
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - antidetect_browser_sid
+            - status
+            - account_share_sid
+            - share_role
+            - ln_id
+            - ln_member_id
+            - sn_id
+            - nickname
+            - full_name
+            - avatar_url
+            - display_name
+            - label
+            - has_premium
+            - has_sn
+            - has_recruiter
+            - inmail_credits
+            - last_premium_check_at
+            - last_connections_sync_at
+            - last_conversations_sync_at
+            - last_sales_navigator_conversations_sync_at
+            - last_connection_requests_sync_at
+            - last_connection_invitations_sync_at
+            - last_followers_sync_at
+            - last_snapshot_at
+            - initial_sync_completed_at
+            - last_heartbeat_at
+            - sync_config
+            - webhook_config
+            - created_by
+            - created_at
+            - updated_at
+            - deleted_at
+        updated_fields:
+          type: array
+          items:
+            type: string
+        previous_values:
+          type: object
+          additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            debug_url:
+              type: string
+              description: Deep link to the post-call analysis UI.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+            - debug_url
+      required:
+        - success
+        - operation
+        - item
+        - updated_fields
+        - previous_values
         - meta
     UpdateLinkedinAccountSmartLimitRequest:
       type: object
@@ -45063,6 +46665,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -45348,6 +46956,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter
@@ -45482,6 +47092,8 @@ components:
                 - get-post-commenters
                 - get-post-reactors
                 - get-post-resharers
+                - search-service-providers
+                - search-service-providers-by-url
                 - search-companies-by-url
                 - search-companies-by-params
                 - search-sales-nav-companies-by-url
@@ -45750,6 +47362,12 @@ components:
             avatar_url:
               type: string
               nullable: true
+            display_name:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
             has_premium:
               type: boolean
             has_sn:
@@ -46035,6 +47653,8 @@ components:
             - nickname
             - full_name
             - avatar_url
+            - display_name
+            - label
             - has_premium
             - has_sn
             - has_recruiter

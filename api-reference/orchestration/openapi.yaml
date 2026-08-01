@@ -1354,6 +1354,15 @@ components:
                           - linkedin-connection-requests.send-linkedin-connection-request
                           - linkedin-posting.react
                           - email-messages.send
+                          - antidetect-browsers.run
+                          - antidetect-browsers.stop
+                          - antidetect-browsers.delete
+                          - antidetect-browsers.create
+                          - antidetect-browsers.generate-cloud-browser-access-key
+                          - antidetect-browsers.revoke-cloud-browser-access-key
+                          - linkedin-accounts.update-sync-config
+                          - linkedin-account-smart-limits.update
+                          - linkedin-account-smart-limits.reset-hold
                       - type: string
                         enum:
                           - linkedin-connection-requests.send
@@ -3542,6 +3551,15 @@ components:
                           - linkedin-connection-requests.send-linkedin-connection-request
                           - linkedin-posting.react
                           - email-messages.send
+                          - antidetect-browsers.run
+                          - antidetect-browsers.stop
+                          - antidetect-browsers.delete
+                          - antidetect-browsers.create
+                          - antidetect-browsers.generate-cloud-browser-access-key
+                          - antidetect-browsers.revoke-cloud-browser-access-key
+                          - linkedin-accounts.update-sync-config
+                          - linkedin-account-smart-limits.update
+                          - linkedin-account-smart-limits.reset-hold
                       - type: string
                         enum:
                           - linkedin-connection-requests.send
