@@ -1,6 +1,6 @@
 # gtm-docs
 
-Developer documentation for the GTM API, served at [docs.gtm-api.com](https://docs.gtm-api.com):
+Developer documentation for gtm-api, served at [docs.gtm-api.com](https://docs.gtm-api.com):
 quickstart, guides, MCP setup, and the generated reference for the whole public contract. The
 largest part is the LinkedIn API reference (150 endpoints: accounts, people and company search,
 messaging, enrichment, mass actions), next to the identity and orchestration services.
@@ -58,7 +58,7 @@ mint dev
 
 Every page ships under the monorepo writing rules (root `CLAUDE.md` "Writing style: no LLM
 tells" and `marketing/BRAND_RULES.md`): no em or en dash as punctuation, no filler
-vocabulary, no legacy-brand references, and the brand name is `GTM API` everywhere. Run the
+vocabulary, no legacy-brand references, and the brand name is `gtm-api` everywhere. Run the
 hard-fail greps from `marketing/aeo/articles/04-ARTICLE-CHECKLIST.md` §1 and §2 over changed
 pages before publishing.
 
