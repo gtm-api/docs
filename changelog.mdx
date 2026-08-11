@@ -3,6 +3,94 @@ title: "Changelog"
 description: "What changed in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-08-09" description="Account capability checks folded into one call">
+  **260 operations**: LinkedIn 160, ID and Teams 77, Orchestration 21, Support 2.
+
+  **Changed: the granular subscription checks are now a parameter, not two endpoints.**
+  `POST /api/linkedin-accounts/{sid}/check-premium` accepts an optional `checks` array naming which
+  steps to run: `premium`, `sales_nav`, `recruiter`, `inmail_credits`. Leave it out and the call
+  behaves exactly as before, running all four, so nothing you have written needs changing.
+
+  `POST /api/linkedin-accounts/{sid}/check-recruiter` and `.../check-sales-nav` are **removed**.
+  They were those same steps behind their own paths. Send `checks: ["recruiter"]` or
+  `checks: ["sales_nav"]` instead.
+
+  One behaviour changed on purpose: a narrow check now writes what it read back to the account
+  record, where the old granular endpoints returned it and stored nothing. A probe that fails still
+  leaves the previous value alone, so a failed check never reads as a lost seat.
+</Update>
+
+<Update label="2026-08-09" description="LinkedIn school search">
+  **262 operations**: LinkedIn 162, ID and Teams 77, Orchestration 21, Support 2.
+
+  **New: LinkedIn schools search.** `POST /api/linkedin-scraping/search-schools` searches LinkedIn
+  school pages and returns school rows (slug, url, name, location line, a students-and-alumni
+  counter and a blurb). Send `filters` with a `keywords` string, or send a
+  `https://www.linkedin.com/search/results/schools/` url the search screen produced. Exactly one of
+  the two.
+
+  `keywords` is the whole filter vocabulary here, the same shape the events search has, so every
+  other facet the schools screen offers is reachable only through the url form. There is no
+  school-id filter: the ids `param-id-lookup` returns for `type=school` do not fit this endpoint,
+  and sending one is refused rather than quietly ignored.
+
+  Two things to know about the rows. The identity field is `school_slug`, a slug rather than an id,
+  and it can arrive URL encoded, so pass it through as you got it. And `students_alumni_count` is a
+  rounded figure parsed from the text LinkedIn printed, counting students and alumni, not employees.
+
+  With this endpoint the LinkedIn search surface is complete: people, companies, both Sales
+  Navigator searches, service providers, posts, jobs, events, groups, courses, products and schools.
+</Update>
+
+<Update label="2026-08-09" description="LinkedIn product search">
+  **261 operations**: LinkedIn 161, ID and Teams 77, Orchestration 21, Support 2.
+
+  **New: LinkedIn products search.** `POST /api/linkedin-scraping/search-products` searches
+  LinkedIn's product catalogue and returns product rows (slug, url, name, category line, vendor
+  name, tagline, top features, a connections counter and artwork). Send `filters` with a required
+  `keywords` plus any of `free_version`, `product_category` and `product_company`, or send a
+  `https://www.linkedin.com/search/results/products/` url the search screen produced. Exactly one
+  of the two.
+
+  The two id filters take digit strings from two different places: `product_category` ids come from
+  `POST /api/linkedin-scraping/param-id-lookup` with `type=product_category`, while
+  `product_company` takes ordinary LinkedIn organization ids. Nothing checks one against the other,
+  so a category id used as a company id returns an empty page rather than an error. `free_version`
+  is a one way switch: true narrows to products with a free tier, false is the same as leaving it
+  out.
+
+  One thing to know about the rows: the identity field is `product_slug`, and it is a slug, not an
+  id. It cannot be fed back into either filter.
+</Update>
+
+<Update label="August 8, 2026" description="The scraping search pairs collapse into one endpoint each, and groups arrive">
+  **259 operations**: LinkedIn 159, ID and Teams 77, Orchestration 21, Support 2. The LinkedIn count
+  rose while the endpoint count fell, because the searches were merged rather than multiplied.
+
+  **One endpoint per search, url or filters.** Every LinkedIn scraping search used to ship as two
+  routes, a by-params form and a by-url twin. They are now ONE route that accepts `filters` or a
+  pasted LinkedIn search `url`, exactly one of the two, on the same rule the mass-action surface
+  already uses for `sid` versus `filter`. Sending both, or neither, is a 422.
+
+  Renamed: `POST /api/linkedin-scraping/search-people`, `search-companies`,
+  `search-sales-nav-people`, `search-sales-nav-companies`. Their `-by-url` and `-by-params` forms
+  are gone. `search-service-providers`, `search-posts`, `search-jobs` and `search-events` keep their
+  paths and simply gained the `url` member; their `-by-url` twins are gone too.
+
+  **New: LinkedIn courses search.** `POST /api/linkedin-scraping/search-courses` searches LinkedIn
+  Learning and returns course rows (slug, url, title, author, duration, release and viewer text,
+  thumbnail). Two filters beyond `keywords`: `difficulty` (`beginner` / `intermediate` /
+  `advanced`) and `time_to_complete` (`under_10_mins` through `3_plus_hours`). Send those readable
+  values, not LinkedIn's own labels: the translation happens server-side. The software and subject
+  facets are not in the filter vocabulary and are reachable by pasting a
+  `https://www.linkedin.com/search/results/learning/` URL into the same endpoint.
+
+  **New: LinkedIn groups search.** `POST /api/linkedin-scraping/search-groups` returns group rows
+  (id, url, name, privacy, member count, description, logo). Its filter vocabulary is `keywords`
+  and nothing else, which is LinkedIn's whole surface for that vertical rather than a subset we
+  chose; every other groups facet is reachable by pasting the UI search URL into the same endpoint.
+</Update>
+
 <Update label="July 29, 2026" description="Five new LinkedIn endpoints, seven more come out of stub">
   **253 operations**, up from 248: LinkedIn 155, ID and Teams 77, Orchestration 21.
 

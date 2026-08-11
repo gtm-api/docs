@@ -1773,7 +1773,7 @@ paths:
       operationId: get_notifications_metrics
       summary: Notifications metrics
       description: |-
-        Period-bound delivery-health aggregates over a filtered notification set: how many emails were delivered, failed, and rate-limited in the window. Requires period {from,to}. Optional filter and a single group_by axis (event_name / status / channel).
+        Period-bound delivery-health aggregates over a filtered notification set: how many notifications were delivered, failed, and rate-limited in the window. Requires period {from,to}. Optional filter and a single group_by axis (event_name / status / channel).
 
         Contract:
         - MCP tool `get_notifications_metrics`, registry package `mcp.id/notifications`, mount `id.platform`.
@@ -1815,7 +1815,7 @@ paths:
       operationId: search_notifications
       summary: Search notifications
       description: |-
-        List email notifications for the team/user with filtering, sorting and cursor pagination: the user inbox ("what was sent to me?"), admin audit ("what did the system email Jane about?"), or failure triage (status:failed in the last 24h). No full-text search. Returns a counts block of predicate tallies (by status / event_name / channel). Email bodies are omitted from list rows; call get_notification for the rendered body.
+        List notifications (email and in_app channels) for the team/user with filtering, sorting and cursor pagination: the user inbox ("what was sent to me?"), admin audit ("what did the system email Jane about?"), or failure triage (status:failed in the last 24h). No full-text search. Returns a counts block of predicate tallies (by status / event_name / channel). Bodies are omitted from list rows; call get_notification for the rendered body.
 
         Contract:
         - MCP tool `search_notifications`, registry package `mcp.id/notifications`, mount `id.platform`.
@@ -3732,6 +3732,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -3980,6 +3981,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -4229,6 +4231,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -4466,6 +4469,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -4717,6 +4721,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -4980,6 +4985,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -5011,6 +5017,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -5166,6 +5173,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -5408,6 +5416,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -5620,6 +5629,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -5784,6 +5794,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -5933,6 +5944,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -6060,8 +6072,6 @@ components:
               properties:
                 accounts:
                   type: number
-                signals:
-                  type: number
                 cloud_browser:
                   type: number
                 webhooks:
@@ -6070,7 +6080,6 @@ components:
                   type: number
               required:
                 - accounts
-                - signals
                 - cloud_browser
                 - webhooks
                 - enrichment
@@ -6092,6 +6101,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -6683,6 +6693,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -6803,6 +6814,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -7326,6 +7338,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -7539,6 +7552,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -8869,6 +8883,7 @@ components:
               type: string
               enum:
                 - email
+                - in_app
             status:
               type: string
               enum:
@@ -8906,6 +8921,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -9080,6 +9096,7 @@ components:
                   type: string
                   enum:
                     - email
+                    - in_app
               additionalProperties: false
             scheduled_at:
               type: object
@@ -9292,6 +9309,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -9422,6 +9440,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -9744,6 +9763,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -9936,6 +9956,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -10081,6 +10102,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -10193,8 +10215,6 @@ components:
               properties:
                 accounts:
                   type: number
-                signals:
-                  type: number
                 cloud_browser:
                   type: number
                 webhooks:
@@ -10203,7 +10223,6 @@ components:
                   type: number
               required:
                 - accounts
-                - signals
                 - cloud_browser
                 - webhooks
                 - enrichment
@@ -10225,6 +10244,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -10395,6 +10415,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -11032,6 +11053,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -11063,6 +11085,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -11421,6 +11444,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -11672,6 +11696,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -12377,6 +12402,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -12408,6 +12434,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -12668,6 +12695,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -12864,6 +12892,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -13039,6 +13068,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -13265,6 +13295,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -13756,6 +13787,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -13787,6 +13819,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -14242,6 +14275,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -14743,6 +14777,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -14774,6 +14809,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -15097,6 +15133,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -15399,8 +15436,6 @@ components:
                     properties:
                       accounts:
                         type: number
-                      signals:
-                        type: number
                       cloud_browser:
                         type: number
                       webhooks:
@@ -15409,7 +15444,6 @@ components:
                         type: number
                     required:
                       - accounts
-                      - signals
                       - cloud_browser
                       - webhooks
                       - enrichment
@@ -15896,6 +15930,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                       team_sid:
@@ -16906,6 +16941,7 @@ components:
                   type: string
                   enum:
                     - email
+                    - in_app
               additionalProperties: false
             scheduled_at:
               type: object
@@ -17026,6 +17062,7 @@ components:
                     type: string
                     enum:
                       - email
+                      - in_app
                   status:
                     type: string
                     enum:
@@ -17063,6 +17100,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                       team_sid:
@@ -17614,6 +17652,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -18253,6 +18292,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                       team_sid:
@@ -18589,6 +18629,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                       team_sid:
@@ -18874,6 +18915,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -19164,8 +19206,6 @@ components:
                     properties:
                       accounts:
                         type: number
-                      signals:
-                        type: number
                       cloud_browser:
                         type: number
                       webhooks:
@@ -19174,7 +19214,6 @@ components:
                         type: number
                     required:
                       - accounts
-                      - signals
                       - cloud_browser
                       - webhooks
                       - enrichment
@@ -19196,6 +19235,7 @@ components:
                           - support
                           - api_key
                           - system
+                          - agent
                       actor_sid:
                         type: string
                         nullable: true
@@ -19368,8 +19408,6 @@ components:
               properties:
                 accounts:
                   type: number
-                signals:
-                  type: number
                 cloud_browser:
                   type: number
                 webhooks:
@@ -19378,7 +19416,6 @@ components:
                   type: number
               required:
                 - accounts
-                - signals
                 - cloud_browser
                 - webhooks
                 - enrichment
@@ -19400,6 +19437,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -19635,6 +19673,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -19812,6 +19851,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -20301,6 +20341,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -20461,6 +20502,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                 team_sid:
@@ -20608,6 +20650,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
@@ -20738,8 +20781,6 @@ components:
               properties:
                 accounts:
                   type: number
-                signals:
-                  type: number
                 cloud_browser:
                   type: number
                 webhooks:
@@ -20748,7 +20789,6 @@ components:
                   type: number
               required:
                 - accounts
-                - signals
                 - cloud_browser
                 - webhooks
                 - enrichment
@@ -20770,6 +20810,7 @@ components:
                     - support
                     - api_key
                     - system
+                    - agent
                 actor_sid:
                   type: string
                   nullable: true
