@@ -3,6 +3,41 @@ title: "Changelog"
 description: "What changed in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-08-12" description="The three own-dashboard reads, and get-post-comments folds away">
+  **259 operations**: LinkedIn 159, ID and Teams 77, Orchestration 21, Support 2.
+
+  **New: the three feeds off your own LinkedIn dashboard.** All three are one-shot reads on an
+  account you connected, cursor-paginated, and none of them writes anything.
+
+  `POST /api/linkedin-accounts/{sid}/get-my-profile-views` returns who viewed the account's profile
+  over the last 90 days, newest first. The window and the sort are LinkedIn's and there is no
+  filter, so "who viewed me today" means reading the top of the feed. Rows carry rendered text
+  ("Viewed 1w ago"), never a parseable date, and an anonymized viewer arrives with `is_anonymous`
+  true, no member ids and a people-search url where the profile would be, so branch on that flag
+  before you key a row.
+
+  `POST /api/linkedin-accounts/{sid}/get-my-catch-up` returns the nurture cards on My Network:
+  birthdays, job changes and work anniversaries among the account's connections, each with the
+  one-click message LinkedIn printed on the button. It lists prompts and sends nothing. There is no
+  `page_size` here on purpose, because LinkedIn's own request carries no count knob and the page is
+  server-fixed at 10. Key a card by `card_urn`, which identifies the prompt rather than the person.
+
+  `POST /api/linkedin-accounts/{sid}/get-my-sales-nav-notifications` returns the Sales Navigator
+  alert bell. It needs a Sales Navigator seat on the account and refuses up front without one. The
+  feed is ordered by LinkedIn's relevance score rather than reverse-chronologically, so sort by
+  `published_at` yourself. Alerts arriving without an id are dropped, which means a page can be
+  shorter than `page_size` while the feed continues: do not read a short page as the end here.
+
+  **Removed: `POST /api/linkedin-scraping/get-post-comments`.** It and `get-post-commenters` were
+  calling the same underlying read, and the commenters form is the one that carries the parent post
+  and the member ids. Use `POST /api/linkedin-scraping/get-post-commenters` instead. Replies to a
+  comment are not on the wire at all, from either endpoint.
+
+  **Changed: `signals` left the team limits object.** The limit no longer exists on the platform, so
+  it is gone from the `limits` map on the team reads rather than reported as zero. Nothing else in
+  that object moved.
+</Update>
+
 <Update label="2026-08-09" description="Account capability checks folded into one call">
   **260 operations**: LinkedIn 160, ID and Teams 77, Orchestration 21, Support 2.
 
