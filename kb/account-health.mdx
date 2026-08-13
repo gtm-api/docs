@@ -1,0 +1,213 @@
+---
+title: "Account health"
+description: "Every connected LinkedIn account carries a warmup score built from six compounding signals, a snapshot history, a limit-hit log and a block log. What each one records and what to do about it."
+---
+
+Every connected LinkedIn account carries a health record: a warmup score with its six inputs, a
+snapshot every 22 hours, and two incident logs. What each signal measures, and what to do about it.
+
+## Where health lives
+
+Open **Senders**, click the account row, open the **Smart Limits** tab. The warmup card is at the top: the
+score, a band label, and a table of **Metric**, **Health** and **Comment**, one row per signal. A healthy
+signal reads `ok`; an unhealthy one shows the percentage it costs and the reason. Below it, **Incident
+logs** holds the **Limit-hit log** and the **Block log**, then the per-action caps. The **Senders** list
+carries a **Safety** column for a quick per-account read.
+
+## The warmup score
+
+One integer from 0 to 100, recomputed on every snapshot as `round(100 * (1 - p1) * ... * (1 - p6))`: six
+signals each remove a fraction of what is left, so they compound rather than add up. A signal with no
+penalty is left out of the breakdown, which is why `warmup_breakdown` comes back empty on a healthy
+account. The table itself always lists all six signals, the healthy ones marked `ok`.
+
+| Signal | UI label | What it reads | Penalty |
+|---|---|---|---|
+| `account_age` | **Account age** | Months since the account's earliest known connection | `0` at 4 months or older, otherwise `0.80 * (4 - age) / 4` |
+| `limit_hits` | **Limit hits** | Rows in the limit-hit log over the last 30 days | `0` up to 3 hits, then `7.14%` per extra hit, capped at `70%` |
+| `blocks` | **Blocks** | Rows in the block log over the last 30 days | `1 - 0.60^blocks`, capped at `85%` |
+| `activity` | **Activity** | Connection requests and messages this account sent through the platform in the last 30 days | `0.90 * (1 - activity / 80)`, so `0` at 80 sends or more |
+| `sessions_ip` | **Sessions & IP** | Concurrent LinkedIn sessions read from the account itself | `0` up to 2, `10%` for 3 or 4, `20%` above 4 |
+| `completeness` | **Completeness** | Profile completeness percentage | `0` at 80% or above, `10%` for 50% to 79%, `20%` below 50% |
+
+A dormant account carries the full 90% activity penalty, which alone caps its score at 10. The band label under
+the number is presentation only, nothing in the engine keys off it: `New` below 50, `Warming up` from 50 to 89,
+`Established` at 90 or above.
+
+### What counts as activity, and what does not
+
+The floor is **80 platform-executed sends per 30 days**, read from the platform's own activity log. It
+deliberately ignores the connection and message tables, because a freshly connected account imports a
+backlog of previously sent invitations whose timestamps would make a dormant account look busy. So sends
+you make by hand in LinkedIn earn **no activity credit**, and they **do** show up in **Sessions & IP** as
+a second device or IP. A refusal LinkedIn hands you in its own UI is never logged here: a block you
+provoke by hand surfaces only later, if one of the platform's own actions against that same target is
+refused and the two-browser check runs.
+
+**Profile completeness** is scored backend-side over twelve weighted fields: `experience` (8), `about`
+(5), `educations` (4), `location` and `skills` (3 each), `full_name`, `position`, `headline`,
+`company_name`, `email` and `top_voices` (2 each), `supported_languages` (1). List fields earn full
+weight for one entry and 1.5x for two or more. The drawer's short version: headline, photo, experience.
+
+## Snapshots
+
+A snapshot is one immutable row holding everything health knew about the account at one moment: the score
+and its `warmup_breakdown` (`[{driver, penalty_pct}]`, unhealthy signals only), the profile summary, the
+session list, 30-day counters, `executed_actions` per bucket, and the limit surface frozen as it stood.
+Capture runs on a **1320 minute (22 hour)** cadence; a freshly connected account gets its first one
+during onboarding, not 22 hours later.
+
+- **Append only, and the score moves only when a snapshot lands.** Roughly 33 rows a month per account,
+  kept indefinitely, with no create, update or delete through the API. Fix a signal now and the number
+  changes at the next capture, not immediately.
+- **Capture needs the account's browser**, since it reads the account's own profile and session list. A
+  browser stuck in an issue state stops producing new snapshots
+  ([browser troubleshooting](/kb/browser-troubleshooting)).
+- **Its reads are charged to `self_account_sync`**, the one budget the warmup ramp never scales down, so
+  health keeps capturing even on an account whose outreach budgets are tiny.
+- **Two derived fields are worth knowing:** `sessions_diff`, the 0 to 100 change in the source IP set
+  versus the previous snapshot, and `account_diff`, 0 to 100 weighted profile drift versus it, where 0
+  means unchanged.
+
+<Warning>
+`last_month_messages_blocked` is the 30-day block count, the same number that feeds the **Blocks** signal.
+The name is historical: a LinkedIn block is total, not message-only.
+</Warning>
+
+## Limit-hit log: LinkedIn refused us
+
+One row records a LinkedIn rate-limit the background sync engine ran into. Only the connection-request
+and message surfaces write a typed row; a rate-limit on any other surface flips the browser to an issue
+status instead. Rows are immutable and never deleted. Each reason carries its own temporary lock on the
+matching budget.
+
+| `reason` | Lock | Budget it blocks |
+|---|---|---|
+| `connection_request` | **1 hour** | Connection requests |
+| `inmail` | **3 hours** | InMails |
+
+A repeat refusal within **12 hours** for the same account and reason re-arms the lock but writes **no
+second row**, so the 30-day count behind **Limit hits** is not inflated by one bad hour. Every row freezes
+the volume at the moment LinkedIn struck: `daily_count` (since local start of day), `seven_days_count`,
+`thirty_days_count`, and `linkedin_quota_hit_till`, when the lock expires. The `daily_count` spread across
+rows answers "at what volume does this account get refused".
+
+<Warning>
+Two events restrict an account without writing a limit-hit row: a **captcha**, which blocks **every budget
+for 6 hours** on purpose so a person intervenes rather than automation grinding on, and a browser or proxy
+fault, which flips the browser to an issue status. Both show up as a red account with an empty log.
+</Warning>
+
+## Block log: a prospect blocked us
+
+One row records the first time a target profile was found to be blocking one of your accounts. Rows are
+immutable and never deleted. LinkedIn publishes no "you were blocked" signal, so the platform derives it
+with a two-browser check: an outbound action fails with a LinkedIn 4xx refusal (429 rate limits excluded,
+they mean something else), the target is read through the affected account's own browser, and if that
+fails it is retried through another live browser on your team. The triggering actions are connection
+requests, messages, InMails, sales messages, voice messages, skill endorsements, post likes, post
+comments and profile visits. Follow and unfollow are deliberately excluded, a follow refusal having too
+many innocent causes.
+
+| Outcome | Meaning |
+|---|---|
+| `not_blocked` | The affected account can read the target. Nothing recorded |
+| `target_blocked` | The account's own read failed, the second browser succeeded. Row written |
+| `target_unavailable` | Both reads failed. The profile is deleted, restricted or hibernated, not blocking you. No row |
+| `inconclusive` | Transport noise, or no second browser was available |
+| `skipped_recent` | The same pair was checked within the last **24 hours** |
+
+Deduplication is **permanent**, on the pair of account and target member id: one row per genuinely new
+hostile target, forever, because a LinkedIn block does not expire. We cannot tell "blocked" from
+"reported", since both surface to us as the same opaque refusal, so the row carries no discriminator. If
+the target was a connection, the same transaction soft-deletes that connection with `removal_kind` set to
+`blocked` and links it to the block row; soft-deleted connections stay queryable, and **no conversation
+and no message history is touched**. Counts ride search results and the account include (`total_count`,
+`last_24h_count`, `last_7d_count`, `last_30d_count`, `with_connection_count`, `without_connection_count`),
+where the with-connection share says whether blocks burn existing relationships or cold prospects.
+
+<Warning>
+Our own operational threshold is **more than 3 new blocks in 7 days on one account**: past that we treat
+the targeting as the problem, not the account. It is our number, not a rule LinkedIn publishes.
+</Warning>
+
+### Checking one target on demand
+
+`check-target-block` runs the same two-browser check synchronously for a target you name. It costs **1
+credit**, and only when the second-browser probe decides the outcome (`target_blocked` or
+`target_unavailable`): a target already in the block log, a `skipped_recent` result inside the 24 hour
+cache, or a probe that comes back as transport noise all cost **0 credits**. The first read spends **1
+unit** of the account's `self_account_sync` budget, a limit and not a credit. `"force": true` bypasses
+the cache.
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/ln_ac_YOUR_ACCOUNT/check-target-block" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"target": {"nickname": "some-public-profile-slug"}, "force": false}'
+```
+
+The only failure answer is `422 validation_failed`, when `target` carries none of `ln_id`, `sn_id` or
+`nickname`. A balance too short for the probe and a team with no second browser free are not errors:
+both answer 200 with `outcome: "inconclusive"` and `credits.charged: 0`, nothing having run on a second
+browser.
+
+## How health drives smart limits
+
+On each snapshot the score becomes a ceiling per action type (`platform_max[bucket] * warmup_score / 100`,
+rounded) and the budget walks toward it. Up is gradual, down is instant: each recompute moves a budget up
+by about **20%** of the gap to its ceiling (at least 1), so recovery takes several snapshots, while a
+ceiling below the current budget drops it at once, and the upward step is held while the bucket's
+LinkedIn lock (`linkedin_quota_hit_till`) is still in the future, that is after a recent limit hit or a
+captcha. A prospect block holds nothing directly; it lowers the next snapshot's score, and the score
+lowers the ceiling. A fresh refusal does not recompute budgets by itself: it writes the temporary
+lock, and its presence in the 30-day count changes the score at the next capture. Your own configured
+ceiling is never touched. Budgets, holds, the `active` / `held` / `linkedin_blocked` statuses and how to
+release a hold are in [smart limits and warmup](/kb/smart-limits-and-warmup).
+
+## Reading a state and acting on it
+
+| What you see | What it means, what to do |
+|---|---|
+| The score dropped overnight | Read the **Comment** column of the rows that are not `ok`; a drop is always one of the six signals. The score moves only on a capture, so a fix shows up at the next snapshot, up to 22 hours later |
+| **Activity** penalises an account that is sending | The floor counts only actions the platform executed. Sends you made by hand in LinkedIn are not in it. Route the volume through the platform, or accept the penalty as accurate |
+| **Blocks** shows 1 or more | One block removes 40% of the remaining score, two remove 64%, capped at 85%. They age out of the 30-day window on their own: slow down or change the segment you contact, and never retry a target that is already blocking you |
+| **Limit hits** shows 4 or more | Three hits in 30 days are free, then about 7.14% each. Hits age out of the window. Lower the daily budget for the action being refused instead of pushing into the same wall |
+| **Sessions & IP** is flagged | These are real LinkedIn sessions read from the account, phone included, so a laptop plus a phone plus our browser is already 3. Sign out where you do not need to be signed in |
+| **Account age** penalises a genuinely old account | Age is measured from the earliest connection the platform has synced, as a proxy for real age, so an account with few synced connections reads younger than it is. Nothing to do but wait: at 4 months the penalty is exactly 0 |
+| A budget is blocked and the limit-hit log explains it | Read `reason` and the unlock time. The platform restores the budget within a minute of expiry and parked work resumes on its own; nothing needs re-queuing |
+| The account is red but both incident logs are empty | Either a captcha (every budget blocked for 6 hours, no row written, because it wants a person) or a browser or proxy fault. Go to the **Browser** tab, then to [browser troubleshooting](/kb/browser-troubleshooting) |
+
+## Reading health over the API
+
+All three records are read-only and searchable at `/api/linkedin-account-snapshots/search`,
+`/api/linkedin-account-quota-hits/search` (filter `linkedin_quota_hit_till` with `gt` now for live locks
+only) and `/api/linkedin-account-block-log/search`; shapes are in the
+[API reference](/api-reference/overview). Includes on the account are cheaper than three searches:
+`linkedin_account_snapshot` returns the latest snapshot, `linkedin_account_quota_hits` and
+`linkedin_account_block_log` the last 50 rows each, newest first.
+
+<Tip>
+Paste this to your coding agent to read the whole fleet at once:
+
+> Using the GTM API at `https://app.gtm-api.com/linkedin/v4` with the bearer token in `GTM_API_KEY`, post to
+> `/api/linkedin-accounts/search` with `include[]` of `linkedin_account_snapshot`, `linkedin_account_quota_hits`
+> and `linkedin_account_block_log_counts`. For every account print the nickname, `warmup_score`, each
+> `warmup_breakdown` entry as `driver: penalty_pct`, and `last_7d_count` / `last_30d_count`, sorted by
+> `warmup_score` ascending, flagging any account with more than 3 blocks in the last 7 days.
+</Tip>
+
+## Health events
+
+| Event | Fires when |
+|---|---|
+| `linkedin-account-snapshot.captured` | A snapshot is written, so the score has been recomputed |
+| `linkedin-account-quota-hits.recorded` | LinkedIn refused an action and a row was written |
+| `linkedin-account-block-log.recorded` | A target was confirmed to be blocking an account |
+
+## Related
+
+- [Smart limits and warmup](/kb/smart-limits-and-warmup)
+- [Sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend)
+- [Browser troubleshooting](/kb/browser-troubleshooting)
+- [Credits and data requests](/kb/credits-and-data-requests)

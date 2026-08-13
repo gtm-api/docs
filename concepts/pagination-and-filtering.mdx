@@ -7,9 +7,10 @@ Every list endpoint (`POST /api/{entity}/search`) takes the same four inputs: `f
 
 ## Paging
 
-- `page_size` defaults to 50. The ceiling is per endpoint, usually 200 or 500; the reference page for each endpoint states its own range.
+- `page_size` defaults to 50. The ceiling is per endpoint, 100, 200, 500 or 1000 depending on how heavy the table is; each endpoint's reference states its own range, and asking for more than it allows is a `validation_failed` rather than a clamp.
 - Responses return `pagination.next_cursor`, an opaque string. Pass it back as `cursor` to get the next page; `null` means the last page. Cursors are forward-only, and there is no offset or page number.
 - `page_size: 0` is count-only mode: `items` comes back empty and you read `counts.total_count`. It is the cheapest way to answer "how many match".
+- `page_size: 1` is the get-first idiom: one row plus a cursor, for "does anything match, and what is the newest one".
 
 ```json
 {
@@ -33,10 +34,40 @@ Every list endpoint (`POST /api/{entity}/search`) takes the same four inputs: `f
 }
 ```
 
-- Common operators: `eq`, `ne`, `in`, `nin` on enums and sids, `lt`, `lte`, `gt`, `gte` on dates and numbers.
-- `q` is full-text search where the entity supports it; each endpoint's description says which fields it scans.
-- An unknown filter field or an unsupported operator is a `validation_failed` error, not a silent no-op.
-- The response echoes what ran in `applied_filters`.
+### The operator vocabulary
+
+Nine operators exist. Which ones a given field accepts is stated in the reference for
+that endpoint, and asking for one a field does not accept is an error rather than a
+silent no-op.
+
+| Operator | Takes | Reads as |
+|---|---|---|
+| `eq` | a scalar | equals |
+| `ne` | a scalar | does not equal |
+| `in` | an array | matches any of |
+| `nin` | an array | matches none of |
+| `gt`, `gte` | a scalar | after / at or after (dates), greater than (numbers) |
+| `lt`, `lte` | a scalar | before / at or before, less than |
+| `is_null` | a boolean | the column is empty, or is not |
+
+Two rules that are easy to miss:
+
+- **Multiple operators on one field are ANDed.** `{"created_at": {"gte": "...", "lt": "..."}}` is a half-open range, which is how you page a window by time rather than by cursor.
+- **A bare scalar is shorthand for `eq`.** `{"status": "active"}` and `{"status": {"eq": "active"}}` mean the same thing.
+
+`q` is full-text search where the entity supports it. It is a reserved field inside
+`filter`, not a top-level parameter, and each endpoint's description names the columns it
+scans.
+
+<Warning>
+An unknown filter field, an unsupported operator, or a value of the wrong type answers
+`validation_failed` with a `field_errors` entry naming the offending path. Nothing is
+silently dropped, so a filter that returns everything is a filter you did not send, not
+one that was ignored.
+</Warning>
+
+The response echoes what actually ran in `applied_filters`, which is the fastest way to
+confirm a filter reached the backend in the shape you meant.
 
 ## Sorting
 

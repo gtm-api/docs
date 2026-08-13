@@ -1,0 +1,199 @@
+---
+title: "Workspaces and team members"
+description: "What a workspace owns, how switching between them works, how member access is expressed, what an invite does, and why team members are off on the free plan."
+---
+
+A workspace is the tenant: it owns the accounts, the keys, the plan and the member list. This page
+covers switching between them, member access, invitations from both sides, and the free-plan rule.
+
+<Tip>
+**Give this to your AI agent** to audit who can reach a workspace:
+
+"Connect to gtm-api: add the MCP connector at https://mcp.gtm-api.com/mcp (OAuth). Then search
+team-members in the workspace my token is scoped to:
+split active members from pending invitations (`user_sid` is null), show each row's email,
+permission count and account slice, and flag invitations older than 7 days. Do not change anything."
+</Tip>
+
+## What a workspace owns
+
+A workspace id starts with `ts_tm_`, and each of these belongs to exactly one of them:
+
+- Connected LinkedIn accounts, their browsers, conversations, searches, mass actions, auto scrapes.
+- API keys, login sessions and OAuth grants. **A key is workspace-wide**: it reaches every account
+  in that workspace, and no key can be scoped to one account.
+- The plan, the account-slot cap, the data-credit balance and the billing history.
+- The member list, including invitations nobody has accepted yet.
+
+Exactly one person is the **owner** (`owner_user_sid`), the only structural role on the platform.
+Everything else is a permission list, which is why the app shows an **Access** column rather than a
+role column. Two workspace fields are editable: `name` (1 to 255 characters) and `config.timezone`
+(an IANA zone such as `Europe/Berlin`); `status`, `plan`, `limits`, `trial_ends_at` and the owner are
+derived, and the API drops them silently if you send them.
+
+Membership does not share accounts: being a member of workspace A and B does not let you drive A's
+LinkedIn account from B. Moving an account across workspaces is a share or a transfer, both in
+[account sharing and handover](/kb/account-sharing-and-handover).
+
+## Create and switch workspaces
+
+Click the workspace chip under the logo in the sidebar to switch: the current one carries a check
+icon, and the list holds every workspace you own plus every one where you are an active member.
+**Create workspace** sits at the bottom of that dropdown, and confirming the name switches you into
+the new workspace immediately, as its owner.
+
+<Warning>
+A second workspace does not come with a second trial. The 7-day trial is one per user, ever. A
+further workspace is created without capacity and comes up **suspended**: it exists, you own it, and
+calls against it answer `subscription_required` until a plan is applied.
+</Warning>
+
+Switching reloads the page: an access token names exactly one workspace and carries its home
+cluster, so the app calls `POST /auth/switch-team`, gets a new access and refresh token, blacklists
+the old pair, and reloads. Your other devices, API keys and OAuth tokens are untouched.
+
+Which workspace opens when you load the app is the first valid candidate, in order, of: the
+`?team=ts_tm_...` query parameter, which makes any app URL a shareable deep link; the workspace open
+in this tab; the one last used in this browser; `config.latest_team_sid` on your user; your working
+team (`default_team_sid`, **Working team** in the UI, assigned when you join your first workspace,
+and where accounts shared with you land); then the first workspace you have. An invalid candidate is
+dropped and the next one is tried.
+
+Over the API there is no switching, because a token is already scoped. The `Team-SID` header is read
+before the token's own claim, but it has to name the workspace the token was minted for: anything
+else answers `403 forbidden`, reason `wrong_team`. See [authentication](/authentication).
+
+## How member access is expressed
+
+There is no role column in the data. Access is a flat list of permission tokens shaped
+`can_{verb}_{noun}`, plus an optional account slice. The catalog holds **49 tokens** (24
+platform-level, 25 channel-level), and the wildcard `*` means all of them.
+
+| Token | Grants |
+|---|---|
+| `can_view_teams` / `can_manage_teams` | Read the workspace, rename it. Manage also covers transfer and delete |
+| `can_view_team_members` / `can_manage_team_members` | Read the member list; invite, re-scope, resend and remove |
+| `can_view_api_keys` / `can_manage_api_keys` | Read keys; create, rotate and revoke them |
+| `can_view_billing` / `can_manage_billing` | Read the subscription and invoices; change the plan |
+| `can_view_sessions` / `can_manage_sessions` | Read login sessions; revoke them |
+| `can_view_account_shares` / `can_manage_account_shares` | Read account shares; create and recall them |
+| `can_manage_account_transfers` | Transfer an account to another workspace. No read-only tier by design |
+
+The `account_sids` field is the slice: `null` is every account in the workspace (rendered **All**), a
+list of `ln_ac_` sids is only those (**{n} of {total}**), an empty list is none.
+
+<Warning>
+Inviting from the app grants the full token list today, and there is no screen for editing a
+member's permissions or account slice: `PATCH /api/team-members/{sid}` is the only way to narrow one.
+Until per-member scoping is enforced end to end across every service, treat anybody you invite as
+having full access to the workspace, including its keys and billing.
+</Warning>
+
+## Invite a teammate
+
+Open **Settings**, then **Teammates** under the **Workspace** group in the left rail. The panel is
+titled **Members and invites**, and its path is in the URL, so the page is linkable. Click
+**Invite**, enter the email (max 255 characters) and send: a row appears immediately with status
+**Invited**, carrying a permission chip that pops the member's full token list.
+
+The invitee receives an email with subject **"You are invited to `{workspace name}`"** and an **Accept
+invitation** button carrying a single-use code. Accepting requires a signed-in session, because a
+membership binds to the authenticated user and never to an address in a request body, so somebody
+without an account signs up first. On acceptance the row flips from `invited` to `active`, the code
+is cleared, and if the person had no working team yet this workspace becomes it.
+
+An invitation link is valid for **7 days**, after which a daily job clears the stored code and the
+old link stops working. The row stays on the list: press **Resend** to re-roll the code and give
+another 7 days, which only works on rows in status `invited`. Inviting an email already on the list
+is not an error and sends no second email, so use **Resend** to genuinely re-send; inviting an
+address you removed earlier creates a fresh row.
+
+| Status | Meaning |
+|---|---|
+| `invited` | Invitation sent, not accepted. `user_sid` is still null, and the row shows only the email |
+| `active` | Accepted and in the workspace |
+| `revoked` | Written by the workspace-delete cascade as it soft-deletes every membership. No per-member action writes it |
+
+The panel loads the first **100 members** sorted by join date and has no pagination control. A
+workspace with more members than that is read over the API, which pages with a cursor.
+
+## Remove, hand over, delete
+
+Removing a member and cancelling an invitation are the same row action, both safe for the data:
+
+- **Cancelling a pending invitation** kills the code. The link stops working immediately.
+- **Removing an active member** revokes their login sessions and agent tokens **in this workspace
+  only**. Their sessions elsewhere survive, and so does the durable OAuth grant behind any connected
+  app. Accounts, browsers, conversations and history stay where they are. If this workspace was
+  their working team, that pointer moves to another membership of theirs, or clears.
+
+Removal is a soft delete: the row is kept as an access audit trail with no purge job, and deleting a
+row twice answers `already_deleted: true`. The owner's membership cannot be removed at all, and that
+button is disabled with the tooltip **Transfer ownership first**.
+
+To hand the workspace over, open **Settings** -> **General**, find the **Owner** row and click
+**Transfer**. Only the current owner can do this, not an admin holding `can_manage_teams`. The picker
+lists active members only, the target is re-checked as `active` at commit time, transferring to
+yourself answers `changed: false`, and the previous owner stays a member with the same permissions.
+
+<Warning>
+Deleting a workspace is owner-only, blocked while a paid plan is live, and restorable for **30 days**
+before the purge. API keys are revoked and members lose access the moment it is deleted, not at the
+end of the 30 days.
+</Warning>
+
+## The free plan is single-user
+
+<Warning>
+On the free plan both inviting and accepting answer **HTTP 402** `payment_required`, with
+`context.reason = "team_members_not_available_on_free"` and
+`context.suggested_action = "upgrade_subscription"`. The error is recoverable: upgrade and the same
+call succeeds.
+</Warning>
+
+Because the gate runs on acceptance as well as on the invite, a workspace that was paid, invited
+people, and then fell to the free plan keeps its pending invitations **frozen** rather than losing
+them: the invitee gets the 402, and the same link works again once a plan is applied. The trial is
+multi-user, and so are paid and partner plans: see [billing, trial and plans](/kb/billing-trial-and-plans).
+
+## Over the API
+
+Members live in the ID service. Invite with `POST /api/team-members`, list members and pending
+invitations with `POST /api/team-members/search` (there is no `GET /api/team-members/{sid}`, member
+lists are small), narrow one with `PATCH /api/team-members/{sid}`, remove or cancel with `DELETE` on
+that path, re-roll a code with `POST /api/team-members/{sid}/resend-invitation`, and accept with
+`POST /api/team-members/accept-invitation`, which needs a signed-in user token rather than a key.
+
+```bash
+curl -X POST "https://app.gtm-api.com/id/v4/api/team-members" \
+  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"email": "teammate@company.com", "permissions": ["*"]}'
+```
+
+Search filters on `{"user_sid": {"is_null": true}}` for pending invitations only. Field names and
+the full request shape are in the [API reference](/api-reference/overview).
+
+## Error to fix
+
+| What you sent | Answer | Fix |
+|---|---|---|
+| Invite or accept on a free-plan workspace | `402 payment_required`, reason `team_members_not_available_on_free` | Apply a paid plan, then repeat the call |
+| An email already on the member list | `200` with `already_exists: true` | Nothing failed. Use `resend-invitation` to send another email |
+| `DELETE` on the owner's membership | `409 conflict`, reason `owner_cannot_be_removed` | Transfer ownership first |
+| `resend-invitation` on an active member | `409 conflict`, reason `invalid_transition` | Only rows in status `invited` can be resent |
+| `accept-invitation` with an unknown or used code | `200` with `already_accepted: true` if you are an active member of any workspace, `404 not_found` if you are not | The `200` does not mean you joined the invited workspace. Ask for a fresh invitation. The code is never echoed back |
+| `accept-invitation` after 7 days | `409 conflict`, reason `invitation_expired` | Press **Resend** in the app, which gives another 7 days |
+| `PATCH` with neither field | `422 nothing_to_update` | Send `permissions` or `account_sids` |
+| An `account_sids` entry that is not an `ln_ac_` sid | `422 validation_failed` | Use LinkedIn account sids, not user or member sids |
+| A sid with the wrong prefix | `422 validation_failed`, message `Invalid input for 'sid': Expected ts_mb_ prefix, got ...` | Member sids start with `ts_mb_` |
+| `switch-team` to a workspace you do not belong to | `403 forbidden`, reason `not_a_member` | The same code covers a deleted workspace and a revoked membership, on purpose |
+| `switch-team` with an OAuth installation token | `403 forbidden`, reason `not_a_login_session` | Only login sessions switch. Agent tokens are minted per workspace |
+| A call with no `Team-SID` on a workspace-less token | `422 validation_failed`, with `field_errors.team_sid: ["Team-SID header is required"]` | Get a token minted for a workspace. The header cannot supply one to a token that has none |
+| `Team-SID` naming a workspace the token was not minted for | `403 forbidden`, reason `wrong_team` | Send the header the token was minted with, or drop it |
+
+## Related
+
+- [Billing, trial and plans](/kb/billing-trial-and-plans)
+- [Account sharing and handover](/kb/account-sharing-and-handover)
+- [Authentication](/authentication)

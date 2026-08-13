@@ -115,6 +115,20 @@ const SPECS = {
     await page.waitForTimeout(800);
     return page.locator('main, .ant-layout-content').first();
   },
+  // Auto Scrapes: recurring collectors with their executor, replay and results.
+  'auto-scrapes-list': async (page) => {
+    await page.goto(`${APP}/auto-scrapes`, { waitUntil: 'networkidle' });
+    await page.getByText(/jobs/).first().waitFor();
+    await page.waitForTimeout(800);
+    return page.locator('main, .ant-layout-content').first();
+  },
+  // Account drawer, Access tab: who else can reach this account.
+  'account-drawer-access': async (page) => {
+    await page.getByText('Edgar Abgaryan').first().click();
+    await page.getByRole('tab', { name: /access/i }).click();
+    await page.waitForTimeout(900);
+    return page.locator('[class*="_drawerBody_"]').first();
+  },
   // Mass action run drawer: the read-only step plan and the per-item table.
   // The drawer is deep-linkable at /mass-actions/{sid}, which is the stable
   // way in: the list is a virtualized CursorTable with no clickable row

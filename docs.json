@@ -56,26 +56,45 @@
             "group": "Accounts and browsers",
             "pages": [
               "kb/connect-a-linkedin-account",
-              "kb/antidetect-browsers-and-proxies"
+              "kb/antidetect-browsers-and-proxies",
+              "kb/account-sharing-and-handover"
             ]
           },
           {
             "group": "Safety and pacing",
             "pages": [
               "kb/smart-limits-and-warmup",
-              "kb/sync-windows-and-auto-suspend"
+              "kb/sync-windows-and-auto-suspend",
+              "kb/account-health"
             ]
           },
           {
-            "group": "Data and credits",
+            "group": "Finding and enriching",
             "pages": [
+              "kb/people-and-company-search",
+              "kb/enrichment",
+              "kb/auto-scrapes",
               "kb/credits-and-data-requests"
             ]
           },
           {
-            "group": "Plan and billing",
+            "group": "Conversations",
             "pages": [
+              "kb/inbox-and-message-sync"
+            ]
+          },
+          {
+            "group": "Workspace and billing",
+            "pages": [
+              "kb/workspaces-and-team-members",
               "kb/billing-trial-and-plans"
+            ]
+          },
+          {
+            "group": "Troubleshooting",
+            "pages": [
+              "kb/proxy-troubleshooting",
+              "kb/browser-troubleshooting"
             ]
           }
         ]

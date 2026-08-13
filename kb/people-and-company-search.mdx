@@ -1,0 +1,278 @@
+---
+title: "People and company search"
+description: "Run one live page of a LinkedIn or Sales Navigator people or company search: the pasted-URL and structured-filter input styles, how ids are resolved, what a row contains, and what a page costs."
+---
+
+A search runs now, returns one live page of results inside the HTTP response, and stores nothing.
+
+## Before you start
+
+- A connected LinkedIn account to run on for free, or credits on the team balance to run on our infrastructure.
+- The `can_act_linkedin_searches` permission on your API key, agent or user.
+- A Sales Navigator seat on the executing account for the Sales Navigator methods.
+
+<Note>
+A search is a discovery list, not an enriched one. Rows carry an identity (member id, vanity slug, name, avatar) and
+nothing else: no headline, no title, no company, no location, no connection degree. Feed the ids into
+[enrichment](/kb/enrichment) for those, a separate surface with separate pricing.
+</Note>
+
+A search is never cached: every call re-runs and every call charges. The only durable traces are one row in the **Data
+Requests** [ledger](/kb/credits-and-data-requests) (`result.data_request`) and one activity-log entry on the executing
+account. Nothing is stored, so nothing can be deduplicated away: rows arrive in LinkedIn's own order, with no sort axis
+and no cross-page deduplication. Past roughly five pages, or for anything on a schedule, use an
+[auto scrape](/kb/auto-scrapes).
+
+## The engines
+
+Every method is a `POST` under `https://app.gtm-api.com/linkedin/v4/api/linkedin-scraping/`.
+
+| Method | Returns | Credits (list) | Paging | Sales Navigator seat |
+|---|---|---|---|---|
+| `search-people` | people | 2 per page | `page` 1 to 100 | no |
+| `search-sales-nav-people` | people | 2 per page | `page` 1 to 100 | yes |
+| `search-companies` | companies | 2 per page | `page` 1 to 100 | no |
+| `search-sales-nav-companies` | companies | 2 per page | `page` 1 to 100 | yes |
+| `search-service-providers` | people | 2 per page | `page` 1 to 100 | no |
+| `similar-profiles` | people | 2 | none, `limit` 1 to 100, default 25 | no |
+| `similar-companies` | companies | 2 | none; `limit` 1 to 50 is accepted but has no effect, the whole list (~20) comes back | no |
+| `company-employees` | people | 3 per page | `page` 1 to 100 | no |
+| `company-decision-makers` | people | 3 | none, `limit` 1 to 50, default 25 | yes |
+| `param-id-lookup` | typeahead options | 1 | none | no |
+| `sales-nav-param-id-lookup` | typeahead options | 1 | none, `limit` 1 to 25, default 10 | yes |
+
+The same surface also searches posts, jobs, events, groups, courses, products and schools, and reads a post's commenters,
+reactors and resharers. Same rules, and their filter vocabularies are in the [API reference](/api-reference/overview).
+
+## Two ways to address a search
+
+The five list searches take **either** a pasted `url` **or** a structured `filters` object. Same route, same parser,
+same price: the structured half composes the same LinkedIn URL and runs the same page. Send `filters` when a program or
+an agent composes the search, `url` when a human built it in LinkedIn or the vocabulary cannot express it.
+
+<Warning>
+Exactly one of them is mandatory. Sending both returns `422 validation_failed` with a field error on each, and sending
+neither returns the same `422`. Sending `filters` where every member is empty (including an empty `` `{}` ``) returns
+`422` with the message `At least one filter member is required.` A `false` counts as empty, so a lone
+`"hiring_on_linkedin": false` is a 422 too. An explicit `"url": null` beside a filled `filters` is fine, and the reverse.
+</Warning>
+
+Which half you sent only changes the label in the ledger: `input_kind` is `url` or `params`, and **Data Requests** shows
+"Search people by URL" or "Search people by params" accordingly.
+
+A pasted URL is prefix-checked first: a URL from another LinkedIn screen would scrape the wrong thing. On
+`https://www.linkedin.com`, the regular engines take `/search/results/people/`, `/search/results/companies/` and
+`/search/results/services/`; the Sales Navigator pair takes `/sales/search/people` and `/sales/search/company`, no
+trailing slash, checked literally. Your `page` overrides the page or offset baked into the URL; every other query
+parameter rides through untouched.
+
+```bash curl
+# The structured half, page 1, on the paid path
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-scraping/search-people" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"use_credits": true, "page": 1, "idempotency_key": "icp-growth-us-p1",
+       "filters": {"keywords": "growth marketing", "network": ["2nd"], "locations": ["103644278"]}}'
+```
+
+Swap `filters` for a pasted `"url"`, and `use_credits` for `"linkedin_account_sid": "ln_ac_YOUR_ACCOUNT"`, to
+run the same page free on your own account.
+
+## Filters
+
+Every member, type and bound, engine by engine, is in the [API reference](/api-reference/overview). What cuts across all
+five engines:
+
+<Warning>
+A misspelled filter name is not an error on the people, company and Sales Navigator engines. The unknown key is dropped
+before dispatch and the search runs unconstrained, so a broad result reads like a filtered one. Copy member names
+exactly. Retired names are the exception and fail loudly with a `422`: `title`, `geo_ids`, `industry_ids`,
+`current_company_ids` on Sales Navigator people, `service_ids` and `geo_ids` on service providers, `headcounts`,
+`annual_revenues`, `headcount_growth_min` on Sales Navigator companies.
+</Warning>
+
+| Rule | Detail |
+|---|---|
+| Free text | a double quote inside a free-text member returns `422` on the people, company and service-provider searches, because LinkedIn wraps free text in quotes while the query is composed. The Sales Navigator engines accept quotes |
+| Id arrays | the numeric ones (locations, industries, current and past companies, service categories) are max 10 entries, digits only, up to 64 characters per entry; over the cap or a non-numeric entry is a `422`. `connections_of` and `followers_of` are the exception: profile ids up to 128 characters on the people search, any non-empty string up to 64 on Sales Navigator |
+| `network` | the people and service-provider engines take `1st`, `2nd`, `3rd_plus`; Sales Navigator people takes the raw codes `F` 1st, `S` 2nd, `A` group members, `O` 3rd and beyond. Each rejects the other's values with a `422` |
+| Headcount bands | the plain company search takes named bands (`1_to_10` up to `10001_plus`) and refuses LinkedIn's letter codes; the Sales Navigator engines take the letters `A` to `I`, and the account search has no `A` |
+| Sales Navigator facets | the people search has nine such members and the account search three; each takes arrays of `` `{id, text, exclude}` ``, max 10 values each, at least one of `id` or `text` per value, `"exclude": true` for a negative filter. `id` is optional: Sales Navigator matches free text server side, so `[{"text": "VP Marketing"}]` needs no lookup and no extra credit |
+
+### Three filters that do not mean what they look like
+
+Types and bounds are in the reference; these are the semantics behind them, and getting
+one wrong costs a run rather than an error.
+
+| Filter | The trap |
+|---|---|
+| `annual_revenue` (Sales Navigator company search) | Expressed in **millions**. `10` means $10M, not $10. The bound reaches 100000000, so a wrong unit is a factor of a million, silently |
+| `company_headquarters` (Sales Navigator people search) | Filters where the person's **company** is headquartered, not where the person is. For the person, use the location members |
+| `account_activities` | `SLC` is a senior-leadership change in the **last 3 months**, `RFE` is a funding event in the **past 12 months**. The windows are fixed and not yours to set |
+
+## Resolving the ids that filters need
+
+Two typeahead endpoints turn a human term into an id, over separate id spaces: an id from one never works on the other.
+
+| | `param-id-lookup` | `sales-nav-param-id-lookup` |
+|---|---|---|
+| Feeds | the people, company and service-provider engines | the Sales Navigator engines |
+| Input | one `type`, one `query`, 1 to 100 characters, required | one `type`, an optional `query` 1 to 100 characters (the closed sets ignore it), plus `limit` 1 to 25, default 10 |
+| Types | `location`, `industry`, `company`, `service_category`, `people`, `connections`, `school`, `product_category`, `job_location` | 19 passed through verbatim; ids are opaque, feed them back as they came. Skip the closed sets (`COMPANY_SIZE`, `FUNCTION`, `SENIORITY_V2`, `RELATIONSHIP`, `COMPANY_TYPE`, `TENURE`, `PROFILE_LANGUAGE`): calling one only re-fetches labels the reference lists, for 1 credit |
+| Result size | a fixed short dropdown, around ten options, best match first | `limit` |
+| Row shape | `type`, `id`, `display_name`, `subtitle` (the option's second line, `null` on most types) | `type`, `id`, `display_name`, `headline`, `entity_urn`, `image_url` |
+| Seat needed | no | yes |
+
+<Warning>
+Lookup type `school` returns real school ids, and the people search has no school-id member: its `school` is free text.
+Those ids only reach LinkedIn inside a pasted people-search URL, so do not put them in `filters.school`, where they are
+matched as text and return nothing useful. `job_location` is likewise its own id family, for the job search only.
+</Warning>
+
+<Note>
+A lookup types into the account's already-open tab, so it loads no page, spends no LinkedIn search and leaves the
+commercial-use limit untouched. It still costs 1 credit and one slot of the daily `scraping` budget, and is never
+cached. Empty `rows` means the dropdown offered nothing for that term: an answer, not an error, ledger row `completed`.
+</Note>
+
+## What comes back
+
+Rows sit at `result.rows`, paging at `result.paging`, the ledger row at `result.data_request`, the cost at `credits`.
+
+| Person field | People search | Sales Navigator people search |
+|---|---|---|
+| `ln_member_id`, `full_name`, `avatar_url` | filled | filled |
+| `ln_id` | filled | `null` |
+| `sn_id` | `null` | filled |
+| `nickname` (vanity slug) | filled | `null` |
+| `headline`, `position`, `company_name`, `location`, `connection_degree` | always `null` | always `null` |
+
+Those last five are `null` by construction: the result page does not carry them on either engine. Service-provider rows
+use the same shape, with no ratings, review counts or service labels. When you need more, take `ln_id` or `nickname`
+from a people-search row, or `sn_id` from a Sales Navigator row, into enrichment (as `profile_id` / `public_identifier`)
+or into `check-degree`. `ln_member_id` is a join key only: it cannot be turned back into a signed URN, so no method
+accepts it.
+
+| Company field | Company search | Sales Navigator account search | `similar-companies` |
+|---|---|---|---|
+| `company_ln_id`, `name`, `logo_url` | filled | filled | filled |
+| `nickname` | filled | `null` | filled |
+| `industry` | `null` | filled | filled |
+| `employees_size`, `tagline` | `null` | filled | `null` |
+| `followers` | `null` | `null` | filled |
+| `location`, `website` | always `null` | always `null` | always `null` |
+
+To resolve a Sales Navigator company into a vanity slug, run `company-public-identifier`
+(`POST /api/linkedin-enrichment/company-public-identifier`).
+
+<Warning>
+Paging: `page` is the page you asked for (default 1), `page_size` is how many rows LinkedIn returned rather than a knob
+you set, and `total` is always `null` on the people and company engines. Drive the loop from `has_more`, true while
+this page returned rows and `page` is below 100. The ceiling is page 100: a `page` above it is a `422`, `has_more` is
+`false` at 100 whatever LinkedIn still has, and an empty page is terminal.
+</Warning>
+
+`search-people` carries an extra boolean, `commercial_use_limit_hit`: `true` means LinkedIn's monthly commercial-use
+paywall fired and rows may be truncated. The field is absent on the company engines, always `false` on service providers.
+
+## Who pays for a run
+
+| Field | Rule | Effect |
+|---|---|---|
+| `linkedin_account_sid` | `ln_ac_` plus 12 characters | free run on that account, `executed_on: "own_account"`, `charged: 0`, spends that account's daily `scraping` budget |
+| `use_credits` | boolean | runs on our managed infrastructure, `executed_on: "infra_pool"`, `charged` is the method price, `reason: "infra_pool"` |
+| `idempotency_key` | string, max 128 characters | replay guard on (team, key) |
+
+There is no silent charge and no silent fallback. Send exactly one executor (both, or neither, is a `422`): a pinned
+account never pools, and a pinned account out of budget returns `429` rather than quietly moving to the paid path.
+
+<Warning>
+Idempotency replay matches on the team and the key alone, not the method and not the input, so reusing one key after
+switching a call from `filters` to `url`, or after changing the page, hands back the first stored result instead of
+running the new search. New search, new key.
+</Warning>
+
+## Daily budget
+
+Every method on this surface, searches and typeaheads alike, spends one shared per-account bucket called `scraping`.
+
+<Warning>
+Default budget: 100 scraping calls per day per connected account, with a 240 second cooldown enforced after every 10
+calls. So roughly ten calls back to back (a few typeaheads plus the search), then about four minutes of waiting. When
+the budget is spent, the account is on hold, or the cooldown has not elapsed, the call returns `429 rate_limited` with
+`reason: "bucket_saturated"`, the `cause` (`daily_saturation`, `held` or `delay_not_elapsed`) and a `retry_after`
+timestamp. Retry after that timestamp, not on a fixed schedule.
+</Warning>
+
+The free plan clamps the bucket to 15 scraping calls per day per account, alongside 20 data requests per day, and a young
+account ramps lower still while it warms up. Credit-paid runs do not touch your accounts' buckets at all. Read the bucket
+before a batch rather than discovering it through a 429: [smart limits and warmup](/kb/smart-limits-and-warmup).
+
+<Note>
+A search is synchronous and bounded at 120 seconds. Past that the run is abandoned, the row goes to `failed` and the
+credit hold is released. The typeaheads run on a 90 second ceiling.
+</Note>
+
+## Zero rows is usually not a failure
+
+Every case below returns HTTP 200 with `"rows": []`. Stop as soon as one explains what you see.
+
+1. **Check `commercial_use_limit_hit`.** `true` on `search-people` means LinkedIn truncated the page behind its monthly
+   paywall. Re-run on `search-sales-nav-people`, which has no such limit, or wait for LinkedIn's monthly reset.
+2. **Count what the page could show.** The regular people parser keeps only cards carrying a vanity slug, an id and a
+   real name, and drops any card named "LinkedIn Member", so out-of-network people that LinkedIn renders anonymously
+   never reach `rows`. The Sales Navigator parser has no such filter and often returns more for the same query.
+3. **Check the executor's session.** An account whose LinkedIn session is degraded or sitting behind an auth wall
+   returns a correctly shaped page with zero rows. Confirm the account and its browser are healthy.
+4. **Re-read your filter names.** A misspelled member is dropped silently, so the search ran less constrained than you meant.
+5. **Check the page number.** A page past the end of the results has nothing to return. A page above 100 is not this
+   case: it is a `422` before anything runs.
+6. **Read the ledger row.** `status: "completed"` with zero rows means LinkedIn genuinely answered with
+   nothing; `status: "failed"` with an `error_code` means the response could not be read. Never the same thing.
+
+## Errors
+
+The detail sits in one of two places, never both: a 422 carries it in `error.field_errors`, everything else in
+`error.context`.
+
+| Scenario | HTTP | `error.code` | Detail |
+|---|---|---|---|
+| Both or neither of `url` and `filters` | 422 | `validation_failed` | `field_errors` on `url` and `filters` |
+| `filters` present but every member empty | 422 | `validation_failed` | `field_errors`: `At least one filter member is required.` |
+| URL from the wrong LinkedIn screen, or over 2048 characters | 422 | `validation_failed` | `field_errors` on `url` |
+| Neither executor nor `use_credits`, or both | 422 | `validation_failed` | `field_errors` on `use_credits`; the message starts `executor_required:` when neither was sent |
+| Sales Navigator method on an account with no seat | 422 | `validation_failed` | `field_errors` on `linkedin_account_sid`, message starts `sales_nav_required:`; the ledger row is `rejected` |
+| Daily budget spent, account on hold, or cooldown not elapsed | 429 | `rate_limited` | `context`: `bucket_saturated`, `limit_type: "scraping"`, `cause`, `retry_after` |
+| LinkedIn's own quota lock on the account | 429 | `rate_limited` | `context`: `linkedin_strike`, `cause: "linkedin_quota_hit"`, `retry_after`; no bypass |
+| Balance below the method price on the paid path | 402 | `payment_required` | `context`: `insufficient_credits` with `required`, `available`, `data_request_sid`; nothing ran |
+| No managed capacity right now | 503 | `service_unavailable` | `context`: `infrastructure_unavailable` with `retry_after`; retry the same call |
+| Browser or plugin transport failure | 503 | `service_unavailable` | `context`: `plugin_unavailable` with `retry_after`; the run is marked failed and the hold released |
+
+The Sales Navigator refusal spells out its own fix: use an account that has a seat, or run `get-my-sales-navigator` to
+refresh that account's premium status first. That check also runs on its own every 360 minutes (6 hours), so a seat
+bought minutes ago usually needs the manual refresh. A failed run charges nothing, because the credit hold is released.
+
+## Where a search shows up in the app
+
+There is no run-now search screen; **Data Requests** is the receipt. Filter **Kind** to **Scrape**, then read **Request**
+for the method, **Executed on** and **Charged** for which path ran and what it cost, and **View result payload** for the
+raw response.
+
+<Tip>
+Copy this to your AI assistant to page through a search:
+
+"Page a LinkedIn people search through the GTM API at https://app.gtm-api.com/linkedin/v4. POST to
+/api/linkedin-scraping/search-people with header Authorization: Bearer gtm_live_YOUR_KEY. Send either "url" (a pasted
+/search/results/people/ link) or "filters", never both, plus "page" and "linkedin_account_sid": "ln_ac_YOUR_ACCOUNT".
+Start at page 1 and re-call with page + 1 while result.paging.has_more is true, stopping at page 100. Use a distinct
+idempotency_key per page. On 429, read error.context.retry_after and wait until that timestamp. Log
+result.commercial_use_limit_hit. Write rows to CSV: ln_member_id, nickname, full_name."
+</Tip>
+
+## Related
+
+- [Auto scrapes](/kb/auto-scrapes)
+- [Credits and data requests](/kb/credits-and-data-requests)
+- [Smart limits and warmup](/kb/smart-limits-and-warmup)
+- [Find an email or phone number for a profile](/kb/enrichment)
+- [API reference](/api-reference/overview)

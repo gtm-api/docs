@@ -1,0 +1,232 @@
+---
+title: "Proxy problems"
+description: "LinkedIn will not load, the account keeps hitting verification, the browser stops overnight: how to tell a broken proxy from a lost session or normal auto-suspend, and what to do about each."
+---
+
+Three symptoms bring people here, and only one is usually the proxy. Work the checks in order and
+stop at the first one that explains what you see.
+
+| Symptom | Most likely cause | Start at |
+|---|---|---|
+| LinkedIn will not load inside the browser | The proxy stopped answering | [Check 1](#check-1-read-the-two-statuses) |
+| The account keeps asking for verification | The apparent location moved, or LinkedIn is challenging the account | [Check 4](#check-4-run-the-location-check) |
+| The browser stops overnight | Usually nothing. Idle browsers suspend on purpose | [Is this even broken?](#is-this-even-broken) |
+
+## Is this even broken?
+
+**Idle browsers power off after 15 minutes without activity** and wake on the next due sync or
+action, and recurring syncs only start inside the account's
+[sync window](/kb/sync-windows-and-auto-suspend). The power-off and a closed sync window write
+nothing to the browser event log; the wake writes a `started_by_user` row, `Starting by user:
+system`.
+
+## Check 1: read the two statuses
+
+The browser and the proxy carry separate statuses, and a dead proxy does **not** show up as a
+proxy-named browser status. Read both on the **Browser** tab of the account drawer (**Senders**,
+click the row): the proxy block shows residential or datacenter, country, latency and a **Proxy
+uptime** row. Hover the **Proxy uptime** row to read `Proxy status: active | no connection |
+country mismatch | fraud flagged | replaced`.
+
+Only two browser statuses point at the proxy: **running issue**, a runtime fault and where a
+proxy failure lands, and **start issue**, frequently a proxy that timed out. **login issue** is a
+lost session (Check 6); `idle` is auto-suspend; **subscription required** is billing; **shared
+out** leaves the proxy with the owning team ([full list](/kb/browser-troubleshooting)).
+
+<Warning>
+A browser escalates to **investigating** after more than 10 failures with more than 10 errors in
+48 hours, and that state emails the account owner. The failure counter is cleared only when the
+browser comes back up and reports `running`, never by time; the 48 hour window applies to the error
+rows, so once old errors age out the browser stops escalating even though the counter still
+stands. Proxy failures do **not** increment it, so proxy errors alone never escalate a browser.
+One restart attempt is worth it; if it escalates again, open a ticket.
+</Warning>
+
+| Proxy status | Meaning | Who can clear it |
+|---|---|---|
+| **active** | The last probe went through | Nothing to do |
+| **no connection** | The last probe failed, or the browser reported a proxy error | Clears itself on the next successful probe |
+| **country mismatch** | The proxy's real exit country is not the country it is registered as | Support only |
+| **fraud flagged** | The exit IP scored at or above 75 on a fraud database | Support only |
+| **replaced** | Retired. It will never be handed out again | Terminal |
+
+## Check 2: read the event log
+
+Scroll to **Browser event log** at the bottom of the same tab, or search it at
+`POST /api/antidetect-browser-logs/search`. Match what you see against the exact strings:
+
+| Code | event_type | Message you will see | What it is |
+|---|---|---|---|
+| `407` | `proxy_error` | `Proxy error` | The proxy refused or dropped the connection. The real proxy fault |
+| `100` | `start_failure` | `Error: Proxy Error. Request timeout after 13000ms` | The browser could not start, usually because the proxy did not answer in time |
+| `401` | `login_issue` | `LinkedIn logged out. Please log back in to your LinkedIn account to resume running this profile.` | The session is gone. A proxy swap will not fix it |
+| `777` | `server_unreachable` | varies | Our automation host, not your proxy |
+| `666` | `runtime_error` | `The browser is shutting down.` | Planned host restart |
+| `-3` | `runtime_error` | `browser was disconnected` | The profile lost its connection to the host |
+| `-2` | `runtime_error` | `failed to evaluate initial script` | Profile startup fault, not the network path |
+| `502`, `503`, `504`, `520`, `522` | `runtime_error` | gateway envelope | Upstream fault, not the proxy |
+| none, level `info` | `proxy_replaced` | `Proxy replaced after failure` or `Proxy changed by operator` | The proxy was already swapped for you |
+
+The `666`, `-3`, `-2` and `5xx` rows all land as `runtime_error`: the numeric `Code` is the only
+axis that tells them apart, so filter on `code`, not on a finer `event_type`.
+
+If the newest entry is `proxy_replaced` with `Proxy replaced after failure`, the platform already
+moved the browser onto a healthy proxy but did not restart it: use **Start** in the row menu.
+
+## Check 3: run the connectivity check
+
+This is the answer to "is the proxy actually dead". It performs a real HTTPS request through the
+proxy and times it. Take the proxy sid (`ab_px_...`) off the browser row by searching
+`antidetect-browsers` with `"include": ["antidetect_browser_proxy"]`. This check and the location
+one run over the API and MCP only, with no button in the app, and both require the
+`can_change_proxy` permission: a member without it gets a `403`.
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/antidetect-browser-proxies/check-proxy-connectivity" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"sid": "ab_px_YOUR_PROXY"}'
+```
+
+The result carries `total_checked`, `ok`, `avg_connection_time_ms` (the mean over the rows that
+answered, `null` when none did) and `failed[]`, where each entry has an `error_kind`:
+
+| `error_kind` | Meaning |
+|---|---|
+| `timeout` | The proxy accepted nothing within the probe budget |
+| `tls` | The TLS handshake through the proxy failed |
+| `network` | The connection could not be established at all |
+| `http_error` | The proxy itself rejected the request, typically HTTP 407 authentication |
+
+<Warning>
+The probe times out at **30 seconds** for both connect and read. Only an HTTP `407` from the
+proxy counts as a failure; any other status, including a `5xx` from the probe target, counts as
+success, because it proves the request was routed. A failed probe flips the proxy to
+`no_connect` and a later successful one flips it back to `active`, but rows already in
+`country_mismatch`, `fraud_flagged` or `replaced` only get their latency refreshed.
+</Warning>
+
+Send **exactly one** of `sid` or `filter`. Both or neither returns `422` with
+`field_errors.sid_or_filter` set to `Provide exactly one of sid or filter.` In filter mode a
+single call probes at most **50 rows**; the response reports the true match count in
+`total_matched` and sets `truncated: true` when the cap was hit.
+
+## Check 4: run the location check
+
+Run this when the account keeps hitting verification challenges rather than failing to load. It
+asks several geo vendors and several fraud databases where the exit IP really is. Same request as
+above with the endpoint swapped for `check-proxy-location`, same `sid` or `filter` rule, same
+50-row cap. Two things can trip:
+
+- **Country mismatch.** The verdict is the real exit country, measured through the proxy, not a
+  vote among IP databases. If it disagrees with the country the proxy is registered as, the
+  proxy is flagged `country_mismatch`. The `disagreement_pct` is context only.
+- **Fraud flag.** The aggregated score is the highest score any responding database returned.
+
+<Warning>
+A proxy is flagged `fraud_flagged` at an aggregated score of **75 or above**. Rows in
+`country_mismatch` or `fraud_flagged` are never handed out to a new browser, and no automatic
+process returns them to `active`. Move the affected browser onto another proxy yourself
+(Check 5) and tell support about the flagged one.
+</Warning>
+
+Inconclusive rows are skipped, never flagged: the check needs the through-proxy reading plus at
+least one other vendor that answered, and a skipped row is not counted in `total_checked`.
+
+## Check 5: swap the proxy
+
+Two different operations, one dialog. On **Senders**, open the account's row menu, click
+**Change proxy**, pick a mode and confirm.
+
+| Mode in the dialog | What it does | API |
+|---|---|---|
+| **Rotate the IP, stay in {country}** | Moves the browser to the fastest active proxy in the same country, excluding the current one. The apparent location does not change | `POST /api/antidetect-browsers/replace-proxy` |
+| **Move to another country** | Assigns a proxy from the country you pick. The apparent location changes | `POST /api/antidetect-browsers/update-proxy` |
+
+Rotating is the safe default. The country dropdown lists only countries that currently have an
+active proxy in the pool, and blocks the country the browser is already in.
+
+<Warning>
+Changing the **country** flips where LinkedIn thinks the sender is, and doing that mid-campaign
+is a classic trigger for a verification challenge. Pick the country the account genuinely
+operates from and keep it.
+</Warning>
+
+### What each swap restarts
+
+Both verbs stop the live session, push the new upstream into the profile, commit, then start the
+browser again. A running browser keeps egressing through the old proxy until it respawns.
+
+| Browser status at swap time | Restarted? |
+|---|---|
+| `queued_to_start`, `initializing`, `running` | Yes, stopped and started again |
+| `idle` | No. It is already powered off and wakes on demand on the new proxy |
+| `queued_to_stop` | No. A stop is already in flight |
+| `running_issue`, `start_issue`, `login_issue`, `error_investigation` | No. Their own handlers already powered the browser off, so start it yourself |
+
+The response carries `restarted: true|false` and `restart_error`, the literal string
+`restart_failed` when the browser could not come back up. In the app that shows the toast *"The
+proxy was changed, but the browser could not be started again. Start it from the row menu."* The
+swap itself still committed.
+
+### Swap refusals
+
+Switch on `error.field_errors` for `422` and on `error.context.reason` for `409` and `503`: the
+top-level `error.code` is only `validation_failed`, `conflict` or `service_unavailable`.
+
+| HTTP | Value | Meaning |
+|---|---|---|
+| `422` | `proxy_not_managed` | This browser has no managed proxy to rotate. Pick a country instead to give it one |
+| `422` | `proxy_pool_empty` | No active proxy exists in the country you asked for |
+| `422` | `proxy_replacement_unavailable` | The current country has no other active proxy to rotate onto |
+| `422` | `proxy_country_mismatch` | The proxy you pinned is in a different country than the browser |
+| `422` | `managed_proxy_forbidden_for_owner` | This is a bring-your-own browser; its proxy is not ours to change |
+| `409` | `proxy_managed_by_owner` | This is a shared copy. Proxy management stays with the owner |
+| `503` | `vendor_proxy_update_failed` | Nothing was committed and the browser is back on its old proxy. Retry |
+
+For a browser you brought yourself the menu item is disabled, with the hover reason *"This
+browser runs on a profile you brought yourself, so its proxy is not ours to change."*
+
+## Check 6: if it is the session, not the proxy
+
+A browser in **login issue** is not a network problem. LinkedIn invalidated the session, the status
+is sticky, and no proxy swap, restart or wait will clear it. During the initial sync the drawer
+shows **Sync paused, action needed** with the reason `browser:logged_out`; after the initial sync
+it shows **Signed out of LinkedIn** with a **Log in via cloud browser** button. Re-login is the
+only fix, in the app or through
+**Generate re-login link** for the account's owner ([how](/kb/browser-troubleshooting)).
+
+Meanwhile a sync run parked on a broken browser re-checks every **30 minutes** and holds its place
+in the queue, and a run waiting on an `idle` browser to cold-start re-checks every **60 seconds**.
+Only `running` and `idle` browsers are woken automatically: one in `running_issue`, `start_issue`,
+`login_issue`, `error_investigation` or `maintenance` waits for an explicit start, forever.
+
+## What the platform already does on its own
+
+- **Every active and no-connection proxy is probed on a 15 minute cycle**, 100 rows per tick,
+  coldest first, and flagged or replaced rows are skipped entirely. **Geo and fraud are re-checked
+  daily**, also 100 rows per tick.
+- **A browser that reports a proxy error is rotated automatically**, but never restarted (Check 2).
+- **Integrations get told** by the `antidetect-browsers.proxy-issue` and
+  `antidetect-browsers.proxy-back-alive` webhook events, both carrying
+  `antidetect_browser_proxy_sid`. There is no separate proxy-level webhook.
+
+## When to contact support
+
+| Case | Why you cannot fix it |
+|---|---|
+| Proxy status **country mismatch** or **fraud flagged** | Nothing user-facing returns a proxy to `active`. Rotate onto another proxy to unblock yourself, then report the flagged one so it can be retired |
+| `proxy_pool_empty` or `proxy_replacement_unavailable`, or the **Change proxy** dialog offers no country at all | The pool has no other active proxy there. Widening it is an internal, money-spending operation. Name the country in the ticket |
+| Code `777` `server_unreachable`, or status **maintenance** | Our automation host, not your proxy |
+| Verification challenges keep coming back right after a genuine re-login | LinkedIn challenging the account, especially after a country change. The remedy is account-side, not network-side |
+
+A ticket resolves in one round trip when it carries the account name, a screenshot of the drawer's
+**Browser** tab showing both statuses, the literal `Code` and `Message` of the newest error row in
+the event log, and the raw JSON of any `422`, `409` or `503` a swap returned. Request shapes for
+every endpoint above are in the [API reference](/api-reference/overview).
+
+## Related
+
+- [Antidetect browsers and proxies](/kb/antidetect-browsers-and-proxies)
+- [Browser troubleshooting](/kb/browser-troubleshooting)
+- [Sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend)

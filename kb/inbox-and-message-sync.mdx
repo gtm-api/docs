@@ -1,0 +1,211 @@
+---
+title: "Inbox and message sync"
+description: "How conversations and messages reach the platform: what the initial backfill imports, how often each surface re-syncs, what realtime push covers, and why a message may not be there yet."
+---
+
+Your LinkedIn inbox is not read live. The platform keeps its own copy of every thread and
+message, built by a sync through the account's own browser and topped up by a realtime signal.
+
+## Two inboxes, synced separately
+
+The regular messenger and the Sales Navigator inbox are separate surfaces with their own
+threads and their own clocks. Every thread carries a `messenger_type`.
+
+| | Regular inbox | Sales Navigator |
+|---|---|---|
+| `messenger_type` | `linkedin` | `sales_navigator` |
+| Row on the **Account Sync** tab | **Conversations** | **Sales Nav Conversations** |
+| Available when | always | only if the account has Sales Navigator |
+| Muting and marking read | supported | not supported, `is_muted` is always `null` |
+| Verbs | `get-my-latest`, `sync-my-linkedin-conversations` | `get-my-latest-sales-nav`, `sync-my-sales-navigator-conversations` |
+
+SN threads sync only once the platform detects the subscription (`premium_check`, its own
+surface, every 360 minutes), which has to run before the **Sales Nav Conversations** row
+appears. A basic-messenger verb on an SN thread answers `422 messenger_type_mismatch`.
+
+## What the initial backfill imports
+
+Onboarding walks a fixed ordered set of surfaces (connections, connection requests, connection
+invitations, the regular inbox, the premium check, the Sales Navigator inbox, then the profile
+snapshot) and the account unlocks when it finishes. Every thread is imported, since the run
+pages to an empty page. Not every message is.
+
+<Warning>
+The message drain runs inline inside the conversations sync itself, while the account is still
+onboarding, and fetches exactly **one page of the 50 newest messages per thread**, then stops;
+it does not page backwards. A 400-message thread arrives with its 50 most recent ones, and
+older history stays outside the platform: `POST /api/linkedin-messages/get-my-latest` refreshes
+the newest page of up to **100 messages** and stops there.
+</Warning>
+
+During onboarding the `self_account_sync` daily budget is raised from **200 to 1000 calls per
+day**; the first profile snapshot taken after onboarding completes recomputes it back down to
+200. A first-time backfill runs to completion whatever hours are configured; only recurring
+syncs wait for the window. Inbox syncs cost no credits: they spend that budget, while
+[credits](/kb/credits-and-data-requests) meter scraping and enrichment.
+
+## How often each surface re-syncs
+
+| Surface | Default interval | Editable per account |
+|---|---|---|
+| `conversations` | 180 minutes | yes |
+| `sales_navigator_conversations` | 120 minutes | yes |
+| `connections` | 180 minutes | yes |
+| `connection_requests` | 720 minutes | yes |
+| `connection_invitations` | 720 minutes | yes |
+| `premium_check` | 360 minutes | yes |
+| `snapshot` | 1320 minutes | no |
+| `followers` | 1440 minutes | no |
+
+Three things change the effective interval: your per-account setting on the **Account Sync**
+tab, the [sync window](/kb/sync-windows-and-auto-suspend) (a run due outside the configured
+hours parks with `schedule:closed` until it reopens), and the free plan floor.
+
+<Warning>
+On the free plan every surface is floored to **once per 1440 minutes (daily)**: the effective
+interval is the larger of the two. Free plan accounts also get **no realtime push**, so a
+reply can sit for up to a day. Initial backfills are exempt from the floor.
+</Warning>
+
+A recurring run is not a full re-read: it walks the directory newest first and stops once a page
+holds **10 threads it already knows**, and regular-inbox pages are capped at **25 threads** by
+the browser plugin (the Sales Navigator sweep pages at 100). Only threads whose event count or
+last activity moved ahead of the stored copy are read.
+
+## Realtime push, and what it does not do
+
+While the account's browser runs, the plugin listens to LinkedIn's own realtime stream and
+tells the platform when a message arrives: end to end, a received message reaches the
+`linkedin-messages.received` webhook in about **8 seconds**, against the 180 minute sweep.
+
+The push carries identifiers only and never writes a message row. For a thread the platform
+already knows it schedules a refresh of that one thread, read through the account's own
+browser, and the rows land tagged `source='push'`. For a thread it has never seen it falls back
+to an account-wide conversations refresh, whose rows are tagged `source='sync'` like the
+sweep's: the webhook still fires, but the live Inbox screen does not update until the sweep.
+Signals it drops:
+
+| Reason | Dropped when |
+|---|---|
+| `self_sender` | Your own send, echoed back by LinkedIn |
+| `duplicate_message` | The same message id arrived again within **600 seconds** |
+| `coalesced` | A refresh for this thread is in flight, within a **180 second** latch |
+| `rate_capped` | More than **10 refreshes in one minute** for this account, or the push path has already spent its half of the daily budget (**100 of 200** calls) |
+| `initial_sync_pending` | Onboarding is about to read the thread anyway |
+| `free_plan` | Free plan, where realtime push is off by design |
+
+The rest are environmental: `disabled` (off platform-wide), `unhandled_type` (typing indicator
+or read receipt), `no_linkedin_account`, `account_not_found` and `dispatch_failed`.
+
+A dropped signal is never a lost message: the worst case is that it appears on the next sweep
+instead of within seconds. Your own reply typed in the LinkedIn UI is always in that class, and
+lands on the sweep as `type='outbox'` with `automation='synced'`: discovered, not sent.
+
+## Force a refresh now
+
+A **head refresh** reads the newest page of one thread or account synchronously and returns the
+rows themselves; use it in almost every case. A **full sync** reconciles the head of the
+directory in the background and returns a sync run to poll; like every recurring run it stops
+once a page holds 10 threads it already knows, so it will not reach an old thread that is
+missing locally. Only a sync reset re-walks the directory end to end.
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-messages/get-my-latest" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"linkedin_conversation_sid": "ln_cv_YOUR_THREAD", "page_size": 50}'
+```
+
+The response carries a `refresh` block with counters and a `stop_reason` of `overlap`,
+`covered`, `page_cap` or `exhausted`. A head refresh never stamps the account's sync clock and
+never emits `linkedin-conversations.sync-completed`, so it does not postpone the next drain.
+
+<Note>
+Every head refresh page and every background message pull spends one call from the account's
+`self_account_sync` budget: **200 calls per day**, with a **6 second** pacing delay and bursts
+of **5**. When it is spent, reads answer `429 rate_limited` with `limit_type:
+"self_account_sync"` and a `retry_after`, and parked runs resume at the next daily reset or
+when the limit is raised. See [smart limits and warmup](/kb/smart-limits-and-warmup).
+</Note>
+
+## Why a message may not appear yet
+
+Three timestamps answer most of it: `last_activity_at` (newest activity LinkedIn reports),
+`last_stored_message_at` (newest message stored) and `last_message_sync_at` (last pull). Activity
+newer than stored means the thread is already flagged and the next run drains it. Otherwise:
+
+1. **The account is still onboarding.** The drawer shows **Initial sync in progress** and head
+   refreshes answer `429 rate_limited` with `context.reason: "initial_sync_pending"`.
+2. **A sync is already running for that surface.** A second one does not queue: it answers
+   `429 rate_limited` with `reason: "sync_in_progress"` and the working `sync_run_sid` to poll.
+3. **The sync budget is spent or held.** The run shows a `wait_reason` starting with `limit:`
+   (`limit:daily_saturation`, `limit:held`, `limit:linkedin_quota_hit`, `limit:delay_not_elapsed`).
+   Raise the Self account sync limit on **Smart Limits** with reset hold to resume them all now.
+4. **The browser is down or logged out.** Sync verbs still enqueue and hand back a
+   `sync_run_sid`; the run then parks with a `browser:` `wait_reason` and retries roughly 30
+   minutes out, while a head refresh answers `503 service_unavailable`. Budget parks wake on a
+   raised limit, [browser parks](/kb/browser-troubleshooting) wait for their retry.
+5. **It is outside the sync window.** The run carries `wait_reason: "schedule:closed"` and a
+   `next_attempt_at` set to the next opening. Widen the window or head-refresh now.
+6. **The message is older than the newest 50 in its thread.** No sweep backfills older history:
+   call `get-my-latest` on that thread to pull the newest page of up to 100 messages.
+7. **It was a push drop and the sweep has not run.** Your own reply typed on LinkedIn, a
+   duplicate signal, a burst above 10 refreshes a minute and free plan accounts all skip the fast
+   path: the wait is then up to 180 minutes (regular), 120 (Sales Navigator), 1440 (free plan).
+8. **Still nothing?** Send support the account sid (`ln_ac_…`), the **Account Sync** row with
+   its status and next due time, and the sync run sid (`ln_sy_…`) with its `wait_reason`.
+
+A sync run never has a "failed" status: runs go `pending`, then `in_progress`, then `completed`
+or `cancelled`. One stuck at `in_progress` is almost always waiting, so read its `wait_reason`
+and `next_attempt_at`.
+
+<Tip>
+Copyable prompt for your AI agent:
+
+Diagnose why a LinkedIn message is missing from my GTM API inbox copy, for the `ln_ac_` sid I
+give you. Search `linkedin-account-sync-runs` for it, `sync_type` `conversations`, newest first,
+and report the latest run's `status`, `wait_reason` and `next_attempt_at`. Then search
+`linkedin-conversations` for the thread and compare `last_activity_at` with
+`last_stored_message_at`; if activity is newer, call `get_my_latest_linkedin_messages` on that
+sid with `page_size` 50 and report the `refresh` block. Only full-sync if threads are missing.
+</Tip>
+
+## Reading the stored copy
+
+A message carries `type` (`inbox` or `outbox`), `automation` (`auto`, `manual`, `connect` or
+`synced`) and `linkedin_type` (`message`, `inmail` or `connection_note`). Messages are
+append-only on both surfaces: no edit, no delete, no unsend, no recall. There are no read
+receipts and no open tracking, and marking a thread read changes the state on LinkedIn only.
+
+There is no export button and no CSV. `linkedin-messages/search` and
+`linkedin-conversations/search` page by cursor and touch neither the browser nor the budget
+(filters and sorts are in the [API reference](/api-reference/overview)), and a conversation
+from another workspace answers `403 wrong_team`, not `404`. Webhooks deliver
+`linkedin-messages.received`, `.sent` and `.send-failed`, plus `linkedin-conversations.created`
+and `.sync-completed`.
+
+<Note>
+A send that fails never creates a message row: the failure lands on the activity log and is
+emitted as `linkedin-messages.send-failed` carrying the `linkedin_account_sid`, the
+`linkedin_conversation_sid` and an `error_code` (the activity-log sid is not in the payload;
+find the row by account and time). If a send times out and you are unsure whether it went
+through, search messages on that conversation with `type: "outbox"` and `sent_at` after the
+attempt. A blind retry can double-send.
+</Note>
+
+<Warning>
+A sync reset with `conversations` or `sales_navigator_conversations` selected **soft-deletes
+every stored conversation for that account and surface, and all of their messages**, in one
+transaction. The next sync rebuilds the directory, resurrecting the same rows (same sid) as it
+re-observes them, so resurrected threads fire no `linkedin-conversations.created` and only
+genuinely new ones do, and it re-drains the newest 50 messages per thread; anything you fetched
+deeper stays soft-deleted and out of results. Nothing else removes a thread: one that
+disappears on LinkedIn keeps its stored copy.
+</Warning>
+
+## Related
+
+- [Sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend)
+- [Smart limits and warmup](/kb/smart-limits-and-warmup)
+- [Connect a LinkedIn account](/kb/connect-a-linkedin-account)
+- [Workspaces and team members](/kb/workspaces-and-team-members)

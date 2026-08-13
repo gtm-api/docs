@@ -1,0 +1,229 @@
+---
+title: "Browser will not start"
+description: "The antidetect browser sits in an issue status, the session dies right after starting, or LinkedIn keeps asking to log in. How to read the status, what the platform already did on its own, and when re-login is the only fix."
+---
+
+An account has stopped working and its antidetect browser shows an issue status. The
+status pill is the diagnosis, and each fault has exactly one fix.
+
+## Read the status first
+
+Open **Senders**, click the account row, open the **Browser** tab of the drawer. The first
+four statuses below are exactly what the **Browser issue** filter chip on the list selects.
+
+| Status | Pill | What happened | What clears it |
+|---|---|---|---|
+| `start_issue` | amber | The launch was reported as failed. The browser is not running. | Run it again |
+| `running_issue` | amber | The session started, then hit a runtime or proxy error. Powered off. | Run it again, then check the proxy |
+| `error_investigation` | amber | Repeated failures crossed the escalation threshold. Powered off. | Manual inspection inside the browser |
+| `login_issue` | red | LinkedIn invalidated the session. Powered off, and sticky. | Re-login inside the browser, nothing else |
+| `shared_out` | grey | Not a fault. The browser is lent to another workspace. | The share ending |
+| `subscription_required` | amber | Not a fault. The browser does not fit the team's subscription. | Upgrading, or freeing a slot |
+
+<Note>
+`shared_out` and `subscription_required` are HOLD states, not failures. The row action
+reads **Parked, no browser action available**, and a `run` call against either is refused
+with HTTP 409 and `error.context.reason = "invalid_status_transition"`.
+</Note>
+
+## What the platform already did
+
+| Behaviour | Exact rule |
+|---|---|
+| Auto-suspend | A `running` browser with no activity for 15 minutes is powered off and committed as `idle`. The reaper runs every 1 minute. |
+| Wake on demand | Only an `idle` browser wakes by itself. An action waits for it to come up; a due sync defers and resumes. See [sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend). |
+| Power-off on fault | Landing in `running_issue` or `error_investigation` triggers a best-effort stop of the session. The stored status stays at the fault value so you can still see it. |
+| Power-off on logout | The `login_issue` branch tears the session down immediately, and the row stays `login_issue`. |
+| Proxy fault | A proxy error marks the proxy as `no_connect` and migrates the browser onto a fresh proxy in the same country. The browser's fail count is not incremented, because the proxy was at fault. |
+| Sync backoff | A sync run that cannot reach the browser stays `in_progress` and re-checks. No data is lost and the cursor does not move. |
+| Profile survives | Powering off a faulted browser does not log the account out. The profile persists on disk, so the LinkedIn session survives a power-off, a suspend and a cold start. |
+
+<Warning>
+`start_issue` and `login_issue` never recover on their own. A sync run that hits either
+one re-defers every 30 minutes, indefinitely, with `wait_reason = "browser:start_issue"`
+or `browser:login_issue`, until a person or an API call intervenes. A browser that is
+merely waking re-checks every 60 seconds instead.
+</Warning>
+
+## Ordered checks
+
+Stop as soon as one of these explains what you see.
+
+1. **Confirm it is a fault, not a hold.** `shared_out` and `subscription_required` are
+   parked on purpose, and no lifecycle action is available.
+2. **If the pill is red, go straight to [re-login](#re-login-is-the-only-fix).**
+   Restarting a `login_issue` browser will not help.
+3. **Read the reason.** On the **Browser** tab, scroll to **Browser event log**. The
+   newest `error` row names the cause in its `event_type`, `code` and message.
+4. **Restart once.** For `start_issue` or `running_issue`, use **Restart now** on the
+   drawer banner, or **Restart** in the row action menu. Most clear on a fresh start, so
+   give it one attempt and watch the status.
+5. **Only then look at the proxy.** If the restart lands back in `running_issue`, run the
+   connectivity and location checks over the API
+   (`antidetect-browser-proxies/check-proxy-connectivity` and `check-proxy-location`). See
+   [proxy troubleshooting](/kb/proxy-troubleshooting).
+6. **Escalate.** `error_investigation` is the platform saying it has stopped guessing:
+   open the browser and look at it manually, or send us the artifacts listed below.
+
+## `start_issue`: nothing came up
+
+Two physically different things produce it, and the event log says which: **nothing ever
+launched**, a host-side or network failure that killed the launch before a browser existed
+(usually a raw error string, for example a DNS failure), or **the process came up and the
+handshake did not**, where the post-start check that confirms the LinkedIn session never
+completed. Both leave the browser powered off, because the node tears down its own browser
+after reporting a failed start, and both take the same fix: **Restart now** on the
+**Browser did not start** banner.
+
+## `running_issue`: the session dies right after starting
+
+Restart once. A proxy error also marks the proxy dead and swaps in a replacement by
+itself. If the browser keeps flapping, it escalates.
+
+<Warning>
+Escalation is exact: more than 10 recorded failures **and** more than 10 error log rows in
+the last 48 hours moves the browser to `error_investigation`. The bound LinkedIn account
+is cascaded to `sync_failed`, and the workspace owner gets one email (at most one per
+owner, per browser, per hour). Recovery is manual: open the browser and look at it.
+</Warning>
+
+Identical log rows are collapsed: two events with the same browser and the same
+`event_type` inside 60 seconds produce one row, not two, so the log undercounts a rapidly
+flapping browser. The fail count on the browser block is the honest counter.
+
+## `login_issue`: LinkedIn asks to log in again
+
+The drawer shows **Signed out of LinkedIn**. During an initial sync the sync box shows
+**Sync paused, action needed**, with `browser:logged_out` next to the **Reason:** label
+and the reason line **LinkedIn session lost**. That code is a fixed display string in the
+app, not the sync run's `wait_reason`. There is no separate "logged out" status, and three
+properties of this one explain almost every ticket in this category:
+
+- **It is sticky.** Later runtime errors, proxy errors and repeat logout reports are
+  recorded in the log but cannot reclassify the status or bump the counters. Only a
+  successful re-login moves the row off it.
+- **The browser is already powered off**, which is why the row action reads **Start**
+  rather than **Restart**.
+- **Nothing will wake it.** Automatic wake covers `idle` browsers only.
+
+A logout is almost always noticed at the next start, not mid-run: the post-start check is
+what probes the LinkedIn session, so a session LinkedIn invalidated while the browser sat
+idle only surfaces when the browser comes back up.
+
+No email is sent when an account is logged out. The event goes to analytics and to
+webhooks as `antidetect-browsers.logged-out`; on screen it is the red pill. If you run
+many accounts, [subscribe to that webhook](/guides/receive-webhooks) rather than waiting
+to be told.
+
+### Re-login is the only fix
+
+Pressing **Start** re-verifies the session end to end rather than repairing it: either the
+session turns out intact and the browser recovers to `running`, or the login wall is hit
+again and the row goes straight back to `login_issue` with another power-off.
+
+1. In the account drawer, the red **Signed out of LinkedIn** banner sits above the tabs;
+   click **Log in via cloud browser** there (the same link is on the account row).
+   Connecting takes up to 30 seconds.
+2. Click **Log into LinkedIn** and complete the login in that window, including any
+   verification LinkedIn asks for. You are typing into the account's own browser, on its
+   own proxy, so the device and location LinkedIn sees do not change.
+3. Click **I have logged in** and keep the window open while the profile uploads to
+   secure storage. The upload is confirmed from the launcher log within about 90 seconds;
+   the app then closes the window and watches the browser every 3 seconds for up to 4
+   minutes. Reaching `running` reports **LinkedIn session restored, the browser is back
+   up**; hitting the 4-minute deadline reports **Still verifying the session, we'll keep
+   working in the background**.
+
+Syncing and automations resume on their own once the browser is running again, from where
+they stopped.
+
+If the person who can pass LinkedIn's verification is not a user of your workspace, issue
+a temporary link to the same browser session with
+`antidetect-browsers/generate-cloud-browser-access-key`. Call
+`revoke-cloud-browser-access-key` on the same `sid` first, so any older link dies.
+
+<Warning>
+A cloud-browser access key is a bearer secret: anyone holding the link can drive that
+browser. The default lifetime is 8 hours, `ttl_hours` accepts 1 to 720, and you can cap
+`max_connects` (1 to 1000) and restrict `allowed_ips` or `allowed_countries`. Without a
+cap the link is redeemable until it expires, so pass `max_connects: 1` to make it
+single-use. Send it through a private channel and revoke it once the login is done.
+</Warning>
+
+## Read the event log
+
+The **Browser event log** lists When, Level, event type, Code and Message. The rows that
+matter:
+
+| `event_type` | `code` | Means |
+|---|---|---|
+| `start_failure` | `null`, or the HTTP status of the failed start dispatch | The launch was reported as failed |
+| `login_issue` | `401`, or `null` when the logout was seen as an authwall redirect | LinkedIn logged the session out |
+| `proxy_error` | `null` | The proxy did not answer; a replacement is being attached |
+| `runtime_error` | `null` | The session broke after starting |
+| `server_unreachable` | `777` | The automation server hosting the browser went unreachable |
+| `error_escalation` | none | The threshold tripped, status moved to `error_investigation` |
+
+Most rows carry no code at all, so filter on `event_type` and read the cause out of the
+message rather than the `code` column.
+
+The same log is searchable over the API. `counts.groups.event_type` and
+`counts.groups.code` answer "logged out, or proxy, or runtime" on their own, so ask for
+`page_size: 0` when you do not need the rows themselves.
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/antidetect-browser-logs/search" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filter": {
+      "antidetect_browser_sid": {"eq": "ab_br_Hx7kQ3mN2pL4"},
+      "level": {"eq": "error"}, "created_at": {"gte": "2026-08-12T00:00:00Z"}
+    },
+    "sort": {"field": "created_at", "direction": "desc"}, "page_size": 50
+  }'
+```
+
+## Restart over the API
+
+`POST /linkedin/v4/api/antidetect-browsers/run` with `{"sid": "ab_br_..."}` is the same
+action as **Restart now**. It is accepted from `stopped`, `idle`, `start_issue`,
+`running_issue`, `login_issue`, `error_investigation` and `maintenance`. Every refusal
+returns HTTP 409 with `error.code = "conflict"`, so switch on `error.context.reason`,
+never on the code alone.
+
+| `error.context.reason` | Meaning |
+|---|---|
+| `invalid_status_transition` | A status `run` does not accept, for example a HOLD state. `context.from` carries it |
+| `vendor_profile_busy` | Another row is already running this browser profile |
+| `no_automation_server_available` | No healthy host to launch on. Retry later |
+
+Two more come from action endpoints rather than from `run`: HTTP 503 with
+`recoverable: true` means the session is not alive and the action should be retried after
+a restart, and HTTP 409 with reason `captcha_required` or `account_soft_locked` means
+LinkedIn wants a human in the browser first. Full request shapes are in the
+[API reference](/api-reference/overview).
+
+<Tip>
+Copyable prompt for your own agent:
+
+"Triage a stuck LinkedIn account for me using the GTM API. Find the account's antidetect
+browser and read its status. If the status is `login_issue`, stop and tell me to re-login
+through the cloud browser; do not call run. If it is `start_issue` or `running_issue`,
+search antidetect-browser-logs for that browser sid with level error over the last 24
+hours, sorted by created_at descending, and report the newest event_type, code and
+message. Then call run once and report the resulting status. If run returns 409, print
+`error.context.reason` verbatim and stop."
+</Tip>
+
+## Still stuck
+
+Send us the account name and the browser sid (`ab_br_...`, on the **Browser** tab), a
+screenshot of the drawer showing the status pill and the banner text, and the newest error
+row from the event log verbatim: event type, code and the full message string.
+
+## Related
+
+- [Antidetect browsers and proxies](/kb/antidetect-browsers-and-proxies)
+- [Connect a LinkedIn account](/kb/connect-a-linkedin-account)
+- [Sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend)

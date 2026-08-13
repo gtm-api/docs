@@ -1,0 +1,198 @@
+---
+title: "Find an email or phone number for a profile"
+description: "Run contact enrichment on one LinkedIn profile: what comes back, when it runs free on your own connected account versus the managed pool, what each path costs in credits, and how to read a partial result."
+---
+
+Enrichment pulls one known person's own data from LinkedIn through a live browser
+session. This page covers the two methods that can return an email or a phone number,
+where each one can run, and how to read the receipt that comes back. A list of other
+people (search results, employees, post reactions) is scraping instead: different surface,
+different pricing.
+
+## Before you start
+
+- A connected LinkedIn account for the free path, or
+  [credits](/kb/credits-and-data-requests) on the team balance for the managed path.
+- The `can_act_linkedin_enrichment` permission on your API key, agent or user.
+- One identifier: `profile_id` (`ACoAA...` or `ACwAA...`) **or** `public_identifier` (the
+  vanity slug from `/in/...`). Exactly one, never both, or the call is
+  `422 validation_failed`.
+
+## The two methods that return contact details
+
+| | `person-contact-info` | `person-full-profile` |
+|---|---|---|
+| Contact fields | `email`, `phones[]` (typed), `websites[]`, `twitter_handles[]` | flat `email`, `phone`, `twitter`, `facebook` |
+| Everything else | nothing else | headline, position, company, about, experience, and the rest |
+| List price | 5 credits | 5 credits |
+| What you are actually charged | always `0` | 5 on the managed path, 0 on your own account or a cache hit |
+| Cache TTL | 24 hours | 24 hours |
+| Where it can run | only an account of yours that is a 1st-degree connection | your pinned account, or our managed pool |
+
+Both ride the same read but cache under their own key: a cached full profile does not
+satisfy a contact-info call, and the reverse is also true.
+
+<Warning>
+The flat `phone` on `person-full-profile` keeps only the first mobile number. Home and
+work numbers are dropped. `person-contact-info` returns `phones[]` with a `type` on each
+entry (`MOBILE`, `HOME`, `WORK`, or `null`), so use it when the phone actually matters.
+</Warning>
+
+## Run it
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-enrichment/person-contact-info" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"public_identifier": "williamhgates", "idempotency_key": "contact-whg-2026-08-13"}'
+```
+
+No executor fields there: contact info is routed to whichever of your accounts is
+connected to the person, and is never charged. The call is synchronous, and the data
+comes back under `result.contact_info`, next to a `credits` block and the ledger row at
+`result.data_request` (`sid` starting `er_rq_`, `status`, `charged`, `executed_on`,
+`served_from_cache`, `cached_from_sid`). `credits.balance_after` is `null` on every free
+path (own-account run, contact info, cache hit) by design, so read the balance from
+`POST https://app.gtm-api.com/id/v4/api/credit-transactions/get-balance` with body
+`{"kind": "enrichment"}` instead. Per-method shapes are in the
+[API reference](/api-reference/overview), and batching is your own loop (no mass action,
+no sequence step), one target per call.
+
+`contact_info` is always present, and every field inside it can be empty. An empty block
+means the connected account still cannot see those details, never that the call was
+blocked. `address`, `birthday` and connection date are not parsed. A phone with
+`type: null` is normal on older cached payloads, not a defect.
+
+## Your own account versus the managed pool
+
+Every enrichment method except contact info takes exactly one executor field.
+
+| What you send | What happens |
+|---|---|
+| `linkedin_account_sid` (`ln_ac_` + 12 chars) | Runs on that account only, spending that account's `enrichment` daily budget. `charged: 0`, `executed_on: "own_account"` |
+| `use_credits: true` | Runs on our managed infrastructure. Debits the method price, `executed_on: "infra_pool"`, `reason: "infra_pool"` |
+| Neither | `422 validation_failed`, with `field_errors.use_credits` starting `executor_required:`. Nothing runs, nothing is ledgered |
+| Both | `422 validation_failed`. A pinned executor never pools, so the pair is contradictory |
+| `idempotency_key` (max 128 chars) | Replay guard scoped to (team, key). A repeat returns the stored row: no re-execution, no second charge |
+
+<Warning>
+There is no silent fallback. If the account you pinned is out of daily budget the call
+returns `429 rate_limited`, reason `bucket_saturated`, with a `retry_after` timestamp. It
+will not quietly move to the paid path and spend credits you did not opt into.
+</Warning>
+
+### Contact info is the exception
+
+`person-contact-info` requires a connected executor: LinkedIn reveals contact details to
+1st-degree connections only, and a pool account would come back with an empty block.
+
+| Situation | Result |
+|---|---|
+| One of your accounts holds the 1st-degree edge and has budget left | Runs there, `charged: 0` |
+| Your accounts hold the edge but all of them are out of budget | `429 rate_limited`, reason `bucket_saturated`, with `retry_after` and a `connected_accounts` count |
+| Nobody on the team is connected to this person | `422 no_connected_account`: "none of your LinkedIn accounts is connected to this person, so this request cannot be run." Send a connection request, retry once it is accepted |
+| You passed `use_credits: true` | `422 validation_failed`: this method never runs on the credit pool, so omit the field |
+| The target has neither a member id nor a slug to match on | `422 not_dispatchable` |
+
+Here `linkedin_account_sid` is a preference, not a command: another connected account is
+picked if the one you named does not qualify, and accounts out of budget, on hold or
+LinkedIn rate-limited are dropped before the pick. The 5 credit list price shown on
+**Person contact info** describes the underlying read; this route never bills it.
+
+## What each path costs
+
+| Method | Credits (list) | Cache TTL |
+|---|---|---|
+| `person-lite-profile`, `person-basic-profile` | 1 | 24 hours |
+| The rest (experience, skills, education, posts, certifications, company reads) | 1 to 3 | 7 days |
+| `company-public-identifier` | 1 | 30 days |
+
+Credit cost is a list price, not a bill: `charged` is `0` on own-account runs, cache hits,
+failures and refusals. A repeat for the same person and method inside the TTL is served
+from the stored result (`served_from_cache: true`, `charged: 0`, nothing dispatched); past
+it, the call executes and charges again. Cache is per team, per method.
+
+<Warning>
+When the balance is below the method price the managed path returns
+`402 insufficient_credits` with `{required, available, data_request_sid}`, the row is
+ledgered `rejected`, and nothing runs: no queue, no pause. Completed rows do replay free
+on the same `idempotency_key`, but the rejected tail does not resume that way: the stored
+refusal is returned and re-throws the same 402. After topping up, re-issue the failed
+targets with new `idempotency_key` values.
+</Warning>
+
+## How to read a partial result
+
+An empty answer is a real answer. A person who never published a phone number produces a
+`completed` row with an empty field, not an error.
+
+| What the receipt shows | What happened |
+|---|---|
+| `served_from_cache: true`, `charged: 0`, `cached_from_sid: "er_rq_..."` | Served from your team's cached copy. Open `GET /api/data-requests/{cached_from_sid}` and read its `completed_at` for the true age of the data |
+| `served_from_cache: false` | Ran live: `executed_on: "own_account"` spent your account's daily budget and is `charged: 0`, `executed_on: "infra_pool"` ran on managed infrastructure and `charged` the method price |
+
+| Status | Meaning |
+|---|---|
+| `running` | Dispatched to a browser, visible mid-flight |
+| `completed` | Result stored, whether executed or served from cache |
+| `rejected` | Refused before dispatch, always `charged: 0` |
+| `failed` | Dispatched and terminally failed, hold released, `charged: 0` |
+
+A row is inserted either `running` or already terminal; `running` then moves to
+`completed`, `failed` or `rejected` (a credit reserve failure rejects an already running
+row). Nonzero `charged` on a `failed` row is a billing defect: send us the `sid`.
+
+A call has a hard deadline of 90 seconds; typical latency is 30 seconds at p95 executed,
+500 ms at p95 cache-served. Retrying is safe when you reuse the `idempotency_key`; inside
+that window the replay returns the `running` row, so poll `GET /api/data-requests/{sid}`
+until the status is terminal. To follow results without polling, subscribe to the
+`data-requests.completed` and `data-requests.failed` webhooks; the completed payload adds
+`result_ref`, `charge_reason` and `completed_at` to the receipt fields. Refusals have no
+event: a rejection appears only as the synchronous HTTP error.
+
+## Daily budget on the free path
+
+Own-account enrichment spends one shared bucket called `enrichment`. Read it before a
+batch, on the Smart Limits tab of the account drawer or through
+[smart limits and warmup](/kb/smart-limits-and-warmup) filtered on `limit_type`.
+
+<Warning>
+Default budget: 80 enrichment actions per day per account, with a 240 second gap enforced
+between counted actions. When the budget is spent or the gap has not elapsed the call
+returns `429 rate_limited`, reason `bucket_saturated`, with a `retry_after` value; retry
+after that timestamp, not on a fixed schedule. The free plan clamps this to 12 enrichments
+per day per connected account.
+</Warning>
+
+## Errors you will actually hit
+
+| Scenario | HTTP | Code | What to do |
+|---|---|---|---|
+| Slug-only call on a method that needs a stored profile URN | 422 | `not_dispatchable` | Run `person-lite-profile` for that slug first: it stores the URN, and the sub-record methods work from then on |
+| No managed capacity, or a transient browser or plugin failure | 503 | `infrastructure_unavailable`, `plugin_unavailable` | Back off and retry the same call; `plugin_unavailable` carries a `retry_after` one minute out |
+| Terminal execution failure | 409 | `operation_blocked` | Do not retry as sent, change the input |
+| Method not implemented yet (`person-languages`, `post-details`) | 501 | `not_implemented` | Nothing is ledgered: no row, no credit, no budget spent |
+
+A 429 while your credit balance is healthy is not a billing problem: credits and account
+budgets are separate gates, and `bucket_saturated` is your account's daily enrichment
+budget. To pay for that call instead, re-issue with `use_credits: true` and no
+`linkedin_account_sid`.
+
+<Tip>
+Copy this to your AI assistant to enrich a list of profiles:
+
+"Enrich LinkedIn profile slugs with contact details using the GTM API at
+https://app.gtm-api.com/linkedin/v4. For each slug POST to
+/api/linkedin-enrichment/person-contact-info with body `{"public_identifier": SLUG,
+"idempotency_key": "contact-SLUG"}` and header Authorization: Bearer gtm_live_YOUR_KEY. Do
+not send use_credits or linkedin_account_sid: this method always runs free on my connected
+account. One profile per call, sequentially. Treat 422 no_connected_account as
+skip-and-log, and on 429 wait until the retry_after timestamp. Write CSV: slug, email,
+first phone, phone type, websites, credits.charged."
+</Tip>
+
+## Related
+
+- [Credits and data requests](/kb/credits-and-data-requests)
+- [Smart limits and warmup](/kb/smart-limits-and-warmup)
+- [Billing, trial and plans](/kb/billing-trial-and-plans)

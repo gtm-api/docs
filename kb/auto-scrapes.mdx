@@ -1,0 +1,229 @@
+---
+title: "Collect leads with an auto-scrape"
+description: "Save a LinkedIn or Sales Navigator search as a recurring collector, deduplicate what it finds across runs, and feed the new leads into a standing mass action."
+---
+
+An auto-scrape is a saved job that paginates one LinkedIn or Sales Navigator list surface through one of your own accounts'
+browsers, files every unique person or company into its own registry, and appends every never-seen-before lead to a standing
+mass action as one item. A [search](/kb/people-and-company-search) returns a page; an auto-scrape keeps returning on a cadence.
+
+<Tip>
+**Give this to your AI agent** and keep the go-ahead for yourself:
+
+"On gtm-api (MCP connector at https://mcp.gtm-api.com/mcp, or REST at app.gtm-api.com with my key): create an auto-scrape from
+the search URL I give you, using account `ln_ac_...` as the executor and a weekly cadence. Show me the create payload and wait
+for my approval before calling it, because run 1 starts real LinkedIn automation immediately. After it runs, report the run
+counters and pull the leads with search_linkedin_auto_scrape_results filtered on the parent sid. Do not link a mass action
+unless I name one."
+</Tip>
+
+## Before you start
+
+- A connected LinkedIn account with a working browser. It is the **executor**: its browser pages the source and spends its own [scraping budget](/kb/smart-limits-and-warmup).
+- A Sales Navigator seat on that account for Sales Navigator sources and company decision-makers.
+- A standing mass action, if collected leads should be acted on. Author it first with scope `kind: "none"` (see [Run a mass action](/guides/run-a-mass-action)) and reference its `ma_ac_` sid.
+
+## Create one in the app
+
+**Auto Scrapes** in the sidebar (`/auto-scrapes`), then **New auto scrape**. Paste a link into **Source URL** and the form shows
+`Detected:` with the method and result kind, or refuses anything outside the four families below with
+"This URL isn't supported. Use a LinkedIn or Sales Navigator people or company search URL." Accounts without a seat show as
+`no Sales Nav seat`; **Mass action** is optional and disabled for company sources. Run #1 dispatches at once. Source and executor
+are then frozen (the update form writes **Title**, **Replay** and **Mass action**), so changing the source or the executor means
+a new job with a fresh history.
+
+<Frame caption="Auto Scrapes: one row per collector, with the method it runs, the account it runs on, its replay cadence and its last run.">
+  <img src="/images/kb/auto-scrapes-list.png" alt="Auto Scrapes list showing two collectors with their source methods, executor accounts, paused status and daily replay" />
+</Frame>
+
+## Which sources it can run on
+
+The modal classifies four URL families (`/search/results/people`, `/search/results/companies`, `/sales/search/people`,
+`/sales/search/company`) into the matching `-by-url` method. Over the API the eligible set is 17 paginated verbs, addressed as
+`source_method` plus `source_input` instead of `url`:
+
+| `source_input` key | `source_method` values (SN = needs a Sales Navigator seat) |
+|---|---|
+| `url` | `search-people-by-url`, `search-companies-by-url`, `search-service-providers-by-url`, `search-sales-nav-people-by-url` (SN), `search-sales-nav-companies-by-url` (SN) |
+| `filters` | `search-people-by-params`, `search-companies-by-params`, `search-service-providers`, `search-sales-nav-people-by-params` (SN), `search-sales-nav-companies-by-params` (SN) |
+| `anchor_company_ln_id` | `company-employees`, `company-decision-makers` (SN), `similar-companies` |
+| `anchor_nickname` | `similar-profiles` |
+| `activity_urn` | `get-post-commenters`, `get-post-reactors`, `get-post-resharers` |
+
+`result_kind` is `company` for the four company searches and `similar-companies`, `person` for the rest, frozen at create.
+One detail costs a create-time 422: `company-decision-makers` needs a Sales Navigator seat (`sales_nav_required`) although its
+platform reads as plain LinkedIn. Two more are never checked at create: `anchor_company_ln_id` must be numeric, and
+`similar-profiles` takes the vanity slug, never a URN (`anchor_nickname: "jcooper"`). A bad value there still creates the job,
+and run #1 fails instead: a non-numeric company anchor lands as `company_anchor_not_numeric` in `error_message`.
+
+## How often it runs
+
+`replay_frequency` plans the next run as finish time plus the interval, not on a fixed wall clock: a daily job whose run takes
+three hours next runs 24 hours after that run finished.
+
+| `replay_frequency` | Interval after the previous run finalizes |
+|---|---|
+| `hourly` | 60 minutes. API only, not offered in the modal |
+| `daily` | 1440 minutes (24 hours) |
+| `weekly` | 10080 minutes (7 days) |
+| `monthly` | 43200 minutes (30 days) |
+| `null` | Never, the job is one-shot |
+
+Two runs of one job never overlap: minting a run parks the clock (`next_run_at` becomes `null`) and only finalizing re-plans
+it, so a run in flight picks a cadence change up when it finalizes. `next_run_at: null` means one of three things, and the
+drawer says which: a run is in flight, the job is paused ("clock frozen"), or a one-shot already ran. Auto-scrapes are not
+gated by the [sync window](/kb/sync-windows-and-auto-suspend): a due job runs when it comes due, and a suspended browser wakes.
+
+<Warning>
+One drive attempt walks at most **100 pages**, then the run completes normally, the rest of the source is not collected, and the
+next run starts again at page 1. A run resumed after a process death gets a fresh 100-page budget, so the cap tell is
+`pages_applied` of 100 or more, not exactly 100. Split a source deeper than 100 pages into narrower searches.
+</Warning>
+
+## How runs report themselves
+
+Use the **Runs** tab, or the runs endpoint. Each run carries `results_seen` (rows the pages returned), `new_count` (identities
+first seen on this run), `seen_count` (re-sightings) and `enrolled_count` (leads appended to the mass action, max `new_count`).
+
+| Status | Meaning |
+|---|---|
+| `pending` | Minted and waiting for a worker |
+| `in_progress` | The page loop is running, the clock stays claimed until it finishes |
+| `completed` | Terminal, counters are final |
+| `failed` | Terminal, counts toward the auto-pause streak. There is no retry verb: the next attempt is a new run, from the schedule or from **Restart now** |
+
+On failure, `error_message` names the class:
+
+| Prefix | What happened |
+|---|---|
+| `limit_reached: {bucket}` | The executor's smart-limit bucket ran out mid-run. The cause is appended: `linkedin_quota_hit`, `held`, `daily_saturation` or `delay_not_elapsed` |
+| `run_timeout: no progress` | The driver died and the run stopped moving |
+| `run_timeout: never started` | The dispatch was lost between the mint and the queue |
+| `abandoned: parent deleted` | The job was deleted mid-run. This one never counts toward the auto-pause streak |
+| `{ErrorClass}: {message}` | Anything else the driver caught |
+
+A reaper scans every **15 minutes** and finalizes stuck runs: an `in_progress` run with no movement for **2 hours**, and a
+`pending` run older than **30 minutes** that never started. Both are stamped `failed` with `run_timeout:`, releasing the clock.
+
+## How leads are deduplicated across runs
+
+Each job keeps its own registry: one row per unique person or company, ever, and a re-sighting updates that row, never adds a
+second. Scope is the job, not the team, so "new" means new for this collector, and one person can hold a row under several
+auto-scrapes by design. The match walks an identity ladder, first hit wins: person `ln_member_id` → `ln_id` → `sn_id` → `nickname`, company `company_ln_id` → `nickname`.
+
+- **Any overlapping identifier matches.** Every identifier on the incoming row is probed against its own column, so a LinkedIn
+  sighting and a Sales Navigator sighting of one person collapse onto one row.
+- **Blanks are filled in, never overwritten.** A missing identifier is backfilled onto the existing row, and the `dedup_key`
+  stamped at insert is a historical label that never changes.
+- **Rows with no decodable identity are dropped.** They count in `results_seen`, then are never stored and never enrolled.
+  That, plus `seen_count`, is why the registry holds fewer rows than the pages showed.
+
+The registry is the ground truth and the counters are advisory: a page re-applied after a crash reclassifies its own inserts as
+re-sightings, inflating `seen_count` and undercounting `new_count` while the row set stays exact. Per-run delta is a filter, not
+a flag: `first_seen_run_sid` equal to a run's sid gives the leads that run discovered, `seen_runs_count` the recurrence signal.
+
+## Feed a standing mass action
+
+The mass action is authored separately with scope `kind: "none"`, so it starts as a standing run with zero items, and the
+auto-scrape appends to it: every new lead becomes one item.
+
+- Link at create with `mass_action_sid`, or later with `set-mass-action`. A new link replaces the previous one, returned as
+  `previous_mass_action_sid`, which keeps draining what it holds.
+- **The link applies from the next run.** A run gates on the link it was minted with, so nothing enrolls retroactively and a
+  run in flight keeps what it started with.
+- **Only new leads enroll**, and **company jobs cannot enroll yet**, because no company-capable target family is step-eligible.
+
+The 1 to 100 item cap applies at create time to the scope you author; a standing run has no ceiling, so an auto-scrape can grow it
+past 100. Appends are deduplicated inside the mass action too, a paused or deleted one rejects them, and several auto-scrapes can
+feed one run. `enrolled_count` below `new_count` has four causes the aggregate cannot separate: the mass action already held that
+lead (healthy), the enrollment hop failed and was logged as a shortfall, the run crashed between saving rows and enrolling them, or it was collect-only.
+
+<Warning>
+A failed enrollment is a shortfall, not a run failure, and it is not retried. Those leads are now `seen` for every later run,
+and enrollment only ever targets new leads. To recover them, pull the rows from the registry and author a `targets`-scope mass
+action over them.
+</Warning>
+
+## Pause, restart, or stop one
+
+| Action | Where | Effect |
+|---|---|---|
+| **Pause** | Row action, or `POST /{sid}/pause` | `status` becomes `paused`, `paused_reason` becomes `manual`, the clock freezes. A run already in flight finishes |
+| **Resume** | Row action, or `POST /{sid}/resume` | Back to `active`, the failure streak resets to 0, the next run is due immediately |
+| **Restart now** | Kebab menu, or `POST /{sid}/run-now` | Mints a `manual` run at once. Blocked while a run is in progress ("a run is in progress") and while paused ("paused, resume first") |
+| **Delete** | Kebab menu, or `DELETE /{sid}` | Soft delete, and permanent: no further run is minted, an in-flight run abandons at its next page boundary, runs and results stay for audit. A recreated job re-collects everything as new |
+
+An exhausted one-shot stays `active` with a frozen clock, so **Restart now** is how you run it again. Sharing the executor
+account out, or transferring it, pauses that account's auto-scrapes with `paused_reason: account_unavailable`, and when a share
+ends the platform resumes exactly those rows. A transfer does not come back: the executor cannot be repointed.
+
+<Warning>
+A job auto-pauses after **10 consecutive failed runs**, with `paused_reason: too_many_failures` and a
+`linkedin-auto-scrapes.paused` webhook. The streak resets to 0 on the first successful run. `limit_reached:` failures count
+deliberately, so a cadence that chronically outruns the executor's scraping budget walks itself to a pause instead of failing
+quietly for months.
+</Warning>
+
+## Over the API
+
+Create it with either `url` or the `source_method` plus `source_input` pair, never both.
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-auto-scrapes" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "linkedin_account_sid": "ln_ac_YOUR_ACCOUNT",
+    "url": "https://www.linkedin.com/sales/search/people?query=growth%20marketer",
+    "replay_frequency": "weekly",
+    "mass_action_sid": "ma_ac_YOUR_MASS_ACTION"
+  }'
+```
+
+Read the leads back from `/linkedin-auto-scrape-results/search`, filtered on `linkedin_auto_scrape_sid` for the whole registry
+or `first_seen_run_sid` for one run's delta; `page_size: 0` answers "how many unique leads has this job collected" in one call.
+Request shapes, filters and sorts are in the [API reference](/api-reference/overview). `page_size` tops out at **200** and
+asking for more is a `validation_failed` rather than a clamp; `dedup_key` needs `linkedin_auto_scrape_sid` alongside it or it
+answers 422 `bounded_scan_required`, and the same rule covers `run_number` on the separate runs search; `nickname` matches
+exactly, and no endpoint here supports `q`.
+
+Create and link errors are **422** unless noted. Neither or both of `url` and the `source_method` plus `source_input` pair
+answers `validation_failed` on field `source`, and a mass action that is missing, deleted or on another team answers it on field
+`mass_action_sid`. The rest: `invalid_url`, `invalid_source_method` (not auto-scrape eligible),
+`method_not_available` (no live wire verb yet), `source_input` missing the family's required key, `sales_nav_required`,
+`account_not_in_team`, `mass_action_incompatible` (the target family rejects this `result_kind`), `nothing_to_update` (`PATCH`
+with neither `title` nor `replay_frequency`), and **503** `service_unavailable` (reason `mass_action_registry_unavailable`),
+retryable, when the cross-check cannot reach Orchestration. The verbs answer **409**:
+`no_mass_action_set`, `invalid_status_transition` (`resume` on an active job), `auto_scrape_not_active` (`run-now` while paused)
+and `run_in_progress` (`run-now` mid-run).
+
+## Watch it with webhooks
+
+| Event | Fires when |
+|---|---|
+| `linkedin-auto-scrape-runs.completed` | A run finished. Payload: `run_number`, `trigger`, `new_count`, `seen_count`, `enrolled_count`, `pages_applied`, `duration_seconds` |
+| `linkedin-auto-scrape-runs.failed` | A run went terminal. Payload: `page_cursor`, `new_count`, `enrolled_count`, `error_message` |
+| `linkedin-auto-scrapes.paused` | A job paused. Payload: `status`, `paused_reason`, `consecutive_failures` |
+
+There is deliberately no per-page and no per-lead event. Subscribe to both run events, because a failed run's already-applied
+pages wrote durable rows, then call the results search on the payload's `sid` unconditionally, whatever the counters said.
+Endpoint setup is in [Receive webhooks](/guides/receive-webhooks).
+
+## What it costs
+
+Auto-scrapes never touch the credit pool: every page runs on the pinned executor account, so requests are stamped at zero credits.
+A page spends that account's own `scraping` smart-limit bucket, one spend per page, and writes a row in [Data Requests](/kb/credits-and-data-requests).
+The ceiling is per account, not per job, and the daily `scraping` budget is warmup-driven, so a young account collects less per day.
+Pages are never served from cache. If a collector keeps failing with `limit_reached: scraping`, lower the cadence or move it to an
+account with headroom rather than raising the budget past what [warmup](/kb/smart-limits-and-warmup) supports.
+
+The drawer is a sample plus an export, not a browser. **Results** loads the newest 100 rows, **Runs** the newest 50, and the
+list page loads up to 200 jobs and filters them in memory. **Download CSV** exports the rows currently loaded, not the whole
+registry: for the full set, page the results endpoint.
+
+## Related
+
+- [Run a mass action](/guides/run-a-mass-action)
+- [People and company search](/kb/people-and-company-search)
+- [Smart limits and warmup](/kb/smart-limits-and-warmup)
+- [Credits and data requests](/kb/credits-and-data-requests)
