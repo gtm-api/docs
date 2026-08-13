@@ -5,6 +5,12 @@ description: "Preview a bulk plan, commit it with the consent token, then monito
 
 A mass action is a bulk dispatch on the Orchestration service: up to 100 items, each run through a plan of 1 to 3 steps, paced by a randomized schedule. The API forces a two-phase flow so nothing bulk ever fires from a single call: first a preview that validates everything and mints a consent token, then a commit that consumes it.
 
+<Tip>
+**Give this to your AI agent** and keep the go-ahead for yourself:
+
+"On gtm-api (MCP connector at https://mcp.gtm-api.com/mcp, or REST at app.gtm-api.com with my key): build a mass-action plan for the targets I give you, run the preview, and show me the findings and the consent summary. Wait for my explicit approval before committing. After the commit, monitor the run and report per-item outcomes when it settles."
+</Tip>
+
 ## 1. Preview the plan
 
 `POST /api/mass-actions/preview` validates the whole plan without persisting, charging or sending anything, and reports every finding at once.
@@ -52,6 +58,23 @@ Two behaviors to design around:
 With `canary_mode: "first_item"`, only item 1 dispatches until it succeeds. A canary failure pauses the whole run with `paused_reason: canary_failed`, so a broken template costs you one send, not a hundred.
 
 ## 3. Monitor to settlement
+
+Runs are visible in the app whoever authored them: yourself, an API key, an agent over
+MCP, or the platform. **Mass Actions** lists them with their pacing, live counts and
+state.
+
+<Frame caption="The Mass Actions list: one row per run, with items done against total, the randomized pacing window, the derived state and who authored it.">
+  <img src="/images/kb/mass-actions-list.png" alt="Mass Actions list showing runs with item counts, pacing intervals, states and the actor that created each" />
+</Frame>
+
+Opening a run shows the plan it plays and every item's outcome, which is the fastest way
+to tell a broken template from a transient failure.
+
+<Frame caption="A run: the read-only step plan on top, then per-item rows with status, error and attempt count.">
+  <img src="/images/kb/mass-action-drawer.png" alt="Mass action run detail showing a two-step plan and a per-item table with succeeded and failed rows, error text and try counts" />
+</Frame>
+
+Over the API:
 
 - `GET /api/mass-actions/{sid}?include[]=metrics` returns the run with per-status item counts.
 - `POST /api/mass-action-items/search` with `filter: { "mass_action_sid": { "eq": "..." } }` lists the individual items and their step logs.

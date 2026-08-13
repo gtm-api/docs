@@ -1,30 +1,53 @@
 ---
 title: "Receive webhooks"
-description: "Register an endpoint, verify signed deliveries, and use the delivery log."
+description: "Register an endpoint, verify signed deliveries, filter what you receive, and read the delivery log. Includes the retry policy and the auto-disable rule."
 ---
 
 Webhooks live on the Orchestration service and cover events from the whole platform, so one subscription endpoint serves every service.
 
+<Tip>
+**Give this to your AI agent** with your endpoint URL:
+
+"On gtm-api (MCP connector at https://mcp.gtm-api.com/mcp, or REST at app.gtm-api.com with my key): register a webhook for my endpoint URL with the events I name, list the available event types first so I can pick, then watch the delivery log and show me the first delivery's status and response code."
+</Tip>
+
 ## 1. Register an endpoint
 
-`POST /api/webhooks` with your `target_url` and the `events[]` you want:
+`POST /api/webhooks` takes a `name`, your `target_url` and the `events[]` you want:
 
 ```json
 {
+  "name": "Mass action outcomes",
   "target_url": "https://example.com/hooks/gtm",
   "events": ["mass-actions.settled", "mass-actions.paused"]
 }
 ```
 
-- `target_url` must be `https://` and publicly reachable (no private-network addresses).
-- Each `events[]` value is validated against the event-type enum; the reference lists the valid values.
+- `name` is required (1 to 255 characters). Omitting it fails validation.
+- `target_url` must be `https://` and must not resolve to a loopback, private or link-local address. DNS names are resolved and checked too, not just IP literals.
+- Each `events[]` value is validated against the platform event catalog, which currently carries 94 types across the services.
 - The same `target_url` cannot be registered twice in one team.
+- `events: ["*"]` subscribes to the entire catalog, including event types added later.
 
 The response returns the webhook's `secret`, a 32-character hex string, exactly once. Store it: every later read masks it, and it is what you verify signatures with.
 
+<Note>
+Webhooks are capped per plan. Creating one past the cap answers `402` with
+`webhook_limit_reached` and a body carrying `used`, `limit` and a suggested action. The
+free plan's cap is 0, so webhooks need a trial or a paid plan. See
+[billing, trial and plans](/kb/billing-trial-and-plans).
+</Note>
+
+### Filter what you receive
+
+Two optional filters narrow deliveries at the source, so your endpoint is not woken by events it would discard anyway:
+
+- `filters.account_sid` restricts deliveries to one account (`ln_ac_...` for LinkedIn, `em_ac_...` for email). The sid is matched verbatim, so channels added later work here without a change.
+- `filters.where` takes a small filter expression over the event payload. It is validated strictly at write time: nesting depth is capped at 5 and the whole expression at 20 leaf conditions, answering `filter_grammar_invalid` or `filter_leaves_limit_exceeded` when it exceeds either.
+
 ## 2. Verify deliveries
 
-Every delivery is an HTTPS `POST` with a JSON body and these headers:
+Every real delivery is an HTTPS `POST` with a JSON body and these headers:
 
 | Header | Content |
 |---|---|
@@ -34,6 +57,20 @@ Every delivery is an HTTPS `POST` with a JSON body and these headers:
 | `X-Webhook-Id` | The subscription's sid |
 | `X-Webhook-Log-Id` | This delivery's sid in the delivery log |
 | `X-Trace-Id` | Trace id, also present in the body |
+
+The body is a fixed envelope, with the event's own data nested under `payload`:
+
+```json
+{
+  "webhook_log_sid": "wh_lg_...",
+  "type": "mass-actions.settled",
+  "emitted_at": "2026-08-13T09:12:44Z",
+  "occurred_at": "2026-08-13T09:12:41Z",
+  "team_sid": "ts_tm_...",
+  "trace_id": "019ffa3d-...",
+  "payload": {}
+}
+```
 
 The signature is `HMAC-SHA256(secret, "{t}.{raw_body}")` over the raw request body, with the timestamp mixed in to block replays. Verify before parsing, and reject signatures older than about 5 minutes:
 
@@ -46,15 +83,18 @@ function verify(rawBody: string, header: string, secret: string): boolean {
   const parts = Object.fromEntries(
     header.split(",").map((p) => p.split("=") as [string, string]),
   );
+  if (!parts.t || !parts.v1) return false;
   const age = Math.abs(Date.now() / 1000 - Number(parts.t));
   if (age > 300) return false;
   const expected = crypto
     .createHmac("sha256", secret)
     .update(`${parts.t}.${rawBody}`)
     .digest("hex");
-  return crypto.timingSafeEqual(
-    Buffer.from(expected),
-    Buffer.from(parts.v1 ?? ""),
+  const received = Buffer.from(parts.v1);
+  const digest = Buffer.from(expected);
+  // timingSafeEqual throws on a length mismatch, so check that first.
+  return (
+    received.length === digest.length && crypto.timingSafeEqual(digest, received)
   );
 }
 ```
@@ -63,32 +103,62 @@ function verify(rawBody: string, header: string, secret: string): boolean {
 import hashlib, hmac, time
 
 def verify(raw_body: bytes, header: str, secret: str) -> bool:
-    parts = dict(p.split("=", 1) for p in header.split(","))
-    if abs(time.time() - int(parts["t"])) > 300:
+    # Parse defensively: a malformed header must return False, not raise.
+    parts = dict(kv.split("=", 1) for kv in header.split(",") if "=" in kv)
+    if "t" not in parts or "v1" not in parts:
+        return False
+    try:
+        ts = int(parts["t"])
+    except ValueError:
+        return False
+    if abs(time.time() - ts) > 300:
         return False
     expected = hmac.new(
-        secret.encode(), f"{parts['t']}.".encode() + raw_body, hashlib.sha256
+        secret.encode(), f"{ts}.".encode() + raw_body, hashlib.sha256
     ).hexdigest()
-    return hmac.compare_digest(expected, parts.get("v1", ""))
+    return hmac.compare_digest(expected, parts["v1"])
 ```
 
 </CodeGroup>
 
 Compute the HMAC over the raw bytes you received, before any JSON re-serialization: parsing and re-encoding the body can reorder keys and break the signature.
 
+<Warning>
+Redirects are not followed, deliberately. A `302` from your endpoint counts as a failed
+delivery, not a hop. Deliveries also time out at 30 seconds total (5 seconds to connect),
+so acknowledge fast and do the work asynchronously.
+</Warning>
+
 ## 3. Test before relying on it
 
 `POST /api/webhooks/{sid}/test` fires a synthetic delivery at your endpoint, so you can confirm reachability, signature handling and parsing without waiting for a real event.
 
-## 4. Use the delivery log
+Three things to know about it: it is rate-limited to 10 calls per minute per caller (the budget is shared across all your webhooks), it is rejected with `invalid_transition` while the webhook's status is `off`, and it writes no row to the delivery log. It also sets a subset of the headers above, so build your verifier on the signature, timestamp, event and id headers rather than requiring all six.
 
-Every attempt is a row you can query:
+## 4. Retries and auto-disable
+
+A delivery is attempted up to **5 times**, with waits of 1 minute, 5 minutes, 30 minutes and 2 hours between attempts. The fifth failure is terminal, so a dead endpoint settles about 2.5 hours after the first attempt.
+
+| Response | What happens |
+|---|---|
+| `2xx` | Delivered, done |
+| `5xx`, `408`, `429`, network or TLS timeout | Retried on the schedule above |
+| Any other `4xx` | Terminal, no retry: the request was understood and refused |
+| `410 Gone` | Terminal, and it disables the subscription immediately |
+
+After **20 consecutive failed attempts**, or a single `410 Gone`, the subscription flips to `failed` and stops delivering. That transition itself emits `webhooks.failed`, so a second webhook can page you when the first one dies.
+
+## 5. Use the delivery log
+
+The log holds **one row per event per subscription**, not one per attempt: a retry updates that row in place, bumping `retry_count` and overwriting the response code. The row is the delivery, and its history is the counter.
 
 - `POST /api/webhook-logs/search` lists deliveries with status, response code and timing; filter by webhook or event type.
-- `POST /api/webhook-logs/{sid}/retry` re-sends a failed delivery.
-- `POST /api/webhook-logs/{sid}/cancel` drops a pending one.
-- `POST /api/webhook-logs/metrics` aggregates delivery outcomes over a period, useful for an endpoint health dashboard.
+- `POST /api/webhook-logs/{sid}/retry` re-sends. Allowed from `pending`, `retrying`, `failed` and `success` (a manual re-send of a delivered event is legitimate), and only while the parent subscription is still live: a deleted or `off` webhook rejects the retry.
+- `POST /api/webhook-logs/{sid}/cancel` stops a delivery that has not settled. Allowed from `pending`, `retrying` and `in_progress`.
+- `POST /api/webhook-logs/metrics` aggregates outcomes. `period` with `from` and `to` is required and may span at most 90 days.
+
+Both `retry` and `cancel` answer `409` with `invalid_transition` when the row is not in a state that allows the verb, and the error names the state it found.
 
 ## Rotating the secret
 
-Rotation replaces the secret immediately, with no overlap window: deliveries sent between the rotation and your config update will fail your verification. Rotate at a quiet moment, update your verifier, then use the test endpoint to confirm the new secret end to end.
+There is no self-service rotation endpoint. If a secret is exposed, delete the webhook and register a new one, then point your verifier at the new secret. Deleting and re-registering also gives you a clean delivery log boundary, which is easier to reason about than a rotation with no overlap window.

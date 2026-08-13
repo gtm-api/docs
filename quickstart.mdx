@@ -5,16 +5,22 @@ description: "Mint an API key and make your first authenticated call."
 
 This page takes you from nothing to a successful API response.
 
+<Tip>
+**Give this to your AI agent** and it will handle the API side while you sign up and log the LinkedIn account in:
+
+"Connect to gtm-api: add the MCP connector at https://mcp.gtm-api.com/mcp (OAuth) or call the REST API at app.gtm-api.com with my key. Then search my linkedin-accounts, tell me each account's status, and once one reaches active, show what its smart limits allow today. Read-only for now: do not send or post anything."
+</Tip>
+
 <Steps>
   <Step title="Create an account and connect LinkedIn">
     Sign up at [app.gtm-api.com](https://app.gtm-api.com/login). The trial runs 7 days and needs no card. Connect a LinkedIn account you own: it opens in a dedicated anti-detect cloud browser with its own proxy, and the platform starts an initial sync of your inbox, connections and profile.
 
-    You can make read calls right away. Outbound actions (connection requests, messages) stay blocked with a `conflict` error until the initial sync finishes.
+    You can make read calls right away. Outbound actions (connection requests, messages) stay blocked with an `invalid_transition` error until the initial sync finishes.
   </Step>
   <Step title="Mint an API key">
     In the app, create an API key. The full secret looks like `gtm_live_` followed by 40 characters and is shown exactly once: store it now, because the API only ever returns the prefix and last 4 characters afterwards. If you lose it, rotate the key to get a new secret.
 
-    Keys can also be minted over the API with [`POST /api/api-keys`](/api-reference/id) once you have a first key or a session token to call it with.
+    Keys can also be minted over the API with [`POST /api/api-keys`](/api-reference/id/api_keys/create-api-key) once you have a first key or a session token to call it with.
   </Step>
   <Step title="Make your first call">
     Search your connected LinkedIn accounts. The key goes in the `Authorization` header as a bearer token.

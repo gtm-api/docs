@@ -1,0 +1,223 @@
+---
+title: "Billing, trial and plans"
+description: "The 7-day trial, what the free plan keeps running, how paid accounts are priced, and what happens when a payment fails or a subscription ends."
+---
+
+Your first workspace starts on a 7-day trial with 5 connected-account slots and no card.
+When it ends the workspace does not stop: it falls to the free plan and keeps working at
+a lower volume. This page covers what each plan grants, what changes at each boundary,
+and where to see it.
+
+## Where to see your plan
+
+The sidebar card is the workspace's plan and usage at a glance: the plan name, how many
+account slots are used against the cap, and the data-credit balance.
+
+<Frame caption="The sidebar plan card: plan name, account slots used against the cap, and the credit balance.">
+  <img src="/images/kb/sidebar-plan-card.png" alt="Sidebar plan card showing the Trial plan, 7 of 5 accounts used, and 146 data credits" />
+</Frame>
+
+<Note>
+Slots can read over the cap (`7 / 5` above) whenever the cap drops below what is already
+connected: a trial ending, or a paid downgrade. Nothing is deleted. The newest accounts
+are parked and their browsers powered off until you free a slot or raise the cap.
+</Note>
+
+## The trial
+
+| What you get | Value |
+|---|---|
+| Length | 7 days from workspace creation |
+| Connected accounts | 5 slots |
+| Card required | None |
+| Data credits | 50 per month, granted on day 1 |
+| Parallel cloud-browser sessions | 2 |
+| Webhooks | 20 |
+| Action volume | Full speed, no plan clamp on smart limits |
+
+<Warning>
+One trial per user, ever. Deleting a workspace and creating another does not reset it:
+the second workspace is created without capacity, so connect your accounts to the
+workspace you intend to keep.
+</Warning>
+
+## When the trial ends
+
+The workspace is not suspended. An hourly sweep retires the trial and applies the free
+plan, so everything stays reachable at free-plan volume: the account cap reconciles from
+5 to 1, and the accounts beyond the cap are parked newest-first with their browsers
+powered off. Reconnect or upgrade and they come back.
+
+## The free plan
+
+The full product on one account: the UI, the REST API, the MCP server and every LinkedIn
+action verb stay available, and the plan caps volume and frequency instead of features.
+
+| Grant | Value |
+|---|---|
+| Connected accounts | 1 |
+| Parallel cloud-browser sessions | 1 |
+| Data credits | 50 per month, no rollover |
+| Webhooks | 0 |
+| Expiry | None; the plan does not end |
+
+Three things are genuinely off rather than slowed: **webhooks** (creating one answers
+`webhook_limit_reached`), **team members** (the workspace is single-user), and the **AI
+copilot**.
+
+Daily action caps on the free plan, per connected account:
+
+| Action | Per day |
+|---|---|
+| Connection requests | 5 |
+| Messages | 10 |
+| InMails | 5 |
+| Profile visits | 8 |
+| Scraping actions | 15 |
+| Data requests | 20 |
+| Enrichments | 12 |
+| Comments, reactions, endorsements | 5 each |
+| Posts | 1 |
+| Profile edits | 2 |
+| Custom requests | 9 |
+| Networking, general | 6 |
+| Messaging, general | 15 |
+
+Two more free-plan behaviors worth planning around:
+
+- **Sync cadence is relaxed.** Each sync surface refreshes at most once every 24 hours,
+  and realtime message push is off. Initial backfills after connecting are exempt.
+- **Idle accounts are parked after 30 days** without user-driven activity, and the
+  browser profile is deleted. Reconnecting means logging into LinkedIn again, because
+  the session cookies are gone.
+
+Account health keeps syncing on the free plan regardless, so smart limits and warmup
+stay accurate.
+
+## Paid plans
+
+Pricing is per connected account per month, in volume brackets. Every account bills at
+the bracket its total lands in, so the price per account drops for the whole workspace
+as you add accounts.
+
+| Accounts | Per account / month | Parallel cloud-browser sessions (workspace total) |
+|---|---|---|
+| 1 to 4 | $39 | 1 |
+| 5 to 9 | $30 | 2 |
+| 10 to 19 | $25 | 2 |
+| 20 to 49 | $20 | 3 |
+| 50 to 99 | $16 | 3 |
+| 100 to 299 | $13 | 4 |
+| 300 to 999 | $10 | 5 |
+| 1,000+ | Custom | Custom |
+
+Three allowances do not scale with the account count: **100 webhooks**, **50 data credits
+per month**, and the session column above, which is a total for the workspace rather than
+a per-account number.
+
+- **Annual billing** is pay for 12 months, get 15 months of service.
+- **Max Safety** is an optional add-on at **+$15 per selected account per month**, for
+  accounts that need a dedicated mobile route and no background load.
+- **Scraping and enrichment volume** beyond the monthly allowance is bought as a credit
+  top-up, priced at checkout. Public pricing for it is not published yet. See
+  [credits and data requests](/kb/credits-and-data-requests).
+
+The current published pricing is on the [pricing page](https://gtm-api.com/pricing/).
+
+## Subscription statuses
+
+| Status | What it means |
+|---|---|
+| `trialing` | The 7-day trial is running |
+| `active` | Paid and current, or the free plan |
+| `past_due` | A payment failed; a grace window is running |
+| `paused` | Billing stopped by request; the workspace is gated, data is kept |
+| `canceled` | Ended. Terminal: a new subscription is a new purchase |
+
+The workspace itself is either active or suspended, derived from the above: `trialing`
+and `active` are active, `paused` is suspended, and `past_due` stays active until the
+grace window closes.
+
+### When a payment fails
+
+The workspace keeps working for **7 days** past the end of the paid period. Update the
+card within that window and the subscription returns to `active` on its own. After it,
+the workspace is suspended until payment succeeds.
+
+<Note>
+Card updates happen in the payment provider's hosted portal, reached through a
+short-lived link the API mints
+(`POST /api/billing-subscriptions/{sid}/get-update-payment-method-link`). Workspaces
+billed by sales invoice have no card portal; talk to us instead.
+</Note>
+
+### When a subscription ends
+
+Cancelling takes effect at the end of the paid period, with no immediate charge and no
+refund for the remainder. The workspace then falls back to the free plan, exactly like a
+trial ending.
+
+<Warning>
+If a workspace ends up with no coverage at all, its data is retained for **8 weeks** and
+then deleted, with a warning email at the 6-week mark. Reactivating inside that window
+restores everything.
+</Warning>
+
+Pausing is the alternative: billing stops at the next period, the workspace is gated like
+a suspended one, and every account, browser and row is retained until you resume.
+
+## Changing plan over the API
+
+Seat count is the subscription's `quantity`, and it is what the account cap follows.
+Changing it re-brackets the price automatically. The change is a two-step flow, and the
+first step charges nothing:
+
+<CodeGroup>
+
+```bash preview
+# What would this cost? Read-only: no charge, no change.
+curl -X POST "https://app.gtm-api.com/id/v4/api/billing-subscriptions/bl_sb_YOUR_SUB/preview-change" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"quantity": 12}'
+```
+
+```bash apply
+# Commit the same change
+curl -X POST "https://app.gtm-api.com/id/v4/api/billing-subscriptions/bl_sb_YOUR_SUB/change" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"quantity": 12}'
+```
+
+```bash read
+# The workspace's current subscription and its status
+curl -X POST "https://app.gtm-api.com/id/v4/api/billing-subscriptions/search" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"page_size": 5}'
+```
+
+</CodeGroup>
+
+Buying the first paid subscription is `POST /api/billing-subscriptions/create-checkout`,
+which returns a `checkout_url` for a human to complete. The subscription exists once the
+payment settles, not when the link opens; an abandoned checkout leaves nothing behind.
+
+<Warning>
+The subscription verbs take no idempotency key. `change` charges the prorated difference
+immediately, so if a call returns unclearly, read the subscription back before retrying
+rather than sending it twice. Credit top-ups are the exception: they take a `request_id`,
+and reusing it is what makes a retry safe.
+</Warning>
+
+Pause, resume, cancel, and add-ons (`add-addon`, `remove-addon`) are the remaining verbs
+on the same subscription. Add-ons charge prorated immediately; removing one takes effect
+at the next period. None of these apply to trial or free-plan workspaces, which have no
+payment provider subscription behind them.
+
+## Related
+
+- [Credits and data requests](/kb/credits-and-data-requests)
+- [Smart limits and warmup](/kb/smart-limits-and-warmup)
+- [Connect a LinkedIn account](/kb/connect-a-linkedin-account)

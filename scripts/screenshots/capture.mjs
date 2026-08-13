@@ -91,6 +91,42 @@ const SPECS = {
     await page.waitForTimeout(600);
     return null;
   },
+  // The sidebar plan card: the only persistent billing surface in the app.
+  // Anchored on the sider, because the mass-action step plan compiles to a
+  // colliding `_planCard_` class in its own stylesheet.
+  'sidebar-plan-card': async (page) => {
+    await page.getByText('Data credits').waitFor();
+    return page.locator('aside [class*="_planCard_"], .ant-layout-sider [class*="_planCard_"]').first();
+  },
+  // Buy credits modal, opened from the Data Requests header.
+  'buy-credits-modal': async (page) => {
+    await page.goto(`${APP}/data-requests`, { waitUntil: 'networkidle' });
+    await page.getByRole('button', { name: /buy credits/i }).click();
+    await page.getByText(/Buy data credits/i).first().waitFor();
+    await page.waitForTimeout(500);
+    return page.locator('.ant-modal').first();
+  },
+  // Mass actions: the monitoring list (runs, pacing, state, per-run counts).
+  // Clip the content column, not the viewport: the sider footer prints the
+  // signed-in user's email, which must never reach a public docs image.
+  'mass-actions-list': async (page) => {
+    await page.goto(`${APP}/mass-actions`, { waitUntil: 'networkidle' });
+    await page.getByText(/runs$/).first().waitFor();
+    await page.waitForTimeout(800);
+    return page.locator('main, .ant-layout-content').first();
+  },
+  // Mass action run drawer: the read-only step plan and the per-item table.
+  // The drawer is deep-linkable at /mass-actions/{sid}, which is the stable
+  // way in: the list is a virtualized CursorTable with no clickable row
+  // selector that survives a rebuild. MASS_ACTION_SID picks the run.
+  'mass-action-drawer': async (page) => {
+    const sid = process.env.MASS_ACTION_SID;
+    if (!sid) throw new Error('set MASS_ACTION_SID to a run sid (ma_ac_...)');
+    await page.goto(`${APP}/mass-actions/${sid}`, { waitUntil: 'networkidle' });
+    await page.getByText(/^Run$/).first().waitFor();
+    await page.waitForTimeout(1200);
+    return page.locator('.ant-drawer-content, .rc-drawer-section, [class*="_drawerBody_"]').first();
+  },
 };
 
 const wanted = process.argv.slice(2);

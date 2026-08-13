@@ -1,77 +1,76 @@
 ---
 title: "Connect a client"
-description: "Add the gtm-api MCP server to Claude, Cursor or any MCP-compatible runtime."
+description: "Add the gtm-api MCP server to Claude, Cursor, VS Code, ChatGPT or any MCP-compatible runtime."
 ---
 
-The server speaks streamable HTTP at `https://mcp.gtm-api.com/mcp` and authenticates with your [API key](/authentication) as a bearer token. Clients that implement MCP OAuth discovery can also connect through the standard OAuth flow; the server advertises it, and the client walks you through consent.
+The server speaks streamable HTTP at `https://mcp.gtm-api.com/mcp` and authenticates with
+OAuth. Your client discovers the flow on its own: the first call comes back with a
+`WWW-Authenticate` challenge pointing at the server's metadata, the client registers
+itself, and you approve the consent screen in your browser. Nothing to paste, no key to
+store.
 
-## Claude Code
+## Add to your agent
+
+One action per client, then approve the consent screen that opens. That is the whole setup.
+
+<CardGroup cols={2}>
+  <Card title="Claude" icon="message" href="https://claude.ai/settings/connectors">
+    Open Settings, Connectors, then "Add custom connector". Paste `https://mcp.gtm-api.com/mcp` and approve access. Works for claude.ai and Claude Desktop.
+  </Card>
+  <Card title="Cursor" icon="arrow-pointer" href="cursor://anysphere.cursor-deeplink/mcp/install?name=gtm-api&config=eyJ1cmwiOiJodHRwczovL21jcC5ndG0tYXBpLmNvbS9tY3AifQ==">
+    One-click install (the button opens Cursor). Sign in on the consent page that follows.
+  </Card>
+  <Card title="VS Code" icon="code" href="https://vscode.dev/redirect/mcp/install?name=gtm-api&config=%7B%22type%22%3A%22http%22%2C%22url%22%3A%22https%3A%2F%2Fmcp.gtm-api.com%2Fmcp%22%7D">
+    Installs the server for Copilot agent mode. Sign in on the consent page that follows.
+  </Card>
+  <Card title="ChatGPT" icon="comment-dots">
+    Settings, Connectors, Advanced settings, enable Developer mode. Add a connector with the URL above and complete the OAuth sign-in.
+  </Card>
+</CardGroup>
+
+### Claude Code
 
 ```bash
-claude mcp add --transport http gtm-api https://mcp.gtm-api.com/mcp \
-  --header "Authorization: Bearer gtm_live_YOUR_KEY"
+claude mcp add --transport http gtm-api https://mcp.gtm-api.com/mcp
 ```
 
-Then `claude mcp list` should show `gtm-api` as connected, and any session can use the tools ("search my LinkedIn accounts").
+Then run `/mcp` in any session and authenticate when prompted. `claude mcp list` shows
+`gtm-api` as connected once consent is done.
 
-## Claude Desktop
+### Any other MCP client
 
-Add to `claude_desktop_config.json`:
+Point it at `https://mcp.gtm-api.com/mcp` over the streamable HTTP transport and let it
+run the OAuth flow. Clients that support MCP OAuth need nothing else: the server
+advertises its authorization server, and dynamic client registration means your client
+does not need to be pre-registered with us.
 
-```json
-{
-  "mcpServers": {
-    "gtm-api": {
-      "url": "https://mcp.gtm-api.com/mcp",
-      "headers": { "Authorization": "Bearer gtm_live_YOUR_KEY" }
-    }
-  }
-}
-```
+<Note>
+The hosted endpoint takes OAuth tokens only. An API key (`gtm_live_...`) authenticates
+the [REST API](/api-reference/overview), not this server; sending one as a bearer token
+here answers `401 invalid_token`. Use OAuth for MCP, keys for REST.
+</Note>
 
-## Cursor
+## Check it from a terminal
 
-Add to `.cursor/mcp.json` (project) or `~/.cursor/mcp.json` (global):
-
-```json
-{
-  "mcpServers": {
-    "gtm-api": {
-      "url": "https://mcp.gtm-api.com/mcp",
-      "headers": { "Authorization": "Bearer gtm_live_YOUR_KEY" }
-    }
-  }
-}
-```
-
-## Docker (stdio clients)
-
-For clients that only launch command-based servers, the same server is packaged as a launcher image:
-
-```json
-{
-  "mcpServers": {
-    "gtm-api": {
-      "command": "docker",
-      "args": ["run", "-i", "--rm", "-e", "GTM_API_KEY", "gtmapi/linkedin-mcp"],
-      "env": { "GTM_API_KEY": "gtm_live_YOUR_KEY" }
-    }
-  }
-}
-```
-
-## Anything else
-
-Any MCP-compatible runtime works the same way: streamable HTTP transport, the URL above, and the `Authorization` header. For a quick smoke test without a client:
+To confirm the endpoint and walk the OAuth flow by hand:
 
 ```bash
 npx @modelcontextprotocol/inspector
 ```
 
-Choose the streamable HTTP transport, enter the URL, add the header, connect, and list tools.
+Choose the streamable HTTP transport, enter `https://mcp.gtm-api.com/mcp`, connect, and
+complete the consent screen. The tool list appears once you are authorized.
+
+## What you get
+
+Three meta-tools rather than hundreds of individual ones: `list_toolsets` to see the
+domains, `get_toolset_tools` to inspect one, and `call_tool` to run any tool by name.
+Dangerous tools still run their preview and confirm step, so an agent cannot commit a
+bulk send without showing you what it is about to do.
 
 ## First prompt to try
 
 > "Check the smart limits on my LinkedIn account, then draft, preview and send a connection request to the profile at this URL."
 
-The agent chains the tools on its own; the preview step and the server-side limit check run before anything is sent.
+The agent chains the tools on its own; the preview step and the server-side limit check
+run before anything is sent.
