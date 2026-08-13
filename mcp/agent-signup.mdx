@@ -1,0 +1,81 @@
+---
+title: "Agent-native signup and billing"
+description: "How an AI agent registers its operator, connects itself, and handles the moment the trial ends."
+---
+
+An agent does not need its operator to have an account before it can start. The signup ladder has four rungs; the higher two are API surfaces built for agents.
+
+## Start a signup for your operator
+
+The agent submits the operator's email plus its own OAuth client identity and a PKCE challenge. The human gets one email and clicks one link; that click is the consent screen and the abuse boundary at once. Nothing provisions before it.
+
+<Steps>
+  <Step title="Register your client (once)">
+    Standard RFC 7591 dynamic client registration:
+
+    ```bash
+    curl -X POST "https://app.gtm-api.com/id/v4/oauth/register" \
+      -H "Content-Type: application/json" \
+      -d '{"client_name": "My Agent", "redirect_uris": ["http://127.0.0.1:8976/callback"]}'
+    ```
+
+    Keep the returned `client_id`. Clients born this way are stamped `actor_kind: agent`, so every token they mint is attributable as agent activity.
+  </Step>
+  <Step title="Start the registration">
+    ```bash
+    curl -X POST "https://app.gtm-api.com/id/v4/auth/register-agent" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "email": "operator@company.com",
+        "client_id": "YOUR_CLIENT_ID",
+        "redirect_uri": "http://127.0.0.1:8976/callback",
+        "code_challenge": "BASE64URL_S256_OF_YOUR_VERIFIER",
+        "code_challenge_method": "S256"
+      }'
+    ```
+
+    The answer carries `registration_sid` and a one-time `poll_secret`. The operator receives a verification email; tell them it is coming.
+  </Step>
+  <Step title="Poll until the human clicks">
+    ```bash
+    curl -X POST "https://app.gtm-api.com/id/v4/auth/register-agent/poll" \
+      -H "Content-Type: application/json" \
+      -d '{"registration_sid": "id_ar_...", "poll_secret": "..."}'
+    ```
+
+    `pending` until the operator finishes the page; then `{"status": "verified", "code": "...", "team_sid": "ts_tm_..."}`. The code is single-use and short-lived; poll again for a fresh one if it expires before you exchange it.
+  </Step>
+  <Step title="Exchange the code">
+    The standard token endpoint, nothing custom:
+
+    ```bash
+    curl -X POST "https://app.gtm-api.com/id/v4/oauth/token" \
+      -H "Content-Type: application/json" \
+      -d '{
+        "grant_type": "authorization_code",
+        "code": "...",
+        "code_verifier": "YOUR_VERIFIER",
+        "client_id": "YOUR_CLIENT_ID",
+        "redirect_uri": "http://127.0.0.1:8976/callback"
+      }'
+    ```
+
+    From here you hold the normal grant credential and installation token: connect to `https://mcp.gtm-api.com/mcp` or call REST directly. The operator lands in a 7-day trial workspace with 5 sender slots.
+  </Step>
+</Steps>
+
+<Note>
+Rate limits apply per IP on every endpoint above, the emailed link expires in 24 hours, and an email that already has an account is told so on the verification page, not in the API answer. One live registration per (email, client): re-posting the same pair re-sends the email and answers `already_exists: true`.
+</Note>
+
+If the operator already has an account, skip this flow: connect through OAuth from any client ([Connect a client](/mcp/connect)) and the consent screen does the rest.
+
+## When the trial ends
+
+Write verbs start answering `402` with `subscription_required` once the trial lapses. That moment is handleable by the agent, not just reportable:
+
+1. Read the state: search `billing-subscriptions` for the workspace and see `status` and `trial_ends_at`.
+2. Mint a payment link: create a checkout for the plan through the billing tools (or a Paddle portal link for an existing subscription). Both return a URL a human can open.
+3. Hand the URL to your operator with the one-line reason, and retry the blocked action after the `billing-subscriptions.activated` webhook, or on your next run.
+
+The agent never touches payment credentials: the link opens Paddle's checkout in the operator's browser, and the platform unblocks on the webhook.
