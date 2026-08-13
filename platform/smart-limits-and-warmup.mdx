@@ -1,0 +1,77 @@
+---
+title: "Smart limits and warmup"
+description: "Per-action daily budgets protect every LinkedIn account, and a warmup ramp grows them as a new account proves itself. How budgets, holds and warmup work."
+---
+
+Smart limits budget how many actions of each kind a LinkedIn account may perform per
+day. They are on by default for every connected account and every outbound call checks
+them server-side before dispatch: work that would exceed a budget is parked, not lost.
+
+## How budgets work
+
+Every action type (connection requests, messages, profile visits, endorsements, and so
+on) has its own daily bucket. When a bucket is spent, further actions of that kind wait
+until the budget refreshes. Parked work resumes automatically as soon as the limit
+releases; nothing needs re-queuing.
+
+<Frame caption="The Smart Limits tab of the account drawer: the warmup score with its six signals, incident logs, and the per-action caps below.">
+  <img src="/images/platform/account-drawer-smart-limits.png" alt="Smart Limits tab showing the warmup percentage, six health signals and per-action daily caps" />
+</Frame>
+
+## Warmup
+
+A freshly connected account starts with reduced budgets that ramp up gradually. The ramp
+is driven by six live signals about the account, shown in the drawer: recent activity,
+concurrent sessions and IPs, blocks, limit hits, account age, and profile completeness.
+They multiply into the day's allowance.
+
+<Note>
+Warmup counts real sends: activity the account actually performed matters, not just
+time passed. A dormant account ramps slower than one that is actively and successfully
+working.
+</Note>
+
+## Limit statuses
+
+| Status | Meaning |
+|---|---|
+| `active` | Budgets available, actions flow normally |
+| `held` | The current budget is spent; outbound actions are parked until the refresh. The normal daily-cap state, not an error |
+| `linkedin_blocked` | LinkedIn itself restricted the account; actions stay parked until the restriction clears |
+
+## Raise a limit, release a hold
+
+Limits are editable per account in the drawer. Raising a limit offers **reset hold**,
+which atomically raises the budget and resumes everything parked on it in one step.
+Without reset hold, the raised budget takes effect on the next refresh cycle.
+
+<CodeGroup>
+
+```bash curl
+# Read an account's current buckets and what is spent today
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-account-smart-limits/search" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"filter": {"linkedin_account_sid": {"eq": "ln_ac_YOUR_ACCOUNT"}}}'
+```
+
+```bash reset-hold
+# Raise a bucket and release its hold in one step
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-account-smart-limits/lm_sl_YOUR_LIMIT/reset-hold" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+</CodeGroup>
+
+<Warning>
+Hitting a budget over the API answers `limit_exceeded`. The action can resume the next
+day or after the limit is raised; the account is not penalized for your retry logic.
+</Warning>
+
+## Related
+
+- [Sync windows and auto-suspend](/platform/sync-windows-and-auto-suspend)
+- [Antidetect browsers and proxies](/platform/antidetect-browsers-and-proxies)
+- [Run a mass action](/guides/run-a-mass-action)

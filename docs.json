@@ -21,7 +21,21 @@
         "groups": [
           {
             "group": "Get started",
-            "pages": ["index", "quickstart", "authentication"]
+            "pages": [
+              "index",
+              "quickstart",
+              "authentication"
+            ]
+          },
+          {
+            "group": "Platform",
+            "pages": [
+              "guides/connect-a-linkedin-account",
+              "platform/antidetect-browsers-and-proxies",
+              "platform/smart-limits-and-warmup",
+              "platform/sync-windows-and-auto-suspend",
+              "platform/credits-and-data-requests"
+            ]
           },
           {
             "group": "Concepts",
@@ -33,7 +47,6 @@
           {
             "group": "Guides",
             "pages": [
-              "guides/connect-a-linkedin-account",
               "guides/run-a-mass-action",
               "guides/receive-webhooks"
             ]
@@ -45,7 +58,9 @@
         "groups": [
           {
             "group": "Overview",
-            "pages": ["api-reference/overview"]
+            "pages": [
+              "api-reference/overview"
+            ]
           },
           {
             "group": "LinkedIn API",
@@ -75,7 +90,11 @@
         "groups": [
           {
             "group": "MCP server",
-            "pages": ["mcp/overview", "mcp/connect", "mcp/use-docs-with-ai"]
+            "pages": [
+              "mcp/overview",
+              "mcp/connect",
+              "mcp/use-docs-with-ai"
+            ]
           }
         ]
       },
@@ -84,7 +103,9 @@
         "groups": [
           {
             "group": "Changelog",
-            "pages": ["changelog"]
+            "pages": [
+              "changelog"
+            ]
           }
         ]
       }
@@ -112,15 +133,27 @@
       {
         "header": "Product",
         "items": [
-          { "label": "Home", "href": "https://gtm-api.com" },
-          { "label": "Pricing", "href": "https://gtm-api.com/pricing/" },
-          { "label": "App", "href": "https://app.gtm-api.com/login" }
+          {
+            "label": "Home",
+            "href": "https://gtm-api.com"
+          },
+          {
+            "label": "Pricing",
+            "href": "https://gtm-api.com/pricing/"
+          },
+          {
+            "label": "App",
+            "href": "https://app.gtm-api.com/login"
+          }
         ]
       },
       {
         "header": "Resources",
         "items": [
-          { "label": "Blog", "href": "https://gtm-api.com/blog/" },
+          {
+            "label": "Blog",
+            "href": "https://gtm-api.com/blog/"
+          },
           {
             "label": "LinkedIn MCP server",
             "href": "https://gtm-api.com/linkedin-mcp-server/"
@@ -130,6 +163,11 @@
     ]
   },
   "contextual": {
-    "options": ["copy", "view", "chatgpt", "claude"]
+    "options": [
+      "copy",
+      "view",
+      "chatgpt",
+      "claude"
+    ]
   }
 }

@@ -1,15 +1,81 @@
 ---
 title: "Connect a LinkedIn account"
-description: "Connect an account in the app, wait out the initial sync, then work with it over the API."
+description: "Connect an account in the app, wait out the initial sync, then work with it over the API. The login happens inside a dedicated antidetect browser; no password ever reaches the platform."
 ---
 
-Connecting is the one step that happens in the app rather than the API: the account owner signs in to LinkedIn inside a dedicated anti-detect cloud browser, because a live human login is what keeps the session real. Everything after that is API territory.
+Connecting is the one step that happens in the app rather than the API: the account
+owner signs in to LinkedIn inside a dedicated antidetect browser, because a live human
+login is what keeps the session real. Everything after that is API territory.
+
+<Tip>
+**Give this to your AI agent** and it will handle the API side once you finish the
+in-app login:
+
+"Connect to gtm-api: add the MCP connector at https://mcp.gtm-api.com/mcp (OAuth) or
+call the REST API at app.gtm-api.com with my key. Then: search linkedin-accounts for
+my newly connected account, watch its status until it is active, read its smart
+limits, and tell me what outbound budgets I have today. Do not send anything yet."
+</Tip>
+
+## Prerequisites
+
+- A gtm-api workspace on any plan (the trial includes 5 account slots)
+- The LinkedIn credentials stay with you; you will type them into LinkedIn itself
 
 ## 1. Connect in the app
 
-In [app.gtm-api.com](https://app.gtm-api.com/login), add a LinkedIn account. The platform provisions an isolated cloud browser with a dedicated proxy for it (one account, one browser, one device signature) and starts the initial sync: profile, conversations, connections.
+<Steps>
+<Step title="Open Senders and click Connect account">
 
-## 2. Find the account and watch its status
+On [app.gtm-api.com](https://app.gtm-api.com/login), open **Senders** and click
+**Connect account** in the top right.
+
+<Frame caption="The Senders page: every connected account with its browser, health and sync state.">
+  <img src="/images/platform/senders-list.png" alt="Senders page listing LinkedIn accounts with statuses, browsers and health scores" />
+</Frame>
+
+</Step>
+<Step title="Pick how the browser is provisioned">
+
+**Cloud browser** (recommended): the platform mints a fresh anti-detect profile with a
+managed residential proxy. Pick the **Proxy location** country to match where the
+account usually logs in from.
+
+<Frame caption="Cloud browser: choose the vendor and the proxy country; the summary names exactly what will be created.">
+  <img src="/images/platform/connect-modal-cloud.png" alt="Connect LinkedIn account modal on the Cloud browser tab with vendor and proxy location fields" />
+</Frame>
+
+**Existing profile ID** (bring your own): you already have a GoLogin profile. It keeps
+its own proxy; the platform verifies the profile exists and is runnable, and never
+changes it.
+
+<Frame caption="Bring your own: the profile and its proxy remain yours; the platform only reads the session.">
+  <img src="/images/platform/connect-modal-byo.png" alt="Connect LinkedIn account modal on the Existing profile ID tab with the GoLogin profile ID field" />
+</Frame>
+
+</Step>
+<Step title="Log into LinkedIn inside the browser">
+
+Run the browser and sign in to LinkedIn in the window that opens. The platform detects
+the logged-in account and binds it to the browser.
+
+Accounts are deduplicated by their LinkedIn member identity: reconnecting an account
+your team connected and deleted before restores it instead of duplicating it. If the
+account is already connected on a different team, binding is refused.
+
+</Step>
+</Steps>
+
+<Warning>
+A sudden proxy-country change is a classic trigger for LinkedIn verification
+challenges. Pick the country the account genuinely operates from, and keep it.
+</Warning>
+
+## 2. Watch the initial sync
+
+The account enters onboarding: an initial import of the profile, conversations,
+connections and invitations, in a strict order. Outbound actions are held until it
+completes.
 
 ```bash
 curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/search" \
@@ -29,16 +95,38 @@ The `status` field is the account lifecycle:
 | `shared_out` | Lent to another team via account sharing |
 | `subscription_required` | The plan lapsed; renew to reactivate |
 
-Until the account reaches `active`, outbound endpoints (connection requests, messages) answer with a `conflict` error. Read endpoints work as soon as data lands.
+Until the account reaches `active`, outbound endpoints (connection requests, messages)
+answer with a `conflict` error. Read endpoints work as soon as data lands.
 
 ## 3. Check capabilities and limits
 
-- `POST /api/linkedin-accounts/{sid}/check-sales-nav`, `/check-premium`, `/check-recruiter` report what the account's LinkedIn subscription actually supports. Sales Navigator endpoints on an account without Sales Navigator fail upfront with `validation_failed` rather than mid-run.
-- `POST /api/linkedin-account-smart-limits/search` returns the account's current per-action daily budgets. A newly connected account starts well below platform maximums and is warmed up programmatically as it ages; read these limits instead of assuming a number.
-- `POST /api/linkedin-account-snapshots/search` gives the health timeline the platform records for the account.
+- `POST /api/linkedin-accounts/{sid}/check-sales-nav`, `/check-premium`,
+  `/check-recruiter` report what the account's LinkedIn subscription actually supports.
+  Sales Navigator endpoints on an account without Sales Navigator fail upfront with
+  `validation_failed` rather than mid-run.
+- `POST /api/linkedin-account-smart-limits/search` returns the account's current
+  per-action daily budgets. A newly connected account starts well below platform
+  maximums and warms up as it ages; read these limits instead of assuming a number.
+  See [Smart limits and warmup](/platform/smart-limits-and-warmup).
+- `POST /api/linkedin-account-snapshots/search` gives the health timeline the platform
+  records for the account.
 
 ## 4. First action
 
-Once `active`, the account's sid (`ln_ac_...`) is the handle every LinkedIn endpoint takes. A sensible first write is something low-risk, for example reacting to a post, before you schedule real outreach through a [mass action](/guides/run-a-mass-action) with pacing.
+Once `active`, the account's sid (`ln_ac_...`) is the handle every LinkedIn endpoint
+takes. A sensible first write is something low-risk, for example reacting to a post,
+before you schedule real outreach through a
+[mass action](/guides/run-a-mass-action) with pacing.
 
-Every outbound call re-checks the smart limits server-side before dispatch. Hitting a budget answers `limit_exceeded`, and the action can resume the next day or after the limit is raised; the account is not penalized for your retry logic.
+Every outbound call re-checks the smart limits server-side before dispatch. Hitting a
+budget answers `limit_exceeded`, and the action can resume the next day or after the
+limit is raised; the account is not penalized for your retry logic.
+
+## If the connection fails
+
+- The browser must be **running** and the LinkedIn tab reachable: a stopped or faulted
+  browser cannot bind an account.
+- Check the proxy: a dead or blocked proxy prevents LinkedIn from loading. Run the
+  connectivity check in the browser drawer
+  ([how](/platform/antidetect-browsers-and-proxies#diagnose-a-proxy)).
+- If the account was connected on another team, disconnect it there first.

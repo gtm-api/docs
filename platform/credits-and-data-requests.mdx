@@ -1,0 +1,71 @@
+---
+title: "Credits and data requests"
+description: "Credits meter data operations only: scraping and enrichment. How reserve, debit and release work, where the ledger lives, and how to check the balance."
+---
+
+Credits are the metered currency for **data operations**: people, company and post
+scraping, and profile enrichment. Regular outreach (messages, connection requests,
+syncs) does not consume credits; only data requests do.
+
+## How a data request is charged
+
+1. When a creditable request starts, its cost is **reserved** from the team balance.
+2. On success the reservation is **debited**.
+3. On failure the reservation is **released** back.
+
+<Note>
+You are not charged for failed requests, and some lookups are free by design: checking a
+person's connection degree through an account that already holds the 1st-degree
+relationship costs 0 credits.
+</Note>
+
+## The data requests ledger
+
+Every scraping and enrichment call is recorded as a **data request** with its status,
+cost and result reference. Open **Data Requests** in the sidebar: if a result looks
+incomplete, find its row first; it shows whether the provider returned partial data or
+the request was retried.
+
+<Frame caption="The Data Requests ledger: one row per scraping or enrichment call, with status and cost.">
+  <img src="/images/platform/data-requests.png" alt="Data Requests page listing scraping and enrichment calls with their statuses and costs" />
+</Frame>
+
+## Check the balance
+
+The credit balance is team-wide. The sidebar shows it permanently (**Data credits**),
+and creditable tools report their cost before a run. A run that would exceed the balance
+stops when credits run out, so check before large scraping jobs.
+
+<CodeGroup>
+
+```bash curl
+# Team balance
+curl -X POST "https://app.gtm-api.com/id/v4/api/credit-transactions/get-balance" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+```
+
+```bash ledger
+# Every reserve, debit and release, traceable to its data request
+curl -X POST "https://app.gtm-api.com/id/v4/api/credit-transactions/search" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"page_size": 10}'
+```
+
+</CodeGroup>
+
+## Buying credits
+
+Credits are purchased from the billing page. Over the API,
+`POST /api/credit-transactions/purchase` creates a payment transaction and returns a
+`checkout_url` for a human to complete; the credits land after the payment confirms,
+asynchronously. Poll `get-balance` or subscribe to the webhook rather than assuming the
+top-up is instant, and reuse the same `request_id` on retries: a fresh one creates a
+second charge.
+
+## Related
+
+- [Smart limits and warmup](/platform/smart-limits-and-warmup)
+- [Run a mass action](/guides/run-a-mass-action)
