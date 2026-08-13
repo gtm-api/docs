@@ -28,16 +28,6 @@
             ]
           },
           {
-            "group": "Platform",
-            "pages": [
-              "guides/connect-a-linkedin-account",
-              "platform/antidetect-browsers-and-proxies",
-              "platform/smart-limits-and-warmup",
-              "platform/sync-windows-and-auto-suspend",
-              "platform/credits-and-data-requests"
-            ]
-          },
-          {
             "group": "Concepts",
             "pages": [
               "concepts/envelopes-and-errors",
@@ -49,6 +39,37 @@
             "pages": [
               "guides/run-a-mass-action",
               "guides/receive-webhooks"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Knowledge Base",
+        "groups": [
+          {
+            "group": "Start here",
+            "pages": [
+              "kb/index"
+            ]
+          },
+          {
+            "group": "Accounts and browsers",
+            "pages": [
+              "kb/connect-a-linkedin-account",
+              "kb/antidetect-browsers-and-proxies"
+            ]
+          },
+          {
+            "group": "Safety and pacing",
+            "pages": [
+              "kb/smart-limits-and-warmup",
+              "kb/sync-windows-and-auto-suspend"
+            ]
+          },
+          {
+            "group": "Data and credits",
+            "pages": [
+              "kb/credits-and-data-requests"
             ]
           }
         ]
@@ -169,5 +190,27 @@
       "chatgpt",
       "claude"
     ]
-  }
+  },
+  "redirects": [
+    {
+      "source": "/guides/connect-a-linkedin-account",
+      "destination": "/kb/connect-a-linkedin-account"
+    },
+    {
+      "source": "/platform/antidetect-browsers-and-proxies",
+      "destination": "/kb/antidetect-browsers-and-proxies"
+    },
+    {
+      "source": "/platform/smart-limits-and-warmup",
+      "destination": "/kb/smart-limits-and-warmup"
+    },
+    {
+      "source": "/platform/sync-windows-and-auto-suspend",
+      "destination": "/kb/sync-windows-and-auto-suspend"
+    },
+    {
+      "source": "/platform/credits-and-data-requests",
+      "destination": "/kb/credits-and-data-requests"
+    }
+  ]
 }

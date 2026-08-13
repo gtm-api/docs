@@ -11,7 +11,7 @@
 // Every image is a SPEC below: route, the clicks that reach the state, and
 // what to clip. Re-run after UI changes instead of hand-recapturing; specs
 // keep captions honest because the same click path always yields the same
-// state. Output: images/platform/{name}.png at devicePixelRatio 2.
+// state. Output: images/kb/{name}.png at devicePixelRatio 2.
 //
 // Data on screen is the dev seed fixture (seeddev identities), never real
 // customer data. That is a hard rule for anything committed to public docs.
@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const OUT = join(HERE, '..', '..', 'images', 'platform');
+const OUT = join(HERE, '..', '..', 'images', 'kb');
 const APP = process.env.APP_URL ?? 'http://localhost:5188';
 const TEAM = 'ts_tm_seeddev00001';
 
