@@ -1,0 +1,16 @@
+/* Topbar CTA: brand lime on dark surfaces only.
+ *
+ * Mintlify paints the primary navbar button with `bg-primary-dark` in BOTH
+ * themes, so `colors.dark` cannot be used to change one without the other:
+ * setting it lime turned the light-mode button lime too. The accent that
+ * belongs on a dark surface is the same lime the logo uses there, while the
+ * light theme keeps the deeper green it needs for contrast on white. */
+html.dark .bg-primary-dark {
+  background-color: #c4f148;
+}
+
+/* Lime needs dark ink, not the inherited light-grey label. */
+html.dark a:has(> .bg-primary-dark),
+html.dark a:has(> .bg-primary-dark) * {
+  color: #14161b;
+}
