@@ -905,6 +905,9 @@ paths:
             type: array
             items:
               type: string
+              enum:
+                - linkedin_account
+                - cached_from
       responses:
         "200":
           description: "`get` success envelope."
@@ -5621,7 +5624,7 @@ paths:
         Contract:
         - MCP tool `follow_linkedin_member`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
       tags:
         - linkedin_accounts
       requestBody:
@@ -5650,7 +5653,7 @@ paths:
       x-gtm-dangerous: true
       x-gtm-creditable: false
       x-gtm-mass-action: false
-      x-gtm-step-eligible: false
+      x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
   /api/linkedin-followings/unfollow:
@@ -5957,7 +5960,7 @@ paths:
         Contract:
         - MCP tool `send_linkedin_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
       tags:
         - linkedin_messages
       requestBody:
@@ -5986,7 +5989,7 @@ paths:
       x-gtm-dangerous: true
       x-gtm-creditable: false
       x-gtm-mass-action: false
-      x-gtm-step-eligible: false
+      x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
   /api/linkedin-messages/send-inmail:
@@ -6215,12 +6218,12 @@ paths:
       operationId: create_linkedin_comment
       summary: Create LinkedIn comment
       description: |-
-        Leave ONE outbound comment on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-comment): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. Outward and fire-on-success: the post does NOT need to be tracked or owned by us, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the messaging_general bucket, saturation returns 429 with no pool fallback. Reply to an existing comment by passing parent_comment_urn. The comment text comes in text; templates and AI generation are outside this API. Returns the created comment ref plus the activity-log row. To react instead use react_linkedin_post; to read a post's existing comments or commenters use the linkedin-scraping get-post-comments / get-post-commenters tools; to resolve a post URL to its activity URN use get_activity_urn_by_url.
+        Leave ONE outbound comment on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-comment): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. Outward and fire-on-success: the post does NOT need to be tracked or owned by us, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the comment_posts bucket (30/day at a 360 s floor), saturation returns 429 with no pool fallback. Reply to an existing comment by passing parent_comment_urn. The comment text comes in text; templates and AI generation are outside this API. Returns the created comment ref plus the activity-log row. To react instead use react_linkedin_post; to read a post's existing comments or commenters use the linkedin-scraping get-post-comments / get-post-commenters tools; to resolve a post URL to its activity URN use get_activity_urn_by_url.
 
         Contract:
         - MCP tool `create_linkedin_comment`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; mass action: this verb's own request accepts a filter or targets[] set, which the owning service drains.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; mass action: this verb's own request accepts a filter or targets[] set, which the owning service drains; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
       tags:
         - linkedin_posting
       requestBody:
@@ -6249,7 +6252,7 @@ paths:
       x-gtm-dangerous: true
       x-gtm-creditable: false
       x-gtm-mass-action: true
-      x-gtm-step-eligible: false
+      x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
   /api/linkedin-posting/create-post:
@@ -6299,7 +6302,7 @@ paths:
       operationId: react_linkedin_post
       summary: React to LinkedIn post
       description: |-
-        Leave OUR reaction on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-reaction): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. The social-selling counterpart of create_linkedin_comment, e.g. warm a prospect up by reacting to their post before a connect. Outward and fire-on-success: the post does NOT need to be tracked, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the messaging_general bucket, saturation returns 429 with no pool fallback. Two different managed accounts reacting to the same post are two independent calls. Returns the activity-log row. To comment use create_linkedin_comment; to read who already reacted use the linkedin-scraping get-post-reactors tool.
+        Leave OUR reaction on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-reaction): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. The social-selling counterpart of create_linkedin_comment, e.g. warm a prospect up by reacting to their post before a connect. Outward and fire-on-success: the post does NOT need to be tracked, and nothing is persisted on this service. Identity-bound and non-creditable: linkedin_account_sid REQUIRED, spends the react_posts bucket (30/day at a 360 s floor), saturation returns 429 with no pool fallback. Two different managed accounts reacting to the same post are two independent calls. Returns the activity-log row. To comment use create_linkedin_comment; to read who already reacted use the linkedin-scraping get-post-reactors tool.
 
         Contract:
         - MCP tool `react_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7477,6 +7480,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -7507,6 +7514,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -16892,6 +16900,7 @@ components:
                 - url
                 - activity_urn
                 - params
+                - domain
             input_value:
               type: string
             ln_member_id:
@@ -23921,6 +23930,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -23951,6 +23964,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -25197,6 +25211,10 @@ components:
                   is_muted:
                     type: boolean
                     nullable: true
+                  unread_count:
+                    type: integer
+                    nullable: true
+                    description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
                   event_count:
                     type: number
                   last_activity_at:
@@ -25227,6 +25245,7 @@ components:
                   - nickname
                   - participants
                   - is_muted
+                  - unread_count
                   - event_count
                   - last_activity_at
                   - last_stored_message_at
@@ -25395,6 +25414,10 @@ components:
                   is_muted:
                     type: boolean
                     nullable: true
+                  unread_count:
+                    type: integer
+                    nullable: true
+                    description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
                   event_count:
                     type: number
                   last_activity_at:
@@ -25425,6 +25448,7 @@ components:
                   - nickname
                   - participants
                   - is_muted
+                  - unread_count
                   - event_count
                   - last_activity_at
                   - last_stored_message_at
@@ -26566,6 +26590,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -26596,6 +26624,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -26741,6 +26770,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -26771,6 +26804,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -27043,6 +27077,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -27073,6 +27111,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -27977,6 +28016,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -28007,6 +28050,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -28163,6 +28207,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -28193,6 +28241,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -37581,6 +37630,7 @@ components:
                       - url
                       - activity_urn
                       - params
+                      - domain
                   input_value:
                     type: string
                   ln_member_id:
@@ -43665,6 +43715,25 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            unread_count:
+              type: object
+              properties:
+                eq:
+                  type: integer
+                ne:
+                  type: integer
+                gte:
+                  type: integer
+                lte:
+                  type: integer
+                gt:
+                  type: integer
+                lt:
+                  type: integer
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The unread-only inbox view is unread_count gt 0. is_null:true finds threads that have never synced the counter.
             event_count:
               type: object
               properties:
@@ -43866,6 +43935,10 @@ components:
                   is_muted:
                     type: boolean
                     nullable: true
+                  unread_count:
+                    type: integer
+                    nullable: true
+                    description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
                   event_count:
                     type: number
                   last_activity_at:
@@ -43896,6 +43969,7 @@ components:
                   - nickname
                   - participants
                   - is_muted
+                  - unread_count
                   - event_count
                   - last_activity_at
                   - last_stored_message_at
@@ -45005,23 +45079,31 @@ components:
           items:
             type: object
             properties:
-              name:
+              file_base64:
                 type: string
-                maxLength: 255
-                description: Display filename shown to the recipient.
-              path:
+                minLength: 1
+                description: "The file itself: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 / file_url."
+              file_url:
                 type: string
                 maxLength: 2048
-                description: https:// URL the browser plugin downloads from.
-              size:
+                format: uri
+                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+              file_name:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: Display filename shown to the recipient. Derived from the URL path when omitted on the file_url arm.
+              file_type:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: "MIME type. Read off the data: prefix or the fetched Content-Type when omitted."
+              file_byte_size:
                 type: integer
-                minimum: 0
-                description: Bytes (advisory telemetry only).
-            required:
-              - name
-              - path
-              - size
-          description: Each .path must be an https:// URL.
+                minimum: 1
+                description: "Advisory only: the backend measures the real size and sends that."
+            description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
+          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
       required:
         - linkedin_account_sid
         - subject
@@ -45278,23 +45360,31 @@ components:
           items:
             type: object
             properties:
-              name:
+              file_base64:
                 type: string
-                maxLength: 255
-                description: Display filename shown to the recipient.
-              path:
+                minLength: 1
+                description: "The file itself: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 / file_url."
+              file_url:
                 type: string
                 maxLength: 2048
-                description: https:// URL the browser plugin downloads from.
-              size:
+                format: uri
+                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+              file_name:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: Display filename shown to the recipient. Derived from the URL path when omitted on the file_url arm.
+              file_type:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: "MIME type. Read off the data: prefix or the fetched Content-Type when omitted."
+              file_byte_size:
                 type: integer
-                minimum: 0
-                description: Bytes (advisory telemetry only).
-            required:
-              - name
-              - path
-              - size
-          description: Each .path must be an https:// URL.
+                minimum: 1
+                description: "Advisory only: the backend measures the real size and sends that."
+            description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
+          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
       required:
         - linkedin_account_sid
         - text
@@ -45550,23 +45640,31 @@ components:
           items:
             type: object
             properties:
-              name:
+              file_base64:
                 type: string
-                maxLength: 255
-                description: Display filename shown to the recipient.
-              path:
+                minLength: 1
+                description: "The file itself: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 / file_url."
+              file_url:
                 type: string
                 maxLength: 2048
-                description: https:// URL the browser plugin downloads from.
-              size:
+                format: uri
+                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+              file_name:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: Display filename shown to the recipient. Derived from the URL path when omitted on the file_url arm.
+              file_type:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: "MIME type. Read off the data: prefix or the fetched Content-Type when omitted."
+              file_byte_size:
                 type: integer
-                minimum: 0
-                description: Bytes (advisory telemetry only).
-            required:
-              - name
-              - path
-              - size
-          description: Each .path must be an https:// URL.
+                minimum: 1
+                description: "Advisory only: the backend measures the real size and sends that."
+            description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
+          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
       required:
         - linkedin_account_sid
         - text
@@ -46358,23 +46456,31 @@ components:
           items:
             type: object
             properties:
-              name:
+              file_base64:
                 type: string
-                maxLength: 255
-                description: Display filename shown to the recipient.
-              path:
+                minLength: 1
+                description: "The file itself: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 / file_url."
+              file_url:
                 type: string
                 maxLength: 2048
-                description: https:// URL the browser plugin downloads from.
-              size:
+                format: uri
+                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+              file_name:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: Display filename shown to the recipient. Derived from the URL path when omitted on the file_url arm.
+              file_type:
+                type: string
+                minLength: 1
+                maxLength: 255
+                description: "MIME type. Read off the data: prefix or the fetched Content-Type when omitted."
+              file_byte_size:
                 type: integer
-                minimum: 0
-                description: Bytes (advisory telemetry only).
-            required:
-              - name
-              - path
-              - size
-          description: Each .path must be an https:// URL.
+                minimum: 1
+                description: "Advisory only: the backend measures the real size and sends that."
+            description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
+          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
       required:
         - linkedin_account_sid
         - attendees
@@ -47523,6 +47629,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -47553,6 +47663,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at
@@ -47732,6 +47843,10 @@ components:
             is_muted:
               type: boolean
               nullable: true
+            unread_count:
+              type: integer
+              nullable: true
+              description: "LinkedIn's own unread counter for the thread, synced from both messenger wires. A LEVEL, not a high-water mark: reading the thread elsewhere lowers it. null = never synced, which is not the same as a synced 0. mark-read / mark-unread mirror it immediately (read sets 0; unread sets a floor of 1, because after the verb all we truly know is \"more than zero\")."
             event_count:
               type: number
             last_activity_at:
@@ -47762,6 +47877,7 @@ components:
             - nickname
             - participants
             - is_muted
+            - unread_count
             - event_count
             - last_activity_at
             - last_stored_message_at

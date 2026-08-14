@@ -73,8 +73,7 @@
             "pages": [
               "kb/people-and-company-search",
               "kb/enrichment",
-              "kb/auto-scrapes",
-              "kb/credits-and-data-requests"
+              "kb/auto-scrapes"
             ]
           },
           {
@@ -236,7 +235,11 @@
     },
     {
       "source": "/platform/credits-and-data-requests",
-      "destination": "/kb/credits-and-data-requests"
+      "destination": "/kb"
+    },
+    {
+      "source": "/kb/credits-and-data-requests",
+      "destination": "/kb"
     }
   ]
 }

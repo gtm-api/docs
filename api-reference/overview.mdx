@@ -23,7 +23,6 @@ Beyond the request and response schemas, each operation carries flags from the r
 | Flag | Meaning |
 |---|---|
 | `dangerous` | The MCP layer gates this call behind a preview and confirm step, and the effect cannot be undone through the API |
-| `creditable` | The response carries a [credits block](/concepts/envelopes-and-errors#the-credits-block) and the call can debit the team ledger |
 | `mass action` | The verb's own request accepts a `filter` or `targets[]` set, which the owning service drains |
 | `step eligible` | Orchestration can run the verb as a step of a [mass action plan](/guides/run-a-mass-action) |
 | `schedule required` | Bulk use of the verb must be paced with a schedule |

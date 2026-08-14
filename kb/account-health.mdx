@@ -133,12 +133,10 @@ the targeting as the problem, not the account. It is our number, not a rule Link
 
 ### Checking one target on demand
 
-`check-target-block` runs the same two-browser check synchronously for a target you name. It costs **1
-credit**, and only when the second-browser probe decides the outcome (`target_blocked` or
-`target_unavailable`): a target already in the block log, a `skipped_recent` result inside the 24 hour
-cache, or a probe that comes back as transport noise all cost **0 credits**. The first read spends **1
-unit** of the account's `self_account_sync` budget, a limit and not a credit. `"force": true` bypasses
-the cache.
+`check-target-block` runs the same two-browser check synchronously for a target you name. The first
+read spends **1 unit** of the account's `self_account_sync` budget. A target already in the block log
+and a `skipped_recent` result inside the 24 hour cache spend nothing. `"force": true` bypasses the
+cache.
 
 ```bash curl
 curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/ln_ac_YOUR_ACCOUNT/check-target-block" \
@@ -148,9 +146,8 @@ curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/ln_ac_YO
 ```
 
 The only failure answer is `422 validation_failed`, when `target` carries none of `ln_id`, `sn_id` or
-`nickname`. A balance too short for the probe and a team with no second browser free are not errors:
-both answer 200 with `outcome: "inconclusive"` and `credits.charged: 0`, nothing having run on a second
-browser.
+`nickname`. A team with no second browser free is not an error: it answers 200 with
+`outcome: "inconclusive"`, nothing having run on a second browser.
 
 ## How health drives smart limits
 
@@ -210,4 +207,3 @@ Paste this to your coding agent to read the whole fleet at once:
 - [Smart limits and warmup](/kb/smart-limits-and-warmup)
 - [Sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend)
 - [Browser troubleshooting](/kb/browser-troubleshooting)
-- [Credits and data requests](/kb/credits-and-data-requests)

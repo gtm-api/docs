@@ -8292,7 +8292,8 @@ components:
           type: string
           enum:
             - enrichment
-          description: 'Consumable family: MVP "enrichment".'
+            - platform
+          description: Consumable family. gtm mints "enrichment"; "platform" rows come from gs-native operations.
       required:
         - kind
     GetCreditBalanceResponse:
@@ -8317,6 +8318,7 @@ components:
               type: string
               enum:
                 - enrichment
+                - platform
             available:
               type: integer
             held:
@@ -8431,12 +8433,14 @@ components:
                   type: string
                   enum:
                     - enrichment
+                    - platform
                 in:
                   type: array
                   items:
                     type: string
                     enum:
                       - enrichment
+                      - platform
               additionalProperties: false
             type:
               type: object
@@ -11818,7 +11822,8 @@ components:
           type: string
           enum:
             - enrichment
-          description: 'Consumable family: MVP "enrichment".'
+            - platform
+          description: Consumable family. gtm mints "enrichment"; "platform" rows come from gs-native operations.
         amount:
           type: integer
           minimum: 1
@@ -11860,6 +11865,7 @@ components:
               type: string
               enum:
                 - enrichment
+                - platform
             type:
               type: string
               enum:
@@ -16486,12 +16492,14 @@ components:
                   type: string
                   enum:
                     - enrichment
+                    - platform
                 in:
                   type: array
                   items:
                     type: string
                     enum:
                       - enrichment
+                      - platform
               additionalProperties: false
             type:
               type: object
@@ -16683,6 +16691,7 @@ components:
                     type: string
                     enum:
                       - enrichment
+                      - platform
                   type:
                     type: string
                     enum:

@@ -211,8 +211,8 @@ Endpoint setup is in [Receive webhooks](/guides/receive-webhooks).
 
 ## What it costs
 
-Auto-scrapes never touch the credit pool: every page runs on the pinned executor account, so requests are stamped at zero credits.
-A page spends that account's own `scraping` smart-limit bucket, one spend per page, and writes a row in [Data Requests](/kb/credits-and-data-requests).
+Auto-scrapes never run on managed infrastructure: every page runs on the pinned executor account.
+A page spends that account's own `scraping` smart-limit bucket, one spend per page, and writes a row in Data Requests.
 The ceiling is per account, not per job, and the daily `scraping` budget is warmup-driven, so a young account collects less per day.
 Pages are never served from cache. If a collector keeps failing with `limit_reached: scraping`, lower the cadence or move it to an
 account with headroom rather than raising the budget past what [warmup](/kb/smart-limits-and-warmup) supports.
@@ -226,4 +226,3 @@ registry: for the full set, page the results endpoint.
 - [Run a mass action](/guides/run-a-mass-action)
 - [People and company search](/kb/people-and-company-search)
 - [Smart limits and warmup](/kb/smart-limits-and-warmup)
-- [Credits and data requests](/kb/credits-and-data-requests)

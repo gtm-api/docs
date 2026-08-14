@@ -10,11 +10,11 @@ and where to see it.
 
 ## Where to see your plan
 
-The sidebar card is the workspace's plan and usage at a glance: the plan name, how many
-account slots are used against the cap, and the data-credit balance.
+The sidebar card is the workspace's plan and usage at a glance: the plan name and how many
+account slots are used against the cap.
 
-<Frame caption="The sidebar plan card: plan name, account slots used against the cap, and the credit balance.">
-  <img src="/images/kb/sidebar-plan-card.png" alt="Sidebar plan card showing the Trial plan, 7 of 5 accounts used, and 146 data credits" />
+<Frame caption="The sidebar plan card: plan name and account slots used against the cap.">
+  <img src="/images/kb/sidebar-plan-card.png" alt="Sidebar plan card showing the Trial plan and 7 of 5 accounts used" />
 </Frame>
 
 <Note>
@@ -30,7 +30,6 @@ are parked and their browsers powered off until you free a slot or raise the cap
 | Length | 7 days from workspace creation |
 | Connected accounts | 5 slots |
 | Card required | None |
-| Data credits | 50 per month, granted on day 1 |
 | Parallel cloud-browser sessions | 2 |
 | Webhooks | 20 |
 | Action volume | Full speed, no plan clamp on smart limits |
@@ -57,7 +56,6 @@ action verb stay available, and the plan caps volume and frequency instead of fe
 |---|---|
 | Connected accounts | 1 |
 | Parallel cloud-browser sessions | 1 |
-| Data credits | 50 per month, no rollover |
 | Webhooks | 0 |
 | Expiry | None; the plan does not end |
 
@@ -111,16 +109,12 @@ as you add accounts.
 | 300 to 999 | $10 | 5 |
 | 1,000+ | Custom | Custom |
 
-Three allowances do not scale with the account count: **100 webhooks**, **50 data credits
-per month**, and the session column above, which is a total for the workspace rather than
-a per-account number.
+Two allowances do not scale with the account count: **100 webhooks** and the session
+column above, which is a total for the workspace rather than a per-account number.
 
 - **Annual billing** is pay for 12 months, get 15 months of service.
 - **Max Safety** is an optional add-on at **+$15 per selected account per month**, for
   accounts that need a dedicated mobile route and no background load.
-- **Scraping and enrichment volume** beyond the monthly allowance is bought as a credit
-  top-up, priced at checkout. Public pricing for it is not published yet. See
-  [credits and data requests](/kb/credits-and-data-requests).
 
 The current published pricing is on the [pricing page](https://gtm-api.com/pricing/).
 
@@ -207,8 +201,7 @@ payment settles, not when the link opens; an abandoned checkout leaves nothing b
 <Warning>
 The subscription verbs take no idempotency key. `change` charges the prorated difference
 immediately, so if a call returns unclearly, read the subscription back before retrying
-rather than sending it twice. Credit top-ups are the exception: they take a `request_id`,
-and reusing it is what makes a retry safe.
+rather than sending it twice.
 </Warning>
 
 Pause, resume, cancel, and add-ons (`add-addon`, `remove-addon`) are the remaining verbs
@@ -218,6 +211,5 @@ payment provider subscription behind them.
 
 ## Related
 
-- [Credits and data requests](/kb/credits-and-data-requests)
 - [Smart limits and warmup](/kb/smart-limits-and-warmup)
 - [Connect a LinkedIn account](/kb/connect-a-linkedin-account)

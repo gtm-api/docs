@@ -13,7 +13,7 @@ Three services, one contract style. Every endpoint authenticates the same way, r
 | Service | Base URL | What it covers |
 |---|---|---|
 | LinkedIn | `https://app.gtm-api.com/linkedin/v4` | Connected accounts, health and smart limits, conversations and messages, the connection graph, posting, scraping, profile and company enrichment, anti-detect browsers |
-| ID and Teams | `https://app.gtm-api.com/id/v4` | Users, teams, API keys, OAuth, billing, subscriptions, the credit ledger, notifications |
+| ID and Teams | `https://app.gtm-api.com/id/v4` | Users, teams, API keys, OAuth, billing, subscriptions, notifications |
 | Orchestration | `https://app.gtm-api.com/orchestration/v4` | Mass actions (preview, commit, pace, canary) and the platform-wide webhook registry |
 
 Paths in the reference are relative to these base URLs. `GET /api/linkedin-accounts/{sid}` means `https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/{sid}`.
@@ -29,7 +29,7 @@ Paths in the reference are relative to these base URLs. `GET /api/linkedin-accou
   </Card>
   <Card title="Knowledge base" href="/kb">
     How the platform works, for the person running outreach: accounts and
-    browsers, safety and pacing, data and credits. With screenshots.
+    browsers, safety and pacing, finding and enriching data. With screenshots.
   </Card>
   <Card title="API reference" href="/api-reference/overview">
     Every endpoint of the three services, with an interactive playground.

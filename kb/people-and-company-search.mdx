@@ -7,7 +7,7 @@ A search runs now, returns one live page of results inside the HTTP response, an
 
 ## Before you start
 
-- A connected LinkedIn account to run on for free, or credits on the team balance to run on our infrastructure.
+- A connected LinkedIn account to run on, or the managed path to run on our infrastructure.
 - The `can_act_linkedin_searches` permission on your API key, agent or user.
 - A Sales Navigator seat on the executing account for the Sales Navigator methods.
 
@@ -18,7 +18,7 @@ nothing else: no headline, no title, no company, no location, no connection degr
 </Note>
 
 A search is never cached: every call re-runs and every call charges. The only durable traces are one row in the **Data
-Requests** [ledger](/kb/credits-and-data-requests) (`result.data_request`) and one activity-log entry on the executing
+Requests** ledger (`result.data_request`) and one activity-log entry on the executing
 account. Nothing is stored, so nothing can be deduplicated away: rows arrive in LinkedIn's own order, with no sort axis
 and no cross-page deduplication. Past roughly five pages, or for anything on a schedule, use an
 [auto scrape](/kb/auto-scrapes).
@@ -27,19 +27,19 @@ and no cross-page deduplication. Past roughly five pages, or for anything on a s
 
 Every method is a `POST` under `https://app.gtm-api.com/linkedin/v4/api/linkedin-scraping/`.
 
-| Method | Returns | Credits (list) | Paging | Sales Navigator seat |
-|---|---|---|---|---|
-| `search-people` | people | 2 per page | `page` 1 to 100 | no |
-| `search-sales-nav-people` | people | 2 per page | `page` 1 to 100 | yes |
-| `search-companies` | companies | 2 per page | `page` 1 to 100 | no |
-| `search-sales-nav-companies` | companies | 2 per page | `page` 1 to 100 | yes |
-| `search-service-providers` | people | 2 per page | `page` 1 to 100 | no |
-| `similar-profiles` | people | 2 | none, `limit` 1 to 100, default 25 | no |
-| `similar-companies` | companies | 2 | none; `limit` 1 to 50 is accepted but has no effect, the whole list (~20) comes back | no |
-| `company-employees` | people | 3 per page | `page` 1 to 100 | no |
-| `company-decision-makers` | people | 3 | none, `limit` 1 to 50, default 25 | yes |
-| `param-id-lookup` | typeahead options | 1 | none | no |
-| `sales-nav-param-id-lookup` | typeahead options | 1 | none, `limit` 1 to 25, default 10 | yes |
+| Method | Returns | Paging | Sales Navigator seat |
+|---|---|---|---|
+| `search-people` | people | `page` 1 to 100 | no |
+| `search-sales-nav-people` | people | `page` 1 to 100 | yes |
+| `search-companies` | companies | `page` 1 to 100 | no |
+| `search-sales-nav-companies` | companies | `page` 1 to 100 | yes |
+| `search-service-providers` | people | `page` 1 to 100 | no |
+| `similar-profiles` | people | none, `limit` 1 to 100, default 25 | no |
+| `similar-companies` | companies | none; `limit` 1 to 50 is accepted but has no effect, the whole list (~20) comes back | no |
+| `company-employees` | people | `page` 1 to 100 | no |
+| `company-decision-makers` | people | none, `limit` 1 to 50, default 25 | yes |
+| `param-id-lookup` | typeahead options | none | no |
+| `sales-nav-param-id-lookup` | typeahead options | none, `limit` 1 to 25, default 10 | yes |
 
 The same surface also searches posts, jobs, events, groups, courses, products and schools, and reads a post's commenters,
 reactors and resharers. Same rules, and their filter vocabularies are in the [API reference](/api-reference/overview).
@@ -97,7 +97,7 @@ exactly. Retired names are the exception and fail loudly with a `422`: `title`, 
 | Id arrays | the numeric ones (locations, industries, current and past companies, service categories) are max 10 entries, digits only, up to 64 characters per entry; over the cap or a non-numeric entry is a `422`. `connections_of` and `followers_of` are the exception: profile ids up to 128 characters on the people search, any non-empty string up to 64 on Sales Navigator |
 | `network` | the people and service-provider engines take `1st`, `2nd`, `3rd_plus`; Sales Navigator people takes the raw codes `F` 1st, `S` 2nd, `A` group members, `O` 3rd and beyond. Each rejects the other's values with a `422` |
 | Headcount bands | the plain company search takes named bands (`1_to_10` up to `10001_plus`) and refuses LinkedIn's letter codes; the Sales Navigator engines take the letters `A` to `I`, and the account search has no `A` |
-| Sales Navigator facets | the people search has nine such members and the account search three; each takes arrays of `` `{id, text, exclude}` ``, max 10 values each, at least one of `id` or `text` per value, `"exclude": true` for a negative filter. `id` is optional: Sales Navigator matches free text server side, so `[{"text": "VP Marketing"}]` needs no lookup and no extra credit |
+| Sales Navigator facets | the people search has nine such members and the account search three; each takes arrays of `` `{id, text, exclude}` ``, max 10 values each, at least one of `id` or `text` per value, `"exclude": true` for a negative filter. `id` is optional: Sales Navigator matches free text server side, so `[{"text": "VP Marketing"}]` needs no lookup |
 
 ### Three filters that do not mean what they look like
 
@@ -118,7 +118,7 @@ Two typeahead endpoints turn a human term into an id, over separate id spaces: a
 |---|---|---|
 | Feeds | the people, company and service-provider engines | the Sales Navigator engines |
 | Input | one `type`, one `query`, 1 to 100 characters, required | one `type`, an optional `query` 1 to 100 characters (the closed sets ignore it), plus `limit` 1 to 25, default 10 |
-| Types | `location`, `industry`, `company`, `service_category`, `people`, `connections`, `school`, `product_category`, `job_location` | 19 passed through verbatim; ids are opaque, feed them back as they came. Skip the closed sets (`COMPANY_SIZE`, `FUNCTION`, `SENIORITY_V2`, `RELATIONSHIP`, `COMPANY_TYPE`, `TENURE`, `PROFILE_LANGUAGE`): calling one only re-fetches labels the reference lists, for 1 credit |
+| Types | `location`, `industry`, `company`, `service_category`, `people`, `connections`, `school`, `product_category`, `job_location` | 19 passed through verbatim; ids are opaque, feed them back as they came. Skip the closed sets (`COMPANY_SIZE`, `FUNCTION`, `SENIORITY_V2`, `RELATIONSHIP`, `COMPANY_TYPE`, `TENURE`, `PROFILE_LANGUAGE`): calling one only re-fetches labels the reference lists |
 | Result size | a fixed short dropdown, around ten options, best match first | `limit` |
 | Row shape | `type`, `id`, `display_name`, `subtitle` (the option's second line, `null` on most types) | `type`, `id`, `display_name`, `headline`, `entity_urn`, `image_url` |
 | Seat needed | no | yes |
@@ -131,13 +131,13 @@ matched as text and return nothing useful. `job_location` is likewise its own id
 
 <Note>
 A lookup types into the account's already-open tab, so it loads no page, spends no LinkedIn search and leaves the
-commercial-use limit untouched. It still costs 1 credit and one slot of the daily `scraping` budget, and is never
+commercial-use limit untouched. It still takes one slot of the daily `scraping` budget, and is never
 cached. Empty `rows` means the dropdown offered nothing for that term: an answer, not an error, ledger row `completed`.
 </Note>
 
 ## What comes back
 
-Rows sit at `result.rows`, paging at `result.paging`, the ledger row at `result.data_request`, the cost at `credits`.
+Rows sit at `result.rows`, paging at `result.paging`, and the ledger row at `result.data_request`.
 
 | Person field | People search | Sales Navigator people search |
 |---|---|---|
@@ -179,11 +179,11 @@ paywall fired and rows may be truncated. The field is absent on the company engi
 
 | Field | Rule | Effect |
 |---|---|---|
-| `linkedin_account_sid` | `ln_ac_` plus 12 characters | free run on that account, `executed_on: "own_account"`, `charged: 0`, spends that account's daily `scraping` budget |
-| `use_credits` | boolean | runs on our managed infrastructure, `executed_on: "infra_pool"`, `charged` is the method price, `reason: "infra_pool"` |
+| `linkedin_account_sid` | `ln_ac_` plus 12 characters | runs on that account, `executed_on: "own_account"`, spends that account's daily `scraping` budget |
+| `use_credits` | boolean | runs on our managed infrastructure, `executed_on: "infra_pool"`, `reason: "infra_pool"` |
 | `idempotency_key` | string, max 128 characters | replay guard on (team, key) |
 
-There is no silent charge and no silent fallback. Send exactly one executor (both, or neither, is a `422`): a pinned
+There is no silent fallback. Send exactly one executor (both, or neither, is a `422`): a pinned
 account never pools, and a pinned account out of budget returns `429` rather than quietly moving to the paid path.
 
 <Warning>
@@ -205,12 +205,12 @@ timestamp. Retry after that timestamp, not on a fixed schedule.
 </Warning>
 
 The free plan clamps the bucket to 15 scraping calls per day per account, alongside 20 data requests per day, and a young
-account ramps lower still while it warms up. Credit-paid runs do not touch your accounts' buckets at all. Read the bucket
+account ramps lower still while it warms up. Runs on managed infrastructure do not touch your accounts' buckets at
+all. Read the bucket
 before a batch rather than discovering it through a 429: [smart limits and warmup](/kb/smart-limits-and-warmup).
 
 <Note>
-A search is synchronous and bounded at 120 seconds. Past that the run is abandoned, the row goes to `failed` and the
-credit hold is released. The typeaheads run on a 90 second ceiling.
+A search is synchronous and bounded at 120 seconds. Past that the run is abandoned and the row goes to `failed`. The typeaheads run on a 90 second ceiling.
 </Note>
 
 ## Zero rows is usually not a failure
@@ -244,13 +244,12 @@ The detail sits in one of two places, never both: a 422 carries it in `error.fie
 | Sales Navigator method on an account with no seat | 422 | `validation_failed` | `field_errors` on `linkedin_account_sid`, message starts `sales_nav_required:`; the ledger row is `rejected` |
 | Daily budget spent, account on hold, or cooldown not elapsed | 429 | `rate_limited` | `context`: `bucket_saturated`, `limit_type: "scraping"`, `cause`, `retry_after` |
 | LinkedIn's own quota lock on the account | 429 | `rate_limited` | `context`: `linkedin_strike`, `cause: "linkedin_quota_hit"`, `retry_after`; no bypass |
-| Balance below the method price on the paid path | 402 | `payment_required` | `context`: `insufficient_credits` with `required`, `available`, `data_request_sid`; nothing ran |
 | No managed capacity right now | 503 | `service_unavailable` | `context`: `infrastructure_unavailable` with `retry_after`; retry the same call |
 | Browser or plugin transport failure | 503 | `service_unavailable` | `context`: `plugin_unavailable` with `retry_after`; the run is marked failed and the hold released |
 
 The Sales Navigator refusal spells out its own fix: use an account that has a seat, or run `get-my-sales-navigator` to
 refresh that account's premium status first. That check also runs on its own every 360 minutes (6 hours), so a seat
-bought minutes ago usually needs the manual refresh. A failed run charges nothing, because the credit hold is released.
+bought minutes ago usually needs the manual refresh.
 
 ## Where a search shows up in the app
 
@@ -272,7 +271,6 @@ result.commercial_use_limit_hit. Write rows to CSV: ln_member_id, nickname, full
 ## Related
 
 - [Auto scrapes](/kb/auto-scrapes)
-- [Credits and data requests](/kb/credits-and-data-requests)
 - [Smart limits and warmup](/kb/smart-limits-and-warmup)
 - [Find an email or phone number for a profile](/kb/enrichment)
 - [API reference](/api-reference/overview)

@@ -863,6 +863,7 @@ paths:
               type: string
               enum:
                 - latest_webhook_logs
+                - delivery_stats
       responses:
         "200":
           description: "`get` success envelope."
@@ -1353,6 +1354,9 @@ components:
                         enum:
                           - linkedin-connection-requests.send-linkedin-connection-request
                           - linkedin-posting.react
+                          - linkedin-posting.comment
+                          - linkedin-messages.send
+                          - linkedin-followings.follow
                           - email-messages.send
                           - antidetect-browsers.run
                           - antidetect-browsers.stop
@@ -1627,12 +1631,15 @@ components:
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
               - linkedin-accounts.heartbeat-stale
+              - linkedin-accounts.subscription-hold-applied
+              - linkedin-accounts.subscription-hold-released
               - linkedin-account-block-log.recorded
               - linkedin-account-snapshot.captured
               - linkedin-account-quota-hits.recorded
               - linkedin-account-smart-limits.limit-reached
               - linkedin-account-smart-limits.limit-released
               - linkedin-account-smart-limits.smart-limit-recomputed
+              - linkedin-account-smart-limits.ceiling-learned
               - linkedin-connection-requests.sent
               - linkedin-connection-requests.accepted
               - linkedin-connection-requests.withdrawn
@@ -1683,6 +1690,8 @@ components:
               - email-accounts.disconnected
               - email-accounts.deleted
               - email-accounts.sync-completed
+              - email-accounts.subscription-hold-applied
+              - email-accounts.subscription-hold-released
               - email-messages.received
               - email-messages.sent
               - email-messages.bounced
@@ -1705,6 +1714,7 @@ components:
               - mass-actions.paused
               - mass-actions.resumed
               - mass-actions.settled
+              - "*"
           minItems: 1
           description: At least one WebhookEventTypeEnum value.
         filters:
@@ -1715,6 +1725,11 @@ components:
               minLength: 18
               maxLength: 18
               description: "char(18) account sid (ln_ac_… / em_ac_…): only deliver events for this account."
+            where:
+              type: object
+              nullable: true
+              additionalProperties: {}
+              description: 'Payload delivery gate: a FilterAst node tree evaluated against the delivery envelope, so leaves address payload.* plus the envelope fields type and occurred_at. null or absent = no gate. Grammar is strict: unknown keys and atoms are rejected, nesting depth is capped at 5, and a subscription may spend at most 20 leaves (a leaf is one {field, op} node; group / not / any wrappers are free, so a scoped condition like or[not type in [...], leaf] costs two). Use is_null rather than eq: null, which is refused. Errors: filter_grammar_invalid, filter_leaves_limit_exceeded. A filtered-out event is SKIPPED before any webhook_logs row exists, so a gated delivery leaves no trace in the log. Example, routing one hosted connect link to one tenant: {"where":{"and":[{"field":"payload.antidetect_browser_sid","op":"eq","value":"ab_br_X"}]}}'
           description: Optional narrowing (e.g. status, events).
       required:
         - name
@@ -3561,6 +3576,9 @@ components:
                         enum:
                           - linkedin-connection-requests.send-linkedin-connection-request
                           - linkedin-posting.react
+                          - linkedin-posting.comment
+                          - linkedin-messages.send
+                          - linkedin-followings.follow
                           - email-messages.send
                           - antidetect-browsers.run
                           - antidetect-browsers.stop
@@ -5360,6 +5378,8 @@ components:
           type: array
           items:
             type: string
+            enum:
+              - item_counts
           description: Relations to eager-load (see entity Includes).
         sort:
           type: object
@@ -6197,6 +6217,7 @@ components:
             type: string
             enum:
               - latest_webhook_logs
+              - delivery_stats
           description: Relations to eager-load (see entity Includes).
         sort:
           type: object
@@ -6675,12 +6696,15 @@ components:
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
               - linkedin-accounts.heartbeat-stale
+              - linkedin-accounts.subscription-hold-applied
+              - linkedin-accounts.subscription-hold-released
               - linkedin-account-block-log.recorded
               - linkedin-account-snapshot.captured
               - linkedin-account-quota-hits.recorded
               - linkedin-account-smart-limits.limit-reached
               - linkedin-account-smart-limits.limit-released
               - linkedin-account-smart-limits.smart-limit-recomputed
+              - linkedin-account-smart-limits.ceiling-learned
               - linkedin-connection-requests.sent
               - linkedin-connection-requests.accepted
               - linkedin-connection-requests.withdrawn
@@ -6731,6 +6755,8 @@ components:
               - email-accounts.disconnected
               - email-accounts.deleted
               - email-accounts.sync-completed
+              - email-accounts.subscription-hold-applied
+              - email-accounts.subscription-hold-released
               - email-messages.received
               - email-messages.sent
               - email-messages.bounced
@@ -6753,6 +6779,7 @@ components:
               - mass-actions.paused
               - mass-actions.resumed
               - mass-actions.settled
+              - "*"
           minItems: 1
           description: Full replacement; WebhookEventTypeEnum values.
         filters:
@@ -6763,6 +6790,11 @@ components:
               minLength: 18
               maxLength: 18
               description: "char(18) account sid (ln_ac_… / em_ac_…): only deliver events for this account."
+            where:
+              type: object
+              nullable: true
+              additionalProperties: {}
+              description: 'Payload delivery gate: a FilterAst node tree evaluated against the delivery envelope, so leaves address payload.* plus the envelope fields type and occurred_at. null or absent = no gate. Grammar is strict: unknown keys and atoms are rejected, nesting depth is capped at 5, and a subscription may spend at most 20 leaves (a leaf is one {field, op} node; group / not / any wrappers are free, so a scoped condition like or[not type in [...], leaf] costs two). Use is_null rather than eq: null, which is refused. Errors: filter_grammar_invalid, filter_leaves_limit_exceeded. A filtered-out event is SKIPPED before any webhook_logs row exists, so a gated delivery leaves no trace in the log. Example, routing one hosted connect link to one tenant: {"where":{"and":[{"field":"payload.antidetect_browser_sid","op":"eq","value":"ab_br_X"}]}}'
           description: Full replacement.
         status:
           type: string

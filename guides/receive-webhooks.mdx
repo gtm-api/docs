@@ -8,7 +8,7 @@ Webhooks live on the Orchestration service and cover events from the whole platf
 <Tip>
 **Give this to your AI agent** with your endpoint URL:
 
-"On gtm-api (MCP connector at https://mcp.gtm-api.com/mcp, or REST at app.gtm-api.com with my key): register a webhook for my endpoint URL with the events I name, list the available event types first so I can pick, then watch the delivery log and show me the first delivery's status and response code."
+"On gtm-api (MCP connector at https://mcp.gtm-api.com/mcp, or REST at app.gtm-api.com with my key): register a webhook for my endpoint URL with the events I name. The event vocabulary is the enum on the create-webhook schema, so read it there rather than looking for a catalog call, and use `events: [\"*\"]` if I say I want everything. Then watch the delivery log and show me the first delivery's status and response code."
 </Tip>
 
 ## 1. Register an endpoint

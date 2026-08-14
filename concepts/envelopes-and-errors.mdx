@@ -58,21 +58,6 @@ Points worth knowing:
 - **`applied_filters` echoes what the server actually applied**, so a client (or an AI agent) can confirm the query it asked for is the query that ran.
 - **`meta.trace_id` is the support handle.** It is a UUID v7, identical to the `X-Trace-Id` response header. Quote it when reporting an issue.
 
-### The credits block
-
-Operations marked `creditable` in the reference can debit the team's credit ledger, and their responses carry a `credits` block:
-
-```json
-"credits": {
-  "charged": 1,
-  "reason": "infra_pool",
-  "executed_on": "infra_pool",
-  "balance_after": 4999
-}
-```
-
-`charged` is the debit for this call (0 on an own-account execution or a cache hit), `executed_on` says whether your own account or the infrastructure pool did the work, and `balance_after` is the team balance after the debit (`null` when the ledger was untouched).
-
 ## The error envelope
 
 Every failure, from any service, is the same shape:
@@ -109,7 +94,7 @@ Every failure, from any service, is the same shape:
 | `relation_not_found` | 422 | A referenced entity (for example a `*_sid` field) does not exist |
 | `invalid_transition` | 409 | The state machine forbids this move |
 | `limit_exceeded` | 429 | A business limit was hit (daily budgets, plan caps) |
-| `payment_required` | 402 | Not enough credits, or the plan does not include this |
+| `payment_required` | 402 | The plan does not include this |
 | `duplicate_rejected` | 409 | An entity with the same natural key already exists |
 | `conflict` | 409 | The request conflicts with current state; editing fields will not fix it |
 | `delete_blocked` | 409 | Blockers exist; see `error.blockers[]` |

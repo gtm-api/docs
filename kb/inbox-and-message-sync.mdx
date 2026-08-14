@@ -41,8 +41,7 @@ the newest page of up to **100 messages** and stops there.
 During onboarding the `self_account_sync` daily budget is raised from **200 to 1000 calls per
 day**; the first profile snapshot taken after onboarding completes recomputes it back down to
 200. A first-time backfill runs to completion whatever hours are configured; only recurring
-syncs wait for the window. Inbox syncs cost no credits: they spend that budget, while
-[credits](/kb/credits-and-data-requests) meter scraping and enrichment.
+syncs wait for the window: an inbox sync spends that budget and nothing else.
 
 ## How often each surface re-syncs
 
