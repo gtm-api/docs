@@ -44,6 +44,31 @@ run the OAuth flow. Clients that support MCP OAuth need nothing else: the server
 advertises its authorization server, and dynamic client registration means your client
 does not need to be pre-registered with us.
 
+### Clients that only spawn a command
+
+Some clients cannot take a URL at all, only a command to run over stdio. For those, the
+[`@gtm-api/linkedin-mcp`](https://www.npmjs.com/package/@gtm-api/linkedin-mcp) launcher
+bridges stdio to the same hosted endpoint and runs the same OAuth flow, opening the
+consent page on first use and caching the tokens under `~/.mcp-auth`.
+
+```json
+{
+  "mcpServers": {
+    "gtm-api": {
+      "command": "npx",
+      "args": ["-y", "@gtm-api/linkedin-mcp"]
+    }
+  }
+}
+```
+
+<Warning>
+Launcher versions up to 1.1.0 required a `GTM_API_KEY` and sent it as a bearer token,
+which the endpoint rejects with `401 invalid_token`. Upgrade to 1.2.0 or later, where the
+variable is ignored and the launcher authorizes over OAuth. Anything pinned to an older
+version keeps failing on the first call.
+</Warning>
+
 <Note>
 The hosted endpoint takes OAuth tokens only. An API key (`gtm_live_...`) authenticates
 the [REST API](/api-reference/overview), not this server; sending one as a bearer token
