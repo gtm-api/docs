@@ -3,6 +3,30 @@ title: "Changelog"
 description: "What changed in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-08-14" description="Scraping and enrichment pick an executor for you">
+  **Changed: omitting `linkedin_account_sid` now auto-picks one of your connected accounts.**
+  Every scraping and enrichment method runs on your own connected accounts. Pin
+  `linkedin_account_sid` and the call runs on that account only, exactly as before, refusing
+  `429 bucket_saturated` when its daily budget is spent. Omit it and the service now picks a
+  connected account with remaining budget for you, skipping accounts on hold or out of
+  capacity; Sales Navigator methods narrow the pick to accounts holding a live seat. A call
+  with no ready account answers `422` with a message starting `no_connected_accounts:` (or
+  `sales_nav_required:` for the Sales Navigator methods), and a team whose accounts are all
+  at capacity gets `429` with `retry_after`. The old `422 executor_required` refusal for an
+  executor-less call is gone.
+
+  **Changed: `enrichment` left the team limits object.** Same treatment `signals` received on
+  2026-08-09: the key no longer exists platform-wide, so it is gone from the `limits` map on
+  the team reads rather than reported as zero. `credit_policy` left the billing-product rows
+  and the `credits_pack` product type left the catalog vocabulary with it.
+
+  **Removed: the `credit-transactions` endpoint group.** Balances and per-call metering left
+  the public surface together with the fields that carried them (`use_credits` on the
+  scraping/enrichment methods, the `credits` response block, the mass-action
+  `credits_estimate` / `credits_spent` numbers). Plan limits and per-account daily budgets
+  are the platform's only public capacity model.
+</Update>
+
 <Update label="2026-08-12" description="The three own-dashboard reads, and get-post-comments folds away">
   **259 operations**: LinkedIn 159, ID and Teams 77, Orchestration 21, Support 2.
 

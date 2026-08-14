@@ -1,18 +1,17 @@
 ---
 title: "Find an email or phone number for a profile"
-description: "Run contact enrichment on one LinkedIn profile: what comes back, when it runs on your own connected account versus our managed infrastructure, and how to read a partial result."
+description: "Run contact enrichment on one LinkedIn profile: what comes back, which of your connected accounts it runs on, and how to read a partial result."
 ---
 
 Enrichment pulls one known person's own data from LinkedIn through a live browser
 session. This page covers the two methods that can return an email or a phone number,
-where each one can run, and how to read the receipt that comes back. A list of other
-people (search results, employees, post reactions) is scraping instead: different surface,
-different pricing.
+which of your accounts each one runs on, and how to read the receipt that comes back. A
+list of other people (search results, employees, post reactions) is scraping instead:
+a different surface.
 
 ## Before you start
 
-- A connected LinkedIn account for the free path, or the managed path for a profile
-  nobody on the team is connected to.
+- A connected LinkedIn account: every enrichment runs on one of your own accounts.
 - The `can_act_linkedin_enrichment` permission on your API key, agent or user.
 - One identifier: `profile_id` (`ACoAA...` or `ACwAA...`) **or** `public_identifier` (the
   vanity slug from `/in/...`). Exactly one, never both, or the call is
@@ -25,7 +24,7 @@ different pricing.
 | Contact fields | `email`, `phones[]` (typed), `websites[]`, `twitter_handles[]` | flat `email`, `phone`, `twitter`, `facebook` |
 | Everything else | nothing else | headline, position, company, about, experience, and the rest |
 | Cache TTL | 24 hours | 24 hours |
-| Where it can run | only an account of yours that is a 1st-degree connection | your pinned account, or our managed infrastructure |
+| Where it can run | only an account of yours that is a 1st-degree connection | your pinned account, or one the service picks for you |
 
 Both ride the same read but cache under their own key: a cached full profile does not
 satisfy a contact-info call, and the reverse is also true.
@@ -58,35 +57,39 @@ means the connected account still cannot see those details, never that the call 
 blocked. `address`, `birthday` and connection date are not parsed. A phone with
 `type: null` is normal on older cached payloads, not a defect.
 
-## Your own account versus managed infrastructure
+## Which account runs the call
 
-Every enrichment method except contact info takes exactly one executor field.
+Every enrichment runs on one of your own connected accounts.
 
 | What you send | What happens |
 |---|---|
 | `linkedin_account_sid` (`ln_ac_` + 12 chars) | Runs on that account only, spending that account's `enrichment` daily budget. `executed_on: "own_account"` |
-| `use_credits: true` | Runs on our managed infrastructure. `executed_on: "infra_pool"`, `reason: "infra_pool"` |
-| Neither | `422 validation_failed`, with `field_errors.use_credits` starting `executor_required:`. Nothing runs, nothing is ledgered |
-| Both | `422 validation_failed`. A pinned executor never delegates, so the pair is contradictory |
+| Nothing | The service picks one of your connected accounts with remaining capacity and runs there. Accounts out of budget, on hold or LinkedIn rate-limited are skipped before the pick |
 | `idempotency_key` (max 128 chars) | Replay guard scoped to (team, key). A repeat returns the stored row, with no re-execution |
 
+| Auto-pick situation | Result |
+|---|---|
+| At least one account has budget left | Runs there |
+| Accounts exist, all out of budget | `429 rate_limited`, reason `bucket_saturated`, with `retry_after` |
+| No connected account is ready | `422 validation_failed`, message starting `no_connected_accounts:`. Connect an account first |
+
 <Warning>
-There is no silent fallback. If the account you pinned is out of daily budget the call
-returns `429 rate_limited`, reason `bucket_saturated`, with a `retry_after` timestamp. It
-will not quietly move to a path you did not opt into.
+There is no silent fallback for a pinned account. If the account you named is out of
+daily budget the call returns `429 rate_limited`, reason `bucket_saturated`, with a
+`retry_after` timestamp. It will not quietly move to an account you did not name.
 </Warning>
 
 ### Contact info is the exception
 
 `person-contact-info` requires a connected executor: LinkedIn reveals contact details to
-1st-degree connections only, and a managed account would come back with an empty block.
+1st-degree connections only, so the pick is narrowed to accounts that actually hold the
+edge.
 
 | Situation | Result |
 |---|---|
-| One of your accounts holds the 1st-degree edge and has budget left | Runs there, `charged: 0` |
+| One of your accounts holds the 1st-degree edge and has budget left | Runs there |
 | Your accounts hold the edge but all of them are out of budget | `429 rate_limited`, reason `bucket_saturated`, with `retry_after` and a `connected_accounts` count |
 | Nobody on the team is connected to this person | `422 no_connected_account`: "none of your LinkedIn accounts is connected to this person, so this request cannot be run." Send a connection request, retry once it is accepted |
-| You passed `use_credits: true` | `422 validation_failed`: this method never runs on managed infrastructure, so omit the field |
 | The target has neither a member id nor a slug to match on | `422 not_dispatchable` |
 
 Here `linkedin_account_sid` is a preference, not a command: another connected account is
@@ -113,15 +116,15 @@ An empty answer is a real answer. A person who never published a phone number pr
 
 | What the receipt shows | What happened |
 |---|---|
-| `served_from_cache: true`, `charged: 0`, `cached_from_sid: "er_rq_..."` | Served from your team's cached copy. Open `GET /api/data-requests/{cached_from_sid}` and read its `completed_at` for the true age of the data |
-| `served_from_cache: false` | Ran live: `executed_on: "own_account"` spent your account's daily budget, `executed_on: "infra_pool"` ran on managed infrastructure |
+| `served_from_cache: true`, `cached_from_sid: "er_rq_..."` | Served from your team's cached copy. Open `GET /api/data-requests/{cached_from_sid}` and read its `completed_at` for the true age of the data |
+| `served_from_cache: false` | Ran live on the account named in `linkedin_account_sid`, spending its daily budget |
 
 | Status | Meaning |
 |---|---|
 | `running` | Dispatched to a browser, visible mid-flight |
 | `completed` | Result stored, whether executed or served from cache |
-| `rejected` | Refused before dispatch, always `charged: 0` |
-| `failed` | Dispatched and terminally failed, hold released, `charged: 0` |
+| `rejected` | Refused before dispatch |
+| `failed` | Dispatched and terminally failed |
 
 A row is inserted either `running` or already terminal; `running` then moves to
 `completed`, `failed` or `rejected` (a reservation failure rejects an already running
@@ -132,12 +135,12 @@ A call has a hard deadline of 90 seconds; typical latency is 30 seconds at p95 e
 that window the replay returns the `running` row, so poll `GET /api/data-requests/{sid}`
 until the status is terminal. To follow results without polling, subscribe to the
 `data-requests.completed` and `data-requests.failed` webhooks; the completed payload adds
-`result_ref`, `charge_reason` and `completed_at` to the receipt fields. Refusals have no
+`result_ref` and `completed_at` to the receipt fields. Refusals have no
 event: a rejection appears only as the synchronous HTTP error.
 
-## Daily budget on the free path
+## Daily budget
 
-Own-account enrichment spends one shared bucket called `enrichment`. Read it before a
+Enrichment spends one shared bucket per account called `enrichment`. Read it before a
 batch, on the Smart Limits tab of the account drawer or through
 [smart limits and warmup](/kb/smart-limits-and-warmup) filtered on `limit_type`.
 
@@ -154,13 +157,12 @@ per day per connected account.
 | Scenario | HTTP | Code | What to do |
 |---|---|---|---|
 | Slug-only call on a method that needs a stored profile URN | 422 | `not_dispatchable` | Run `person-lite-profile` for that slug first: it stores the URN, and the sub-record methods work from then on |
-| No managed capacity, or a transient browser or plugin failure | 503 | `infrastructure_unavailable`, `plugin_unavailable` | Back off and retry the same call; `plugin_unavailable` carries a `retry_after` one minute out |
+| A transient browser or plugin failure | 503 | `infrastructure_unavailable`, `plugin_unavailable` | Back off and retry the same call; `plugin_unavailable` carries a `retry_after` one minute out |
 | Terminal execution failure | 409 | `operation_blocked` | Do not retry as sent, change the input |
 | Method not implemented yet (`person-languages`, `post-details`) | 501 | `not_implemented` | Nothing is ledgered: no row, no budget spent |
 
 `bucket_saturated` on a 429 is your own account's daily enrichment budget, nothing wider.
-To run that call on managed infrastructure instead, re-issue with `use_credits: true` and
-no `linkedin_account_sid`.
+Wait for `retry_after`, or pin a different connected account that still has budget.
 
 <Tip>
 Copy this to your AI assistant to enrich a list of profiles:
@@ -169,8 +171,8 @@ Copy this to your AI assistant to enrich a list of profiles:
 https://app.gtm-api.com/linkedin/v4. For each slug POST to
 /api/linkedin-enrichment/person-contact-info with body `{"public_identifier": SLUG,
 "idempotency_key": "contact-SLUG"}` and header Authorization: Bearer gtm_live_YOUR_KEY. Do
-not send use_credits or linkedin_account_sid: this method always runs free on my connected
-account. One profile per call, sequentially. Treat 422 no_connected_account as
+not send linkedin_account_sid: this method picks my connected
+account on its own. One profile per call, sequentially. Treat 422 no_connected_account as
 skip-and-log, and on 429 wait until the retry_after timestamp. Write CSV: slug, email,
 first phone, phone type, websites, data_request.status."
 </Tip>

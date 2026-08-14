@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.orchestration`, 21 operations. Internal (`/internal`) and health endpoints are deliberately absent; the code-faithful spec that documents those lives in `product/openapi/gtm.openapi.tech`.
+    Surface: the public `/api` contract of `gtm.service.orchestration`, 22 operations. Internal (`/internal`) and health endpoints are deliberately absent; the code-faithful spec that documents those lives in `product/openapi/gtm.openapi.tech`.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -81,7 +81,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -91,7 +90,7 @@ paths:
       operationId: search_mass_action_items
       summary: Search mass-action items
       description: |-
-        Per-target drill-down of a mass action: one row per target with current_step, the object cursor (object_type / object_sid, on a generative run what the row created) and step_log[], one entry per plan step with status (running / deferred / succeeded / failed / skipped), executor_ref for async steps, created_object_sid for steps that minted one, credits_charged and error_message. The last step_log entry says what failed and why, earlier ones what completed: a failed item keeps the effects of its finished steps (fail-forward), created_object_sid is the cleanup surface. Filter by mass_action_sid, then narrow by status / current_step / wait_reason; object_sid is parent-scoped, so always pair it with mass_action_sid (unpaired it degrades to a full team scan). Sort defaults to position asc (insertion order; position 1 is the canary); page_size 0 returns pagination.total_count alone. No include[] and no counts block; run-level aggregation lives on the parent, mass-actions metrics.
+        Per-target drill-down of a mass action: one row per target with current_step, the object cursor (object_type / object_sid, on a generative run what the row created) and step_log[], one entry per plan step with status (running / deferred / succeeded / failed / skipped), executor_ref for async steps, created_object_sid for steps that minted one, and error_message. The last step_log entry says what failed and why, earlier ones what completed: a failed item keeps the effects of its finished steps (fail-forward), created_object_sid is the cleanup surface. Filter by mass_action_sid, then narrow by status / current_step / wait_reason; object_sid is parent-scoped, so always pair it with mass_action_sid (unpaired it degrades to a full team scan). Sort defaults to position asc (insertion order; position 1 is the canary); page_size 0 returns pagination.total_count alone. No include[] and no counts block; run-level aggregation lives on the parent, mass-actions metrics.
 
         Contract:
         - MCP tool `search_mass_action_items`, registry package `mcp.orchestration/mass_action_items`, mount `orchestration.mass_actions`.
@@ -123,7 +122,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -169,7 +167,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -179,7 +176,7 @@ paths:
       operationId: get_mass_actions_metrics
       summary: Mass-action metrics
       description: |-
-        Where a run is right now, in one round-trip, without paging items. Typical call: filter {sid:{eq}}. Returns items_by_status (the outcome split), items_by_current_step, items_by_wait_reason, in_flight (0 means the run is caught up), the next / last scheduled item, credits_spent, created_objects and the top error prefixes. No group_by: the shape is fixed. Use this instead of listing a run's items to answer 'how is it going'.
+        Where a run is right now, in one round-trip, without paging items. Typical call: filter {sid:{eq}}. Returns items_by_status (the outcome split), items_by_current_step, items_by_wait_reason, in_flight (0 means the run is caught up), the next / last scheduled item, created_objects and the top error prefixes. No group_by: the shape is fixed. Use this instead of listing a run's items to answer 'how is it going'.
 
         Contract:
         - MCP tool `get_mass_actions_metrics`, registry package `mcp.orchestration/mass_actions`, mount `orchestration.mass_actions`.
@@ -211,7 +208,6 @@ paths:
       x-gtm-envelope: metrics
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -225,7 +221,7 @@ paths:
 
         Validates in one pass, reporting all findings at once: plan shape (1..3 steps), step-eligibility of each tool, scope shape and size (1..100), the generate-scope rule (step 1 must mint an object) and the send-class schedule mandate. A tool outside the step vocabulary comes back 422 validation_failed with error.field_errors["plan.steps.{i}.tool"] = ["not_step_eligible: ..."], naming the authorable set so the plan is repairable in one turn. Nothing is persisted, charged or created.
 
-        On success the result carries preview (items_count, steps_per_item, credits_estimate, dangerous_steps, eta, warnings), commit_token and expires_at. Show the preview to the user, then pass the token to create_mass_action UNCHANGED with the exact same inputs: it is an HMAC over them plus the caller, so any edit invalidates it (422) and needs a fresh preview. Tokens live 15 minutes.
+        On success the result carries preview (items_count, steps_per_item, dangerous_steps, eta, warnings), commit_token and expires_at. Show the preview to the user, then pass the token to create_mass_action UNCHANGED with the exact same inputs: it is an HMAC over them plus the caller, so any edit invalidates it (422) and needs a fresh preview. Tokens live 15 minutes.
 
         Contract:
         - MCP tool `preview_mass_action`, registry package `mcp.orchestration/mass_actions`, mount `orchestration.mass_actions`.
@@ -257,7 +253,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -299,7 +294,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -309,7 +303,7 @@ paths:
       operationId: get_mass_action
       summary: Get mass-action
       description: |-
-        Fetch one bulk run by sid: the plan that runs, status / paused_reason / hold_till, the canary gate, credits_spent and settled_at. include=metrics adds the item breakdown, which is where outcome lives.
+        Fetch one bulk run by sid: the plan that runs, status / paused_reason / hold_till, the canary gate and settled_at. include=metrics adds the item breakdown, which is where outcome lives.
 
         Contract:
         - MCP tool `get_mass_action`, registry package `mcp.orchestration/mass_actions`, mount `orchestration.mass_actions`.
@@ -357,7 +351,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -402,7 +395,62 @@ paths:
       x-gtm-envelope: delete_cascade
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/mass-actions/{sid}/append-items:
+    post:
+      operationId: append_mass_action_items
+      summary: Append mass-action items
+      description: |-
+        Feed more targets into a run that is already going, without a second preview or consent token: the plan they execute is the one already approved, and appended items join the pacing chain BEHIND the tail so the schedule is not compressed.
+
+        Identities are payload-kind leads, the same shape a targets-scope create takes. Each one must carry at least one of ln_member_id, ln_id, sn_id, company_ln_id or nickname, which is what the run dedups on: a lead already enrolled comes back in skipped_duplicate_count instead of running twice, so re-sending an overlapping batch is safe. Up to 100 per call; repeat the call to keep a standing run fed.
+
+        The run has to be active: a paused one is 409 run_not_active (resume it first) and a stopped one is 409 too (create a new run). The canary gate still applies, so on a run whose gate is closed the appended items wait behind item 1.
+
+        Contract:
+        - MCP tool `append_mass_action_items`, registry package `mcp.orchestration/mass_actions`, mount `orchestration.mass_actions`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - mass_actions
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: Mass-action sid (ma_ac_...).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^ma_ac_
+            description: Mass-action sid (ma_ac_...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AppendMassActionItemsRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AppendMassActionItemsResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: append_mass_action_items
+      x-gtm-mcp-mount: orchestration.mass_actions
+      x-gtm-entity: mass_actions
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -455,7 +503,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -502,7 +549,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -549,7 +595,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -591,7 +636,6 @@ paths:
       x-gtm-envelope: metrics
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -633,7 +677,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -686,7 +729,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -739,7 +781,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -781,7 +822,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -823,7 +863,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -882,7 +921,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -934,7 +972,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -979,7 +1016,6 @@ paths:
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1032,7 +1068,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1063,6 +1098,222 @@ components:
           schema:
             $ref: "#/components/schemas/McpError"
   schemas:
+    AppendMassActionItemsRequest:
+      type: object
+      description: Request body of `append_mass_action_items`.
+      properties:
+        identities:
+          type: array
+          items:
+            type: object
+            additionalProperties: {}
+          minItems: 1
+          maxItems: 100
+          description: Payload-kind leads. Identity fields (ln_member_id / ln_id / sn_id / company_ln_id / nickname) are the dedup axis; any other key rides along as per-target extras the plan steps can read.
+      required:
+        - identities
+    AppendMassActionItemsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            target_entity:
+              type: string
+            plan:
+              type: object
+              additionalProperties: {}
+            canary_mode:
+              type: string
+              enum:
+                - none
+                - first_item
+            status:
+              type: string
+              enum:
+                - active
+                - paused
+            total_count:
+              type: number
+            title:
+              type: string
+              nullable: true
+            schedule:
+              type: object
+              nullable: true
+              additionalProperties: {}
+            paused_reason:
+              type: string
+              nullable: true
+              enum:
+                - manual
+                - limit_reached
+                - account_unavailable
+                - canary_failed
+                - other
+            hold_till:
+              type: string
+              nullable: true
+            canary_satisfied_at:
+              type: string
+              nullable: true
+            started_at:
+              type: string
+              nullable: true
+            settled_at:
+              type: string
+              nullable: true
+            created_by:
+              type: object
+              nullable: true
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+            deleted_by:
+              type: object
+              nullable: true
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - target_entity
+            - plan
+            - canary_mode
+            - status
+            - total_count
+            - title
+            - schedule
+            - paused_reason
+            - hold_till
+            - canary_satisfied_at
+            - started_at
+            - settled_at
+            - created_by
+            - deleted_by
+            - created_at
+            - updated_at
+            - deleted_at
+        result:
+          type: object
+          properties:
+            enrolled_count:
+              type: number
+            skipped_duplicate_count:
+              type: number
+            total_count:
+              type: number
+          required:
+            - enrolled_count
+            - skipped_duplicate_count
+            - total_count
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            debug_url:
+              type: string
+              description: Deep link to the post-call analysis UI.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+            - debug_url
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     CancelWebhookLogRequest:
       type: object
       description: Request body of `cancel_webhook_log`.
@@ -1234,34 +1485,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -1448,8 +1671,6 @@ components:
                 - paused
             total_count:
               type: number
-            credits_spent:
-              type: number
             title:
               type: string
               nullable: true
@@ -1555,7 +1776,6 @@ components:
             - canary_mode
             - status
             - total_count
-            - credits_spent
             - title
             - schedule
             - paused_reason
@@ -1666,6 +1886,7 @@ components:
               - linkedin-auto-scrape-runs.failed
               - linkedin-auto-scrapes.paused
               - antidetect-browsers.logged-in
+              - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
               - antidetect-browsers.started
               - antidetect-browsers.stopped
@@ -2065,8 +2286,6 @@ components:
                 - paused
             total_count:
               type: number
-            credits_spent:
-              type: number
             title:
               type: string
               nullable: true
@@ -2172,7 +2391,6 @@ components:
             - canary_mode
             - status
             - total_count
-            - credits_spent
             - title
             - schedule
             - paused_reason
@@ -2449,8 +2667,6 @@ components:
                     last_scheduled_at:
                       type: string
                       nullable: true
-                    credits_spent:
-                      type: number
                     created_objects:
                       type: object
                       additionalProperties:
@@ -2474,7 +2690,6 @@ components:
                     - in_flight
                     - next_scheduled_at
                     - last_scheduled_at
-                    - credits_spent
                     - created_objects
                     - top_errors
             metrics:
@@ -2500,8 +2715,6 @@ components:
                 last_scheduled_at:
                   type: string
                   nullable: true
-                credits_spent:
-                  type: number
                 created_objects:
                   type: object
                   additionalProperties:
@@ -2525,7 +2738,6 @@ components:
                 - in_flight
                 - next_scheduled_at
                 - last_scheduled_at
-                - credits_spent
                 - created_objects
                 - top_errors
         applied_filters:
@@ -3297,8 +3509,6 @@ components:
                 - paused
             total_count:
               type: number
-            credits_spent:
-              type: number
             title:
               type: string
               nullable: true
@@ -3404,7 +3614,6 @@ components:
             - canary_mode
             - status
             - total_count
-            - credits_spent
             - title
             - schedule
             - paused_reason
@@ -3453,34 +3662,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -3656,8 +3837,6 @@ components:
                   type: number
                 steps_per_item:
                   type: number
-                credits_estimate:
-                  type: number
                 dangerous_steps:
                   type: array
                   items:
@@ -3688,7 +3867,6 @@ components:
               required:
                 - items_count
                 - steps_per_item
-                - credits_estimate
                 - dangerous_steps
                 - eta
                 - warnings
@@ -3726,34 +3904,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -3799,8 +3949,6 @@ components:
                 - active
                 - paused
             total_count:
-              type: number
-            credits_spent:
               type: number
             title:
               type: string
@@ -3907,7 +4055,6 @@ components:
             - canary_mode
             - status
             - total_count
-            - credits_spent
             - title
             - schedule
             - paused_reason
@@ -3957,34 +4104,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -4030,8 +4149,6 @@ components:
                 - active
                 - paused
             total_count:
-              type: number
-            credits_spent:
               type: number
             title:
               type: string
@@ -4138,7 +4255,6 @@ components:
             - canary_mode
             - status
             - total_count
-            - credits_spent
             - title
             - schedule
             - paused_reason
@@ -4188,34 +4304,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -4497,34 +4585,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -4696,34 +4756,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -5074,10 +5106,6 @@ components:
                           type: string
                           nullable: true
                           description: "creates-steps: sid of the minted object. Survives a later failure, so it is the cleanup surface."
-                        credits_charged:
-                          type: integer
-                          nullable: true
-                          description: "Creditable steps: credits actually debited for this step; null otherwise."
                         error_message:
                           type: string
                           nullable: true
@@ -5091,7 +5119,6 @@ components:
                         - executor_ref
                         - created_object_type
                         - created_object_sid
-                        - credits_charged
                         - error_message
                     description: "One entry per plan step of the CURRENT attempt, ≤3. Read the last entry for the failure, the earlier ones for what already completed (fail-forward: their effects stand)."
                   scheduled_at:
@@ -5107,7 +5134,7 @@ components:
                   error_message:
                     type: string
                     nullable: true
-                    description: "Failure text with a machine-readable prefix: 'step {k} {tool}:', 'insufficient_credits:', or 'item_timeout:' (reaper force-fail, outcome unknown)."
+                    description: "Failure text with a machine-readable prefix: 'step {k} {tool}:' or 'item_timeout:' (reaper force-fail, outcome unknown)."
                   started_at:
                     type: string
                     nullable: true
@@ -5448,8 +5475,6 @@ components:
                       - paused
                   total_count:
                     type: number
-                  credits_spent:
-                    type: number
                   title:
                     type: string
                     nullable: true
@@ -5555,7 +5580,6 @@ components:
                   - canary_mode
                   - status
                   - total_count
-                  - credits_spent
                   - title
                   - schedule
                   - paused_reason
@@ -6632,34 +6656,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -6731,6 +6727,7 @@ components:
               - linkedin-auto-scrape-runs.failed
               - linkedin-auto-scrapes.paused
               - antidetect-browsers.logged-in
+              - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
               - antidetect-browsers.started
               - antidetect-browsers.stopped

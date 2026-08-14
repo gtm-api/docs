@@ -44,7 +44,7 @@ What the validator enforces:
 - **Scope shape.** `objects` (existing rows by sid), `targets` (per-item payload identities), `generate` (N slots, step 1 must create the object), or `none` (a standing run an auto-scrape feeds later). All bounded at 100 items.
 - **Schedule mandate.** A plan with a send-class step must carry a `schedule`; the per-gap interval is randomized between your min and max, because a fixed cadence is itself a detectable pattern. Omit `schedule` only for plans that can drain immediately.
 
-On success the `action` envelope returns a `preview` block (`items_count`, `credits_estimate`, `dangerous_steps`, `eta`, warnings) plus `commit_token` and `expires_at`.
+On success the `action` envelope returns a `preview` block (`items_count`, `dangerous_steps`, `eta`, warnings) plus `commit_token` and `expires_at`.
 
 ## 2. Commit it
 

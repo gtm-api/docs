@@ -14,10 +14,10 @@ A search runs now, returns one live page of results inside the HTTP response, an
 <Note>
 A search is a discovery list, not an enriched one. Rows carry an identity (member id, vanity slug, name, avatar) and
 nothing else: no headline, no title, no company, no location, no connection degree. Feed the ids into
-[enrichment](/kb/enrichment) for those, a separate surface with separate pricing.
+[enrichment](/kb/enrichment) for those, a separate surface.
 </Note>
 
-A search is never cached: every call re-runs and every call charges. The only durable traces are one row in the **Data
+A search is never cached: every call re-runs. The only durable traces are one row in the **Data
 Requests** ledger (`result.data_request`) and one activity-log entry on the executing
 account. Nothing is stored, so nothing can be deduplicated away: rows arrive in LinkedIn's own order, with no sort axis
 and no cross-page deduplication. Past roughly five pages, or for anything on a schedule, use an
@@ -67,16 +67,17 @@ trailing slash, checked literally. Your `page` overrides the page or offset bake
 parameter rides through untouched.
 
 ```bash curl
-# The structured half, page 1, on the paid path
+# The structured half, page 1
 curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-scraping/search-people" \
   -H "Authorization: Bearer gtm_live_YOUR_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"use_credits": true, "page": 1, "idempotency_key": "icp-growth-us-p1",
+  -d '{"page": 1, "idempotency_key": "icp-growth-us-p1",
        "filters": {"keywords": "growth marketing", "network": ["2nd"], "locations": ["103644278"]}}'
 ```
 
-Swap `filters` for a pasted `"url"`, and `use_credits` for `"linkedin_account_sid": "ln_ac_YOUR_ACCOUNT"`, to
-run the same page free on your own account.
+With no `linkedin_account_sid` the service picks one of your connected accounts with remaining budget; swap
+`filters` for a pasted `"url"`, or pin `"linkedin_account_sid": "ln_ac_YOUR_ACCOUNT"` to run the same page on a
+specific account.
 
 ## Filters
 
@@ -175,16 +176,16 @@ this page returned rows and `page` is below 100. The ceiling is page 100: a `pag
 `search-people` carries an extra boolean, `commercial_use_limit_hit`: `true` means LinkedIn's monthly commercial-use
 paywall fired and rows may be truncated. The field is absent on the company engines, always `false` on service providers.
 
-## Who pays for a run
+## Which account runs a search
 
 | Field | Rule | Effect |
 |---|---|---|
-| `linkedin_account_sid` | `ln_ac_` plus 12 characters | runs on that account, `executed_on: "own_account"`, spends that account's daily `scraping` budget |
-| `use_credits` | boolean | runs on our managed infrastructure, `executed_on: "infra_pool"`, `reason: "infra_pool"` |
+| `linkedin_account_sid` | `ln_ac_` plus 12 characters | runs on that account only, `executed_on: "own_account"`, spends that account's daily `scraping` budget |
+| omitted | | the service picks one of your connected accounts with remaining budget (Sales Navigator methods pick only accounts with a seat) |
 | `idempotency_key` | string, max 128 characters | replay guard on (team, key) |
 
-There is no silent fallback. Send exactly one executor (both, or neither, is a `422`): a pinned
-account never pools, and a pinned account out of budget returns `429` rather than quietly moving to the paid path.
+There is no silent fallback for a pinned account: out of budget it returns `429` rather than quietly moving to
+another account. With no account connected at all, the call is a `422` telling you to connect one first.
 
 <Warning>
 Idempotency replay matches on the team and the key alone, not the method and not the input, so reusing one key after
@@ -204,9 +205,8 @@ the budget is spent, the account is on hold, or the cooldown has not elapsed, th
 timestamp. Retry after that timestamp, not on a fixed schedule.
 </Warning>
 
-The free plan clamps the bucket to 15 scraping calls per day per account, alongside 20 data requests per day, and a young
-account ramps lower still while it warms up. Runs on managed infrastructure do not touch your accounts' buckets at
-all. Read the bucket
+The free plan clamps the bucket to 15 scraping calls per day per account, and a young
+account ramps lower still while it warms up. Read the bucket
 before a batch rather than discovering it through a 429: [smart limits and warmup](/kb/smart-limits-and-warmup).
 
 <Note>
@@ -240,11 +240,10 @@ The detail sits in one of two places, never both: a 422 carries it in `error.fie
 | Both or neither of `url` and `filters` | 422 | `validation_failed` | `field_errors` on `url` and `filters` |
 | `filters` present but every member empty | 422 | `validation_failed` | `field_errors`: `At least one filter member is required.` |
 | URL from the wrong LinkedIn screen, or over 2048 characters | 422 | `validation_failed` | `field_errors` on `url` |
-| Neither executor nor `use_credits`, or both | 422 | `validation_failed` | `field_errors` on `use_credits`; the message starts `executor_required:` when neither was sent |
 | Sales Navigator method on an account with no seat | 422 | `validation_failed` | `field_errors` on `linkedin_account_sid`, message starts `sales_nav_required:`; the ledger row is `rejected` |
 | Daily budget spent, account on hold, or cooldown not elapsed | 429 | `rate_limited` | `context`: `bucket_saturated`, `limit_type: "scraping"`, `cause`, `retry_after` |
 | LinkedIn's own quota lock on the account | 429 | `rate_limited` | `context`: `linkedin_strike`, `cause: "linkedin_quota_hit"`, `retry_after`; no bypass |
-| No managed capacity right now | 503 | `service_unavailable` | `context`: `infrastructure_unavailable` with `retry_after`; retry the same call |
+| No capacity right now | 503 | `service_unavailable` | `context`: `infrastructure_unavailable` with `retry_after`; retry the same call |
 | Browser or plugin transport failure | 503 | `service_unavailable` | `context`: `plugin_unavailable` with `retry_after`; the run is marked failed and the hold released |
 
 The Sales Navigator refusal spells out its own fix: use an account that has a seat, or run `get-my-sales-navigator` to
@@ -254,7 +253,7 @@ bought minutes ago usually needs the manual refresh.
 ## Where a search shows up in the app
 
 There is no run-now search screen; **Data Requests** is the receipt. Filter **Kind** to **Scrape**, then read **Request**
-for the method, **Executed on** and **Charged** for which path ran and what it cost, and **View result payload** for the
+for the method, **Executed on** for the account that ran it, and **View result payload** for the
 raw response.
 
 <Tip>

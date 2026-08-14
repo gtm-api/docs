@@ -7,11 +7,11 @@ openapi: 3.0.3
 info:
   title: "GTM API public contract: gtm.service.id"
   description: |-
-    Identity, access and money: users, teams and members, API keys, OAuth clients and authorizations, billing products, subscriptions, transactions and payment methods, the credit ledger, notifications, TLS certificates, observability and support requests.
+    Identity, access and money: users, teams and members, API keys, OAuth clients and authorizations, billing products, subscriptions, transactions and payment methods, notifications, TLS certificates, observability and support requests.
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.id`, 77 operations. Internal (`/internal`) and health endpoints are deliberately absent; the code-faithful spec that documents those lives in `product/openapi/gtm.openapi.tech`.
+    Surface: the public `/api` contract of `gtm.service.id`, 73 operations. Internal (`/internal`) and health endpoints are deliberately absent; the code-faithful spec that documents those lives in `product/openapi/gtm.openapi.tech`.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -47,8 +47,6 @@ tags:
     description: Registry package `mcp.id/billing_subscriptions`, served on MCP mount `id.billing`.
   - name: billing_transactions
     description: Registry package `mcp.id/billing_transactions`, served on MCP mount `id.billing`.
-  - name: credit_transactions
-    description: Registry package `mcp.id/credit_transactions`, served on MCP mount `id.credits`.
   - name: notifications
     description: Registry package `mcp.id/notifications`, served on MCP mount `id.platform`.
   - name: oauth_authorizations
@@ -107,7 +105,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -149,7 +146,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -191,7 +187,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -233,7 +228,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -275,7 +269,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -317,7 +310,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -359,7 +351,6 @@ paths:
       x-gtm-envelope: metrics
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -401,7 +392,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -459,7 +449,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -511,7 +500,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -556,7 +544,6 @@ paths:
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -609,7 +596,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -645,7 +631,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -681,7 +666,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -726,7 +710,6 @@ paths:
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -736,7 +719,7 @@ paths:
       operationId: search_billing_products
       summary: Search billing products
       description: |-
-        List the Paddle-synced product catalog (the base plan + add-ons) with filtering, sorting and cursor pagination. Filter by type to split plan vs add-on, is_active for the live catalog, or q for an infix match over name/slug. Each row carries the per-unit limits grant and the credit_policy rollover. Read-only: the catalog is authored in Paddle, never here. page_size:0 returns counts only.
+        List the Paddle-synced product catalog (the base plan + add-ons) with filtering, sorting and cursor pagination. Filter by type to split plan vs add-on, is_active for the live catalog, or q for an infix match over name/slug. Each row carries the per-unit limits grant. Read-only: the catalog is authored in Paddle, never here. page_size:0 returns counts only.
 
         Contract:
         - MCP tool `search_billing_products`, registry package `mcp.id/billing_products`, mount `id.billing`.
@@ -768,7 +751,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -810,7 +792,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -852,7 +833,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -908,7 +888,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -961,7 +940,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1014,7 +992,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1061,7 +1038,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1114,7 +1090,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1161,7 +1136,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1208,7 +1182,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1261,7 +1234,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1314,7 +1286,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1361,7 +1332,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1408,7 +1378,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1450,7 +1419,6 @@ paths:
       x-gtm-envelope: metrics
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1492,7 +1460,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1548,7 +1515,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1595,175 +1561,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
-      x-gtm-mass-action: false
-      x-gtm-step-eligible: false
-      x-gtm-schedule-required: false
-      x-gtm-tool-class: typical
-  /api/credit-transactions/get-balance:
-    post:
-      operationId: get_credit_balance
-      summary: Get credit balance
-      description: |-
-        The single public read of a team's spendable credit balance for a kind. Assembles available (active non-expired lot remaining minus active pending holds), the active lots list (soonest-expiring first) and next_expiry. Read-only assembly; item is null, the balance is in result.
-
-        Contract:
-        - MCP tool `get_credit_balance`, registry package `mcp.id/credit_transactions`, mount `id.credits`.
-        - Operation `action`, response envelope `action`.
-        - Flags: read only.
-      tags:
-        - credit_transactions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GetCreditBalanceRequest"
-      responses:
-        "200":
-          description: "`action` success envelope."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetCreditBalanceResponse"
-        4XX:
-          $ref: "#/components/responses/McpClientError"
-        5XX:
-          $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: get_credit_balance
-      x-gtm-mcp-mount: id.credits
-      x-gtm-entity: credit_transactions
-      x-gtm-operation: action
-      x-gtm-envelope: action
-      x-gtm-availability: ga
-      x-gtm-dangerous: false
-      x-gtm-creditable: false
-      x-gtm-mass-action: false
-      x-gtm-step-eligible: false
-      x-gtm-schedule-required: false
-      x-gtm-tool-class: typical
-  /api/credit-transactions/metrics:
-    post:
-      operationId: get_credit_transactions_metrics
-      summary: Credit transactions metrics
-      description: |-
-        Credit spend/grant metrics over a period (period column = created_at, half-open [from,to)). Returns spent, granted, refunded, expired, net_change and debit_count. filter is the same object as search and every axis is applied. The time axes are the exception worth knowing: created_at / confirmed_at operators are dropped from the period-bound metrics (period is the one window there) but they DO scope the counts block, which carries no period of its own. Optional single group_by (type / status / operation).
-
-        Contract:
-        - MCP tool `get_credit_transactions_metrics`, registry package `mcp.id/credit_transactions`, mount `id.credits`.
-        - Operation `metrics`, response envelope `metrics`.
-        - Flags: read only.
-      tags:
-        - credit_transactions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GetCreditTransactionsMetricsRequest"
-      responses:
-        "200":
-          description: "`metrics` success envelope."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetCreditTransactionsMetricsResponse"
-        4XX:
-          $ref: "#/components/responses/McpClientError"
-        5XX:
-          $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: get_credit_transactions_metrics
-      x-gtm-mcp-mount: id.credits
-      x-gtm-entity: credit_transactions
-      x-gtm-operation: metrics
-      x-gtm-envelope: metrics
-      x-gtm-availability: ga
-      x-gtm-dangerous: false
-      x-gtm-creditable: false
-      x-gtm-mass-action: false
-      x-gtm-step-eligible: false
-      x-gtm-schedule-required: false
-      x-gtm-tool-class: typical
-  /api/credit-transactions/purchase:
-    post:
-      operationId: purchase_credits
-      summary: Purchase credits
-      description: |-
-        Top up credits. Creates a Paddle one-time transaction and returns a checkout_url for the human to pay; the credits land AFTER transaction.completed (ASYNC: poll get_credit_balance or await the webhook). CREDITABLE + DESTRUCTIVE: charges the owner's card / opens Paddle checkout; the real gate is the human confirming the amount in the Paddle overlay. On retry the agent MUST reuse the SAME request_id; a fresh key creates a second charge.
-
-        Contract:
-        - MCP tool `purchase_credits`, registry package `mcp.id/credit_transactions`, mount `id.credits`.
-        - Operation `action`, response envelope `action_async`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; creditable: the response carries a `credits` block and the call can debit the team ledger.
-      tags:
-        - credit_transactions
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/PurchaseCreditsRequest"
-      responses:
-        "200":
-          description: "`action_async` success envelope."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PurchaseCreditsResponse"
-        4XX:
-          $ref: "#/components/responses/McpClientError"
-        5XX:
-          $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: purchase_credits
-      x-gtm-mcp-mount: id.credits
-      x-gtm-entity: credit_transactions
-      x-gtm-operation: action
-      x-gtm-envelope: action_async
-      x-gtm-availability: ga
-      x-gtm-dangerous: true
-      x-gtm-creditable: true
-      x-gtm-mass-action: false
-      x-gtm-step-eligible: false
-      x-gtm-schedule-required: false
-      x-gtm-tool-class: complex
-  /api/credit-transactions/search:
-    post:
-      operationId: search_credit_transactions
-      summary: Search credit transactions
-      description: |-
-        Credit movements history (every grant, debit, refund, expiry), filterable by type, status, operation, reference_sid, time window. Use for "what did I spend on", "show my last debits", "which movement burned lot X". For the current balance use get_credit_balance instead. Returns a counts block. page_size:0 returns counts only.
-
-        Contract:
-        - MCP tool `search_credit_transactions`, registry package `mcp.id/credit_transactions`, mount `id.credits`.
-        - Operation `search`, response envelope `search`.
-        - Flags: read only.
-      tags:
-        - credit_transactions
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SearchCreditTransactionsRequest"
-      responses:
-        "200":
-          description: "`search` success envelope."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/SearchCreditTransactionsResponse"
-        4XX:
-          $ref: "#/components/responses/McpClientError"
-        5XX:
-          $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: search_credit_transactions
-      x-gtm-mcp-mount: id.credits
-      x-gtm-entity: credit_transactions
-      x-gtm-operation: search
-      x-gtm-envelope: search
-      x-gtm-availability: ga
-      x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1805,7 +1602,6 @@ paths:
       x-gtm-envelope: metrics
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1847,7 +1643,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1903,7 +1698,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1948,7 +1742,6 @@ paths:
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -1990,7 +1783,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2043,7 +1835,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2090,7 +1881,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2132,7 +1922,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2174,7 +1963,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2232,7 +2020,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2284,7 +2071,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2329,7 +2115,6 @@ paths:
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2371,7 +2156,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2413,7 +2197,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2455,7 +2238,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2502,7 +2284,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2544,7 +2325,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2586,7 +2366,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2642,7 +2421,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2688,7 +2466,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2733,7 +2510,6 @@ paths:
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2780,7 +2556,6 @@ paths:
       x-gtm-envelope: action_async
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2827,7 +2602,6 @@ paths:
       x-gtm-envelope: action_async
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2869,7 +2643,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2911,7 +2684,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -2967,7 +2739,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3009,7 +2780,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3051,7 +2821,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3093,7 +2862,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3146,7 +2914,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3191,7 +2958,6 @@ paths:
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3238,7 +3004,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3280,7 +3045,6 @@ paths:
       x-gtm-envelope: create
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3322,7 +3086,6 @@ paths:
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3382,7 +3145,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3434,7 +3196,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3493,7 +3254,6 @@ paths:
       x-gtm-envelope: delete_cascade
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3546,7 +3306,6 @@ paths:
       x-gtm-envelope: action
       x-gtm-availability: ga
       x-gtm-dangerous: true
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3597,7 +3356,6 @@ paths:
       x-gtm-envelope: get
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3638,7 +3396,6 @@ paths:
       x-gtm-envelope: update
       x-gtm-availability: ga
       x-gtm-dangerous: false
-      x-gtm-creditable: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -3800,34 +3557,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -4060,34 +3789,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -4310,34 +4011,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -4548,34 +4221,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -4800,34 +4445,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -5495,34 +5112,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -6076,13 +5665,10 @@ components:
                   type: number
                 webhooks:
                   type: number
-                enrichment:
-                  type: number
               required:
                 - accounts
                 - cloud_browser
                 - webhooks
-                - enrichment
             config:
               type: object
               nullable: true
@@ -7183,34 +6769,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -7631,34 +7189,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -7741,7 +7271,6 @@ components:
                     enum:
                       - plan
                       - addon
-                      - credits_pack
                   quantity:
                     type: number
                   unit_amount:
@@ -7809,34 +7338,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -7915,7 +7416,6 @@ components:
                     enum:
                       - plan
                       - addon
-                      - credits_pack
                   quantity:
                     type: number
                   unit_amount:
@@ -8250,434 +7750,6 @@ components:
             metrics:
               type: object
               properties: {}
-        applied_filters:
-          type: object
-          additionalProperties: {}
-        meta:
-          type: object
-          properties:
-            trace_id:
-              type: string
-              description: UUID v7; same 128-bit value as the X-Trace-Id header.
-            span_id:
-              type: string
-              pattern: ^[0-9a-f]{16}$
-              description: 16 hex chars, root span of this request.
-            timestamp:
-              type: string
-              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
-            duration_ms:
-              type: integer
-              minimum: 0
-              description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
-          required:
-            - trace_id
-            - span_id
-            - timestamp
-            - duration_ms
-            - debug_url
-      required:
-        - success
-        - operation
-        - metrics
-        - meta
-    GetCreditBalanceRequest:
-      type: object
-      description: Request body of `get_credit_balance`.
-      properties:
-        kind:
-          type: string
-          enum:
-            - enrichment
-            - platform
-          description: Consumable family. gtm mints "enrichment"; "platform" rows come from gs-native operations.
-      required:
-        - kind
-    GetCreditBalanceResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        operation:
-          type: string
-          enum:
-            - action
-        action:
-          type: string
-          description: kebab-case verb; matches the route segment.
-        item: {}
-        result:
-          type: object
-          properties:
-            kind:
-              type: string
-              enum:
-                - enrichment
-                - platform
-            available:
-              type: integer
-            held:
-              type: integer
-            lot_total_remaining:
-              type: integer
-            active_lots:
-              type: array
-              items:
-                type: object
-                additionalProperties: {}
-            next_expiry:
-              type: object
-              properties:
-                next_expiry_at:
-                  type: string
-                  nullable: true
-                next_expiry_amount:
-                  type: integer
-              required:
-                - next_expiry_at
-                - next_expiry_amount
-          required:
-            - kind
-            - available
-            - held
-            - lot_total_remaining
-            - active_lots
-            - next_expiry
-        meta:
-          type: object
-          properties:
-            trace_id:
-              type: string
-              description: UUID v7; same 128-bit value as the X-Trace-Id header.
-            span_id:
-              type: string
-              pattern: ^[0-9a-f]{16}$
-              description: 16 hex chars, root span of this request.
-            timestamp:
-              type: string
-              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
-            duration_ms:
-              type: integer
-              minimum: 0
-              description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
-          required:
-            - trace_id
-            - span_id
-            - timestamp
-            - duration_ms
-            - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
-      required:
-        - success
-        - operation
-        - action
-        - item
-        - result
-        - meta
-    GetCreditTransactionsMetricsRequest:
-      type: object
-      description: Request body of `get_credit_transactions_metrics`.
-      properties:
-        filter:
-          type: object
-          properties:
-            sid:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-              additionalProperties: false
-            kind:
-              type: object
-              properties:
-                eq:
-                  type: string
-                  enum:
-                    - enrichment
-                    - platform
-                in:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - enrichment
-                      - platform
-              additionalProperties: false
-            type:
-              type: object
-              properties:
-                eq:
-                  type: string
-                  enum:
-                    - allocation
-                    - debit
-                    - refund
-                    - expiry
-                ne:
-                  type: string
-                  enum:
-                    - allocation
-                    - debit
-                    - refund
-                    - expiry
-                in:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - allocation
-                      - debit
-                      - refund
-                      - expiry
-                nin:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - allocation
-                      - debit
-                      - refund
-                      - expiry
-              additionalProperties: false
-            status:
-              type: object
-              properties:
-                eq:
-                  type: string
-                  enum:
-                    - pending
-                    - confirmed
-                    - released
-                    - expired
-                ne:
-                  type: string
-                  enum:
-                    - pending
-                    - confirmed
-                    - released
-                    - expired
-                in:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - pending
-                      - confirmed
-                      - released
-                      - expired
-                nin:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - pending
-                      - confirmed
-                      - released
-                      - expired
-              additionalProperties: false
-            operation:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-              description: What consumed credits, e.g. "enrich_profile"; is_null:true = allocation/expiry rows.
-            reference_sid:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-              description: Reverse lookup from an er_… enrich_request or bl_tx_… Paddle tx.
-            request_id:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-              description: Charge-idempotency key lookup.
-            created_at:
-              type: object
-              properties:
-                gte:
-                  type: string
-                lte:
-                  type: string
-                gt:
-                  type: string
-                lt:
-                  type: string
-              additionalProperties: false
-            confirmed_at:
-              type: object
-              properties:
-                gte:
-                  type: string
-                lte:
-                  type: string
-                gt:
-                  type: string
-                lt:
-                  type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-        period:
-          type: object
-          properties:
-            from:
-              type: string
-              description: ISO 8601 UTC window start (inclusive).
-            to:
-              type: string
-              description: ISO 8601 UTC window end (exclusive); must be ≥ from.
-          required:
-            - from
-            - to
-          description: Required metrics window [from, to).
-        group_by:
-          type: string
-          enum:
-            - type
-            - status
-            - operation
-          description: Optional single split axis.
-      required:
-        - period
-    GetCreditTransactionsMetricsResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        operation:
-          type: string
-          enum:
-            - metrics
-        metrics:
-          type: object
-          properties:
-            filter:
-              type: object
-              additionalProperties: {}
-            period:
-              type: object
-              properties:
-                from:
-                  type: string
-                to:
-                  type: string
-              required:
-                - from
-                - to
-            aggregated:
-              type: object
-              properties:
-                counts:
-                  type: object
-                  additionalProperties: {}
-                metrics:
-                  type: object
-                  properties:
-                    spent:
-                      type: integer
-                    granted:
-                      type: integer
-                    refunded:
-                      type: integer
-                    expired:
-                      type: integer
-                    net_change:
-                      type: integer
-                    debit_count:
-                      type: integer
-                  required:
-                    - spent
-                    - granted
-                    - refunded
-                    - expired
-                    - net_change
-                    - debit_count
-            metrics:
-              type: object
-              properties:
-                spent:
-                  type: integer
-                granted:
-                  type: integer
-                refunded:
-                  type: integer
-                expired:
-                  type: integer
-                net_change:
-                  type: integer
-                debit_count:
-                  type: integer
-              required:
-                - spent
-                - granted
-                - refunded
-                - expired
-                - net_change
-                - debit_count
         applied_filters:
           type: object
           additionalProperties: {}
@@ -10223,13 +9295,10 @@ components:
                   type: number
                 webhooks:
                   type: number
-                enrichment:
-                  type: number
               required:
                 - accounts
                 - cloud_browser
                 - webhooks
-                - enrichment
             config:
               type: object
               nullable: true
@@ -10506,34 +9575,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -11527,34 +10568,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -11779,255 +10792,11 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
         - action
         - item
-        - result
-        - meta
-    PurchaseCreditsRequest:
-      type: object
-      description: Request body of `purchase_credits`.
-      properties:
-        kind:
-          type: string
-          enum:
-            - enrichment
-            - platform
-          description: Consumable family. gtm mints "enrichment"; "platform" rows come from gs-native operations.
-        amount:
-          type: integer
-          minimum: 1
-          description: Credits to buy.
-        request_id:
-          type: string
-          maxLength: 64
-          description: Idempotency key; MUST be stable across retries. A new key = a second charge.
-      required:
-        - kind
-        - amount
-        - request_id
-    PurchaseCreditsResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        operation:
-          type: string
-          enum:
-            - action
-        action:
-          type: string
-        async:
-          type: boolean
-          enum:
-            - true
-        item:
-          type: object
-          nullable: true
-          properties:
-            sid:
-              type: string
-            team_sid:
-              type: string
-            kind:
-              type: string
-              enum:
-                - enrichment
-                - platform
-            type:
-              type: string
-              enum:
-                - allocation
-                - debit
-                - refund
-                - expiry
-            status:
-              type: string
-              enum:
-                - pending
-                - confirmed
-                - released
-                - expired
-            amount:
-              type: number
-            operation:
-              type: string
-              nullable: true
-            reference_sid:
-              type: string
-              nullable: true
-            request_id:
-              type: string
-              nullable: true
-            expires_at:
-              type: string
-              nullable: true
-            metadata:
-              type: object
-              nullable: true
-              properties:
-                account_sid:
-                  type: string
-                  nullable: true
-                lot_breakdown:
-                  type: array
-                  nullable: true
-                  items:
-                    type: object
-                    properties:
-                      lot_sid:
-                        type: string
-                      amount:
-                        type: number
-                    required:
-                      - lot_sid
-                      - amount
-                purchase:
-                  type: boolean
-                  nullable: true
-              required:
-                - account_sid
-                - lot_breakdown
-                - purchase
-            confirmed_at:
-              type: string
-              nullable: true
-            released_at:
-              type: string
-              nullable: true
-            created_at:
-              type: string
-            updated_at:
-              type: string
-          required:
-            - sid
-            - team_sid
-            - kind
-            - type
-            - status
-            - amount
-            - operation
-            - reference_sid
-            - request_id
-            - expires_at
-            - metadata
-            - confirmed_at
-            - released_at
-            - created_at
-            - updated_at
-        pending:
-          type: array
-          items:
-            type: object
-            properties:
-              activity_log_sid:
-                type: string
-              expected_completion_seconds:
-                type: integer
-                minimum: 0
-              webhook_events:
-                type: array
-                items:
-                  type: string
-            required:
-              - expected_completion_seconds
-              - webhook_events
-        result:
-          type: object
-          additionalProperties: {}
-        meta:
-          type: object
-          properties:
-            trace_id:
-              type: string
-              description: UUID v7; same 128-bit value as the X-Trace-Id header.
-            span_id:
-              type: string
-              pattern: ^[0-9a-f]{16}$
-              description: 16 hex chars, root span of this request.
-            timestamp:
-              type: string
-              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
-            duration_ms:
-              type: integer
-              minimum: 0
-              description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
-          required:
-            - trace_id
-            - span_id
-            - timestamp
-            - duration_ms
-            - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
-      required:
-        - success
-        - operation
-        - action
-        - async
-        - item
-        - pending
         - result
         - meta
     RecallAccountShareRequest:
@@ -12530,34 +11299,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -12780,34 +11521,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -12985,34 +11698,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -13142,34 +11827,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -13380,34 +12037,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -13915,34 +12544,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -14039,34 +12640,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -14183,34 +12756,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -14354,34 +12899,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -15306,13 +13823,11 @@ components:
                   enum:
                     - plan
                     - addon
-                    - credits_pack
                 ne:
                   type: string
                   enum:
                     - plan
                     - addon
-                    - credits_pack
                 in:
                   type: array
                   items:
@@ -15320,7 +13835,6 @@ components:
                     enum:
                       - plan
                       - addon
-                      - credits_pack
                 nin:
                   type: array
                   items:
@@ -15328,7 +13842,6 @@ components:
                     enum:
                       - plan
                       - addon
-                      - credits_pack
               additionalProperties: false
             is_active:
               type: object
@@ -15436,7 +13949,6 @@ components:
                     enum:
                       - plan
                       - addon
-                      - credits_pack
                   limits:
                     type: object
                     properties:
@@ -15446,20 +13958,10 @@ components:
                         type: number
                       webhooks:
                         type: number
-                      enrichment:
-                        type: number
                     required:
                       - accounts
                       - cloud_browser
                       - webhooks
-                      - enrichment
-                  credit_policy:
-                    type: object
-                    properties:
-                      enrichment_rollover_months:
-                        type: number
-                    required:
-                      - enrichment_rollover_months
                   is_active:
                     type: boolean
                   created_at:
@@ -15476,7 +13978,6 @@ components:
                   - slug
                   - type
                   - limits
-                  - credit_policy
                   - is_active
                   - created_at
                   - updated_at
@@ -16364,7 +14865,6 @@ components:
                           enum:
                             - plan
                             - addon
-                            - credits_pack
                         quantity:
                           type: number
                         unit_amount:
@@ -16460,400 +14960,6 @@ components:
         counts:
           type: object
           properties: {}
-      required:
-        - success
-        - operation
-        - items
-        - pagination
-        - applied_filters
-        - includes
-        - meta
-    SearchCreditTransactionsRequest:
-      type: object
-      description: Request body of `search_credit_transactions`.
-      properties:
-        filter:
-          type: object
-          properties:
-            sid:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-              additionalProperties: false
-            kind:
-              type: object
-              properties:
-                eq:
-                  type: string
-                  enum:
-                    - enrichment
-                    - platform
-                in:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - enrichment
-                      - platform
-              additionalProperties: false
-            type:
-              type: object
-              properties:
-                eq:
-                  type: string
-                  enum:
-                    - allocation
-                    - debit
-                    - refund
-                    - expiry
-                ne:
-                  type: string
-                  enum:
-                    - allocation
-                    - debit
-                    - refund
-                    - expiry
-                in:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - allocation
-                      - debit
-                      - refund
-                      - expiry
-                nin:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - allocation
-                      - debit
-                      - refund
-                      - expiry
-              additionalProperties: false
-            status:
-              type: object
-              properties:
-                eq:
-                  type: string
-                  enum:
-                    - pending
-                    - confirmed
-                    - released
-                    - expired
-                ne:
-                  type: string
-                  enum:
-                    - pending
-                    - confirmed
-                    - released
-                    - expired
-                in:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - pending
-                      - confirmed
-                      - released
-                      - expired
-                nin:
-                  type: array
-                  items:
-                    type: string
-                    enum:
-                      - pending
-                      - confirmed
-                      - released
-                      - expired
-              additionalProperties: false
-            operation:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-              description: What consumed credits, e.g. "enrich_profile"; is_null:true = allocation/expiry rows.
-            reference_sid:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-              description: Reverse lookup from an er_… enrich_request or bl_tx_… Paddle tx.
-            request_id:
-              type: object
-              properties:
-                eq:
-                  type: string
-                in:
-                  type: array
-                  items:
-                    type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-              description: Charge-idempotency key lookup.
-            created_at:
-              type: object
-              properties:
-                gte:
-                  type: string
-                lte:
-                  type: string
-                gt:
-                  type: string
-                lt:
-                  type: string
-              additionalProperties: false
-            confirmed_at:
-              type: object
-              properties:
-                gte:
-                  type: string
-                lte:
-                  type: string
-                gt:
-                  type: string
-                lt:
-                  type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-        sort:
-          type: object
-          properties:
-            field:
-              type: string
-              enum:
-                - created_at
-                - confirmed_at
-                - amount
-            direction:
-              type: string
-              enum:
-                - asc
-                - desc
-              description: Default desc.
-          required:
-            - field
-        page_size:
-          type: integer
-          minimum: 0
-          maximum: 500
-          description: 0..500, default 50. page_size=0 = count-only, page_size=1 = getFirst.
-        cursor:
-          type: string
-          nullable: true
-          description: Opaque forward cursor from a previous response pagination.next_cursor.
-    SearchCreditTransactionsResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        operation:
-          type: string
-          enum:
-            - search
-        items:
-          type: array
-          items:
-            type: object
-            properties:
-              item:
-                type: object
-                properties:
-                  sid:
-                    type: string
-                  team_sid:
-                    type: string
-                  kind:
-                    type: string
-                    enum:
-                      - enrichment
-                      - platform
-                  type:
-                    type: string
-                    enum:
-                      - allocation
-                      - debit
-                      - refund
-                      - expiry
-                  status:
-                    type: string
-                    enum:
-                      - pending
-                      - confirmed
-                      - released
-                      - expired
-                  amount:
-                    type: number
-                  operation:
-                    type: string
-                    nullable: true
-                  reference_sid:
-                    type: string
-                    nullable: true
-                  request_id:
-                    type: string
-                    nullable: true
-                  expires_at:
-                    type: string
-                    nullable: true
-                  metadata:
-                    type: object
-                    nullable: true
-                    properties:
-                      account_sid:
-                        type: string
-                        nullable: true
-                      lot_breakdown:
-                        type: array
-                        nullable: true
-                        items:
-                          type: object
-                          properties:
-                            lot_sid:
-                              type: string
-                            amount:
-                              type: number
-                          required:
-                            - lot_sid
-                            - amount
-                      purchase:
-                        type: boolean
-                        nullable: true
-                    required:
-                      - account_sid
-                      - lot_breakdown
-                      - purchase
-                  confirmed_at:
-                    type: string
-                    nullable: true
-                  released_at:
-                    type: string
-                    nullable: true
-                  created_at:
-                    type: string
-                  updated_at:
-                    type: string
-                required:
-                  - sid
-                  - team_sid
-                  - kind
-                  - type
-                  - status
-                  - amount
-                  - operation
-                  - reference_sid
-                  - request_id
-                  - expires_at
-                  - metadata
-                  - confirmed_at
-                  - released_at
-                  - created_at
-                  - updated_at
-              included:
-                type: object
-                additionalProperties: {}
-            required:
-              - item
-              - included
-        pagination:
-          type: object
-          properties:
-            next_cursor:
-              type: string
-              nullable: true
-            has_more:
-              type: boolean
-            total_count:
-              type: integer
-              nullable: true
-          required:
-            - next_cursor
-            - has_more
-            - total_count
-        applied_filters:
-          type: object
-          additionalProperties: {}
-        includes:
-          type: array
-          items:
-            type: string
-        meta:
-          type: object
-          properties:
-            trace_id:
-              type: string
-              description: UUID v7; same 128-bit value as the X-Trace-Id header.
-            span_id:
-              type: string
-              pattern: ^[0-9a-f]{16}$
-              description: 16 hex chars, root span of this request.
-            timestamp:
-              type: string
-              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
-            duration_ms:
-              type: integer
-              minimum: 0
-              description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
-          required:
-            - trace_id
-            - span_id
-            - timestamp
-            - duration_ms
-            - debug_url
-        counts:
-          type: object
-          properties:
-            total_count:
-              type: integer
-            groups:
-              type: object
-              properties:
-                type:
-                  type: object
-                  additionalProperties:
-                    type: integer
-                status:
-                  type: object
-                  additionalProperties:
-                    type: integer
-                operation:
-                  type: object
-                  additionalProperties:
-                    type: integer
-              required:
-                - type
-                - status
-                - operation
-          required:
-            - total_count
-            - groups
       required:
         - success
         - operation
@@ -19219,13 +17325,10 @@ components:
                         type: number
                       webhooks:
                         type: number
-                      enrichment:
-                        type: number
                     required:
                       - accounts
                       - cloud_browser
                       - webhooks
-                      - enrichment
                   config:
                     type: object
                     nullable: true
@@ -19421,13 +17524,10 @@ components:
                   type: number
                 webhooks:
                   type: number
-                enrichment:
-                  type: number
               required:
                 - accounts
                 - cloud_browser
                 - webhooks
-                - enrichment
             config:
               type: object
               nullable: true
@@ -19523,34 +17623,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -19761,34 +17833,6 @@ components:
             - timestamp
             - duration_ms
             - debug_url
-        credits:
-          type: object
-          properties:
-            charged:
-              type: integer
-              minimum: 0
-              description: Credits debited for THIS call (0 on own-account / cache hit).
-            reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
-            executed_on:
-              type: string
-              enum:
-                - own_account
-                - infra_pool
-            balance_after:
-              type: integer
-              nullable: true
-              minimum: 0
-              description: Team balance after the debit; null when the ledger was untouched.
-          required:
-            - charged
-            - reason
-            - executed_on
-            - balance_after
       required:
         - success
         - operation
@@ -20794,13 +18838,10 @@ components:
                   type: number
                 webhooks:
                   type: number
-                enrichment:
-                  type: number
               required:
                 - accounts
                 - cloud_browser
                 - webhooks
-                - enrichment
             config:
               type: object
               nullable: true
