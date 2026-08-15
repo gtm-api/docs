@@ -1040,7 +1040,7 @@ paths:
       operationId: search_linkedin_account_quota_hits
       summary: Search LinkedIn account quota hits
       description: |-
-        List LinkedIn-side block events (weekly connection-request cap, InMail rate-limit, …) for the team: immutable, append-only, one row per (account, reason) per 12h dedup window. Use for: "is this account currently locked" (linkedin_quota_hit_till: { gt: "<now>" }), block-frequency trend, and "at what action volumes do blocks happen" (read the daily_count distribution). include[] linkedin_account / linkedin_account_snapshot correlate the block with account state at hit time. NOT for setting/clearing a lock (that lives on linkedin-account-smart-limits.linkedin_quota_hit_till) or per-target blocks (linkedin-account-block-log). No q. Sort: created_at (default desc) | linkedin_quota_hit_till.
+        List LinkedIn-side block events (weekly connection-request cap, InMail rate-limit, a 429 on any action bucket, …) for the team: immutable, append-only, one row per (account, reason, bucket) per 12h dedup window. Use for: "is this account currently locked" (linkedin_quota_hit_till: { gt: "<now>" }), block-frequency trend, and "at what action volumes do blocks happen" (read the daily_count distribution). include[] linkedin_account / linkedin_account_snapshot correlate the block with account state at hit time. NOT for setting/clearing a lock (that lives on linkedin-account-smart-limits.linkedin_quota_hit_till) or per-target blocks (linkedin-account-block-log). No q. Sort: created_at (default desc) | linkedin_quota_hit_till.
 
         Contract:
         - MCP tool `search_linkedin_account_quota_hits`, registry package `mcp.linkedin/linkedin_account_quota_hits`, mount `linkedin.account-monitor`.
@@ -5328,11 +5328,9 @@ paths:
   /api/linkedin-enrichment/post-details:
     post:
       operationId: enrich_linkedin_post_details
-      summary: Enrich post details (not shipped)
+      summary: Enrich post details
       description: |-
-        ⛔ NOT SHIPPED YET. Contract locked, capability not built; returns not_implemented, do not retry. One post's own data: full text, author, media, engagement counters, per-reaction breakdown. Accepts activity_urn XOR url (a URL is resolved to the URN backend-side). cached 7d. WHO engaged is scraping (get-post-commenters / get-post-reactors / get-post-resharers).
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        One post's own data by its urn: full text, author, media, engagement counters, per-reaction breakdown, is_reshare with the original post embedded. LIVE since 2026-08-14 (node get-post). Accepts post_urn XOR url. result.post is null when the post is deleted or unavailable - a delivered answer, not an error, so do not retry it. Cost 2 credits, cached 7d. WHO engaged is scraping (get-post-commenters / get-post-reactors / get-post-resharers); impressions exist only on the executor's own posts.
 
         Contract:
         - MCP tool `enrich_linkedin_post_details`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5362,14 +5360,12 @@ paths:
       x-gtm-entity: linkedin_enrichment
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-followers/get-my-latest:
     post:
       operationId: get_my_latest_linkedin_followers
@@ -13778,13 +13774,14 @@ components:
       type: object
       description: Request body of `enrich_linkedin_post_details`.
       properties:
-        activity_urn:
+        post_urn:
           type: string
-          description: urn:li:activity:… . Provide activity_urn XOR url.
+          maxLength: 128
+          description: "The post handle, in any family the wire takes: urn:li:activity:<id>, urn:li:share:<id>, urn:li:ugcPost:<id>, urn:li:groupPost:<group>-<post>, or a bare id (digits = activity, digits-digits = groupPost). Provide post_urn XOR url."
         url:
           type: string
           maxLength: 2048
-          description: Any post URL/shortlink; resolved to the URN backend-side. Provide url XOR activity_urn.
+          description: Any post URL. A feed permalink or share link resolves locally for free; a link with no id in it (a shortlink) is resolved by opening the page via get_activity_urn_by_url, adding 1 credit. Provide url XOR post_urn.
         linkedin_account_sid:
           type: string
           nullable: true
@@ -13817,6 +13814,7 @@ components:
           properties:
             post:
               type: object
+              nullable: true
               properties:
                 activity_urn:
                   type: string
@@ -35917,7 +35915,12 @@ components:
                     enum:
                       - connection_request
                       - inmail
-                    description: "LinkedinAccountQuotaHitReasonEnum: connection_request | inmail (future values may be added per research)."
+                      - other
+                    description: LinkedinAccountQuotaHitReasonEnum. The two send-class refusals keep their typed reasons (connection_request locks 1h, inmail 3h). 'other' (2026-08-14) is a LinkedIn 429 on any other action bucket - comment, react, follow, posting and the rest - locking that bucket for 24h; which bucket it was is in limit_type.
+                  limit_type:
+                    type: string
+                    nullable: true
+                    description: The smart-limit bucket this refusal locked (comment_posts, react_posts, send_connection_requests, …). The disambiguator under reason 'other'. Null on rows written before 2026-08-14.
                   daily_count:
                     type: number
                   seven_days_count:
@@ -35943,6 +35946,7 @@ components:
                   - team_sid
                   - linkedin_account_sid
                   - reason
+                  - limit_type
                   - daily_count
                   - seven_days_count
                   - thirty_days_count
