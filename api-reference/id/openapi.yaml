@@ -801,7 +801,7 @@ paths:
       operationId: search_billing_subscriptions
       summary: Search billing subscriptions
       description: |-
-        List the caller's billing subscriptions: the ones they bought (owner = caller, including floating subscriptions applied to no team) plus the one applied to a team they can read. Filter by status, team_sid:{is_null:true} for floating, paddle_subscription_id:{is_null:true} for the trial, or trial_ends_at / current_period_ends_at for expiry windows. include price / product / team / latest_transactions to hydrate context. page_size:0 returns counts only.
+        List the caller's billing subscriptions: the ones they bought (owner = caller, including floating subscriptions applied to no team) plus the one applied to a team they can read. Filter by status, team_sid:{is_null:true} for floating, paddle_subscription_id:{is_null:true} for the internal sentinels (free/partner), or current_period_ends_at for expiry windows. include price / product / team / latest_transactions to hydrate context. page_size:0 returns counts only.
 
         Contract:
         - MCP tool `search_billing_subscriptions`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
@@ -3013,7 +3013,7 @@ paths:
       operationId: create_team
       summary: Create team
       description: |-
-        Create a new workspace. The caller becomes the owner AND the first member; an internal trial subscription (5 account slots, +7d, no card) is applied automatically. Names are not unique: every call creates a new team (no dedup).
+        Create a new workspace. The caller becomes the owner AND the first member; the free "Sandbox" plan (forever free, 1 account slot, no card) is applied automatically where the owner does not already run a free workspace. Names are not unique: every call creates a new team (no dedup).
 
         Contract:
         - MCP tool `create_team`, registry package `mcp.id/teams`, mount `id.identity`.
@@ -3054,7 +3054,7 @@ paths:
       operationId: search_teams
       summary: Search teams
       description: |-
-        List the caller's teams ("my workspaces"): teams they are a member of, plus teams they own. Filter by status to find suspended workspaces, by subscription_sid.is_null for teams with no capacity, or by trial_ends_at for trials expiring soon. q does an infix match on name. include[] hydrates subscription / owner / member counts. Returns a counts block. page_size:0 returns counts only.
+        List the caller's teams ("my workspaces"): teams they are a member of, plus teams they own. Filter by status to find suspended workspaces, or by subscription_sid.is_null for teams with no capacity. q does an infix match on name. include[] hydrates subscription / owner / member counts. Returns a counts block. page_size:0 returns counts only.
 
         Contract:
         - MCP tool `search_teams`, registry package `mcp.id/teams`, mount `id.identity`.
@@ -3153,7 +3153,7 @@ paths:
       operationId: update_team
       summary: Update team
       description: |-
-        Rename a team or edit its config. Only name / config are mutable; owner_user_sid (transfer-ownership), status (derived), subscription_sid (apply/unapply), limits (system) and trial_ends_at are read-only and silently rejected. At least one field required.
+        Rename a team or edit its config. Only name / config are mutable; owner_user_sid (transfer-ownership), status (derived), subscription_sid (apply/unapply) and limits (system) are read-only and silently rejected. At least one field required.
 
         Contract:
         - MCP tool `update_team`, registry package `mcp.id/teams`, mount `id.identity`.
@@ -3617,7 +3617,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -3649,7 +3648,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -3666,9 +3664,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -3751,7 +3746,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -3839,7 +3833,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -3871,7 +3864,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -3888,9 +3880,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -3973,7 +3962,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -4049,7 +4037,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -4081,7 +4068,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -4098,9 +4084,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -4183,7 +4166,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -4273,7 +4255,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -4305,7 +4286,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -4322,9 +4302,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -4407,7 +4384,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -4940,7 +4916,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -4972,7 +4947,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -4989,9 +4963,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -5074,7 +5045,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -5653,9 +5623,6 @@ components:
               enum:
                 - active
                 - suspended
-            trial_ends_at:
-              type: string
-              nullable: true
             limits:
               type: object
               properties:
@@ -5726,7 +5693,6 @@ components:
             - subscription_sid
             - name
             - status
-            - trial_ends_at
             - limits
             - config
             - created_by
@@ -6803,7 +6769,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -6835,7 +6800,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -6852,9 +6816,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -6937,7 +6898,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -7017,7 +6977,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -7049,7 +7008,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -7066,9 +7024,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -7151,7 +7106,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -9283,9 +9237,6 @@ components:
               enum:
                 - active
                 - suspended
-            trial_ends_at:
-              type: string
-              nullable: true
             limits:
               type: object
               properties:
@@ -9356,7 +9307,6 @@ components:
             - subscription_sid
             - name
             - status
-            - trial_ends_at
             - limits
             - config
             - created_by
@@ -10396,7 +10346,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -10428,7 +10377,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -10445,9 +10393,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -10530,7 +10475,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -10620,7 +10564,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -10652,7 +10595,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -10669,9 +10611,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -10754,7 +10693,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -11349,7 +11287,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -11381,7 +11318,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -11398,9 +11334,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -11483,7 +11416,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -11865,7 +11797,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -11897,7 +11828,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -11914,9 +11844,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -11999,7 +11926,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -14129,7 +14055,6 @@ components:
                 eq:
                   type: string
                   enum:
-                    - trialing
                     - active
                     - past_due
                     - paused
@@ -14137,7 +14062,6 @@ components:
                 ne:
                   type: string
                   enum:
-                    - trialing
                     - active
                     - past_due
                     - paused
@@ -14147,7 +14071,6 @@ components:
                   items:
                     type: string
                     enum:
-                      - trialing
                       - active
                       - past_due
                       - paused
@@ -14157,7 +14080,6 @@ components:
                   items:
                     type: string
                     enum:
-                      - trialing
                       - active
                       - past_due
                       - paused
@@ -14204,20 +14126,6 @@ components:
                   type: boolean
               additionalProperties: false
             next_billed_at:
-              type: object
-              properties:
-                gte:
-                  type: string
-                lte:
-                  type: string
-                gt:
-                  type: string
-                lt:
-                  type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-            trial_ends_at:
               type: object
               properties:
                 gte:
@@ -14294,7 +14202,6 @@ components:
                 - created_at
                 - updated_at
                 - current_period_ends_at
-                - trial_ends_at
             direction:
               type: string
               enum:
@@ -14344,7 +14251,6 @@ components:
                   status:
                     type: string
                     enum:
-                      - trialing
                       - active
                       - past_due
                       - paused
@@ -14376,7 +14282,6 @@ components:
                           type: string
                           enum:
                             - active
-                            - trialing
                             - canceled
                       required:
                         - product_sid
@@ -14393,9 +14298,6 @@ components:
                     type: string
                     nullable: true
                   next_billed_at:
-                    type: string
-                    nullable: true
-                  trial_ends_at:
                     type: string
                     nullable: true
                   paused_at:
@@ -14478,7 +14380,6 @@ components:
                   - current_period_starts_at
                   - current_period_ends_at
                   - next_billed_at
-                  - trial_ends_at
                   - paused_at
                   - scheduled_resume_at
                   - scheduled_change
@@ -17207,21 +17108,6 @@ components:
             q:
               type: string
               description: Full-text LIKE (prefix/infix) over team name.
-            trial_ends_at:
-              type: object
-              properties:
-                gte:
-                  type: string
-                lte:
-                  type: string
-                gt:
-                  type: string
-                lt:
-                  type: string
-                is_null:
-                  type: boolean
-              additionalProperties: false
-              description: is_null:false = on trial; range = trials expiring in a window.
             created_at:
               type: object
               properties:
@@ -17313,9 +17199,6 @@ components:
                     enum:
                       - active
                       - suspended
-                  trial_ends_at:
-                    type: string
-                    nullable: true
                   limits:
                     type: object
                     properties:
@@ -17386,7 +17269,6 @@ components:
                   - subscription_sid
                   - name
                   - status
-                  - trial_ends_at
                   - limits
                   - config
                   - created_by
@@ -17512,9 +17394,6 @@ components:
               enum:
                 - active
                 - suspended
-            trial_ends_at:
-              type: string
-              nullable: true
             limits:
               type: object
               properties:
@@ -17585,7 +17464,6 @@ components:
             - subscription_sid
             - name
             - status
-            - trial_ends_at
             - limits
             - config
             - created_by
@@ -17661,7 +17539,6 @@ components:
             status:
               type: string
               enum:
-                - trialing
                 - active
                 - past_due
                 - paused
@@ -17693,7 +17570,6 @@ components:
                     type: string
                     enum:
                       - active
-                      - trialing
                       - canceled
                 required:
                   - product_sid
@@ -17710,9 +17586,6 @@ components:
               type: string
               nullable: true
             next_billed_at:
-              type: string
-              nullable: true
-            trial_ends_at:
               type: string
               nullable: true
             paused_at:
@@ -17795,7 +17668,6 @@ components:
             - current_period_starts_at
             - current_period_ends_at
             - next_billed_at
-            - trial_ends_at
             - paused_at
             - scheduled_resume_at
             - scheduled_change
@@ -18826,9 +18698,6 @@ components:
               enum:
                 - active
                 - suspended
-            trial_ends_at:
-              type: string
-              nullable: true
             limits:
               type: object
               properties:
@@ -18899,7 +18768,6 @@ components:
             - subscription_sid
             - name
             - status
-            - trial_ends_at
             - limits
             - config
             - created_by

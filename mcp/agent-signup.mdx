@@ -1,6 +1,6 @@
 ---
 title: "Agent-native signup and billing"
-description: "How an AI agent registers its operator, connects itself, and handles the moment the trial ends."
+description: "How an AI agent registers its operator, connects itself, and handles the moment the workspace needs a paid plan."
 ---
 
 An agent does not need its operator to have an account before it can start. The signup ladder has four rungs; the higher two are API surfaces built for agents.
@@ -60,7 +60,7 @@ The agent submits the operator's email plus its own OAuth client identity and a 
       }'
     ```
 
-    From here you hold the normal grant credential and installation token: connect to `https://mcp.gtm-api.com/mcp` or call REST directly. The operator lands in a 7-day trial workspace with 5 sender slots.
+    From here you hold the normal grant credential and installation token: connect to `https://mcp.gtm-api.com/mcp` or call REST directly. The operator lands in a Sandbox workspace, the forever free plan: one sender slot, no card, no time limit.
   </Step>
 </Steps>
 
@@ -70,11 +70,11 @@ Rate limits apply per IP on every endpoint above, the emailed link expires in 24
 
 If the operator already has an account, skip this flow: connect through OAuth from any client ([Connect a client](/mcp/connect)) and the consent screen does the rest.
 
-## When the trial ends
+## When Sandbox is not enough
 
-Write verbs start answering `402` with `subscription_required` once the trial lapses. That moment is handleable by the agent, not just reportable:
+Sandbox never expires, but verbs answer `402` with `subscription_required` the moment the workspace needs more than the free plan grants, for example a second connected account or a webhook. That moment is handleable by the agent, not just reportable:
 
-1. Read the state: search `billing-subscriptions` for the workspace and see `status` and `trial_ends_at`.
+1. Read the state: search `billing-subscriptions` for the workspace and see `status`.
 2. Mint a payment link: create a checkout for the plan through the billing tools (or a Paddle portal link for an existing subscription). Both return a URL a human can open.
 3. Hand the URL to your operator with the one-line reason, and retry the blocked action after the `billing-subscriptions.activated` webhook, or on your next run.
 

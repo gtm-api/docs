@@ -123,8 +123,8 @@ The receiving side also cannot:
 Lending an account out does **not** free your slot. Your claim is held for the whole loan, and the
 receiving workspace claims a slot of its own. If they have no free slot, the share still reaches
 `active` with `holder_over_slot: true` and their copy lands in the `subscription_required` hold, so
-they cannot run it until they upgrade. A share never fails because of slots. The trial includes
-**5 account slots**; see [Billing, trial and plans](/kb/billing-trial-and-plans).
+they cannot run it until they upgrade. A share never fails because of slots. Plan slot caps are
+in [Billing and plans](/kb/billing-and-plans).
 </Warning>
 
 A lent-out account is skipped by the downgrade sweep, so it cannot slip into `subscription_required`
@@ -199,5 +199,5 @@ The borrowing side has no webhook, so its arrival signal is the email plus polli
 - Full request and response shapes: [API reference](/api-reference/overview)
 - [Connect a LinkedIn account](/kb/connect-a-linkedin-account)
 - [Antidetect browsers and proxies](/kb/antidetect-browsers-and-proxies)
-- [Billing, trial and plans](/kb/billing-trial-and-plans)
+- [Billing and plans](/kb/billing-and-plans)
 - [Sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend)

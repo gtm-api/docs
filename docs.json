@@ -86,7 +86,7 @@
             "group": "Workspace and billing",
             "pages": [
               "kb/workspaces-and-team-members",
-              "kb/billing-trial-and-plans"
+              "kb/billing-and-plans"
             ]
           },
           {
@@ -240,6 +240,10 @@
     {
       "source": "/kb/credits-and-data-requests",
       "destination": "/kb"
+    },
+    {
+      "source": "/kb/billing-trial-and-plans",
+      "destination": "/kb/billing-and-plans"
     }
   ]
 }

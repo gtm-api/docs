@@ -28,7 +28,7 @@ A workspace id starts with `ts_tm_`, and each of these belongs to exactly one of
 Exactly one person is the **owner** (`owner_user_sid`), the only structural role on the platform.
 Everything else is a permission list, which is why the app shows an **Access** column rather than a
 role column. Two workspace fields are editable: `name` (1 to 255 characters) and `config.timezone`
-(an IANA zone such as `Europe/Berlin`); `status`, `plan`, `limits`, `trial_ends_at` and the owner are
+(an IANA zone such as `Europe/Berlin`); `status`, `plan`, `limits` and the owner are
 derived, and the API drops them silently if you send them.
 
 Membership does not share accounts: being a member of workspace A and B does not let you drive A's
@@ -42,11 +42,12 @@ icon, and the list holds every workspace you own plus every one where you are an
 **Create workspace** sits at the bottom of that dropdown, and confirming the name switches you into
 the new workspace immediately, as its owner.
 
-<Warning>
-A second workspace does not come with a second trial. The 7-day trial is one per user, ever. A
-further workspace is created without capacity and comes up **suspended**: it exists, you own it, and
-calls against it answer `subscription_required` until a plan is applied.
-</Warning>
+<Note>
+Your first workspace starts on [Sandbox, the forever free plan](/kb/billing-and-plans): one
+connected-account slot, no card, no time limit. Sandbox is one workspace per account, so a further
+workspace you create comes up without capacity until you buy a plan for it. Plans are per
+workspace: a paid plan on one workspace grants nothing to another.
+</Note>
 
 Switching reloads the page: an access token names exactly one workspace and carries its home
 cluster, so the app calls `POST /auth/switch-team`, gets a new access and refresh token, blacklists
@@ -153,8 +154,8 @@ call succeeds.
 
 Because the gate runs on acceptance as well as on the invite, a workspace that was paid, invited
 people, and then fell to the free plan keeps its pending invitations **frozen** rather than losing
-them: the invitee gets the 402, and the same link works again once a plan is applied. The trial is
-multi-user, and so are paid and partner plans: see [billing, trial and plans](/kb/billing-trial-and-plans).
+them: the invitee gets the 402, and the same link works again once a plan is applied. Paid and
+partner plans are multi-user: see [billing and plans](/kb/billing-and-plans).
 
 ## Over the API
 
@@ -194,6 +195,6 @@ the full request shape are in the [API reference](/api-reference/overview).
 
 ## Related
 
-- [Billing, trial and plans](/kb/billing-trial-and-plans)
+- [Billing and plans](/kb/billing-and-plans)
 - [Account sharing and handover](/kb/account-sharing-and-handover)
 - [Authentication](/authentication)

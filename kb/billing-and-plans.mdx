@@ -1,12 +1,11 @@
 ---
-title: "Billing, trial and plans"
-description: "The 7-day trial, what the free plan keeps running, how paid accounts are priced, and what happens when a payment fails or a subscription ends."
+title: "Billing and plans"
+description: "Sandbox, the forever free plan you start on, how paid accounts are priced, and what happens when a payment fails or a subscription ends."
 ---
 
-Your first workspace starts on a 7-day trial with 5 connected-account slots and no card.
-When it ends the workspace does not stop: it falls to the free plan and keeps working at
-a lower volume. This page covers what each plan grants, what changes at each boundary,
-and where to see it.
+You start on Sandbox, the forever free plan: one connected LinkedIn account, the
+full product, no card and no time limit. This page covers what each plan grants,
+what changes at each boundary, and where to see it.
 
 ## Where to see your plan
 
@@ -14,47 +13,27 @@ The sidebar card is the workspace's plan and usage at a glance: the plan name an
 account slots are used against the cap.
 
 <Frame caption="The sidebar plan card: plan name and account slots used against the cap.">
-  <img src="/images/kb/sidebar-plan-card.png" alt="Sidebar plan card showing the Trial plan and 7 of 5 accounts used" />
+  <img src="/images/kb/sidebar-plan-card.png" alt="Sidebar plan card showing the plan name and 7 of 5 account slots used" />
 </Frame>
 
 <Note>
 Slots can read over the cap (`7 / 5` above) whenever the cap drops below what is already
-connected: a trial ending, or a paid downgrade. Nothing is deleted. The newest accounts
+connected, for example after a paid downgrade. Nothing is deleted. The newest accounts
 are parked and their browsers powered off until you free a slot or raise the cap.
 </Note>
 
-## The trial
+## Sandbox, the forever free plan
 
-| What you get | Value |
-|---|---|
-| Length | 7 days from workspace creation |
-| Connected accounts | 5 slots |
-| Card required | None |
-| Parallel cloud-browser sessions | 2 |
-| Webhooks | 20 |
-| Action volume | Full speed, no plan clamp on smart limits |
-
-<Warning>
-One trial per user, ever. Deleting a workspace and creating another does not reset it:
-the second workspace is created without capacity, so connect your accounts to the
-workspace you intend to keep.
-</Warning>
-
-## When the trial ends
-
-The workspace is not suspended. An hourly sweep retires the trial and applies the free
-plan, so everything stays reachable at free-plan volume: the account cap reconciles from
-5 to 1, and the accounts beyond the cap are parked newest-first with their browsers
-powered off. Reconnect or upgrade and they come back.
-
-## The free plan
-
-The full product on one account: the UI, the REST API, the MCP server and every LinkedIn
-action verb stay available, and the plan caps volume and frequency instead of features.
+Signing up lands you here, with no card and no time limit. Sandbox is one workspace
+per account: a further workspace you create comes up without capacity until you buy a
+plan for it. It is the full product on one connected account: the UI, the REST API,
+the MCP server and every LinkedIn action verb stay available, and the plan caps
+volume and frequency instead of features.
 
 | Grant | Value |
 |---|---|
 | Connected accounts | 1 |
+| Card required | None |
 | Parallel cloud-browser sessions | 1 |
 | Webhooks | 0 |
 | Expiry | None; the plan does not end |
@@ -63,7 +42,7 @@ Three things are genuinely off rather than slowed: **webhooks** (creating one an
 `webhook_limit_reached`), **team members** (the workspace is single-user), and the **AI
 copilot**.
 
-Daily action caps on the free plan, per connected account:
+Daily action caps on Sandbox, per connected account:
 
 | Action | Per day |
 |---|---|
@@ -81,7 +60,7 @@ Daily action caps on the free plan, per connected account:
 | Networking, general | 6 |
 | Messaging, general | 15 |
 
-Two more free-plan behaviors worth planning around:
+Two more Sandbox behaviors worth planning around:
 
 - **Sync cadence is relaxed.** Each sync surface refreshes at most once every 24 hours,
   and realtime message push is off. Initial backfills after connecting are exempt.
@@ -89,7 +68,7 @@ Two more free-plan behaviors worth planning around:
   browser profile is deleted. Reconnecting means logging into LinkedIn again, because
   the session cookies are gone.
 
-Account health keeps syncing on the free plan regardless, so smart limits and warmup
+Account health keeps syncing on Sandbox regardless, so smart limits and warmup
 stay accurate.
 
 ## Paid plans
@@ -113,7 +92,7 @@ Two allowances do not scale with the account count: **100 webhooks** and the ses
 column above, which is a total for the workspace rather than a per-account number.
 
 - **Annual billing** is pay for 12 months, get 15 months of service.
-- **Max Safety** is an optional add-on at **+$15 per selected account per month**, for
+- **5G Proxy** is an optional add-on at **+$15 per selected account per month**, for
   accounts that need a dedicated premium 5G mobile route: commands execute faster,
   with fewer retries and fewer drops.
 
@@ -123,15 +102,13 @@ The current published pricing is on the [pricing page](https://gtm-api.com/prici
 
 | Status | What it means |
 |---|---|
-| `trialing` | The 7-day trial is running |
-| `active` | Paid and current, or the free plan |
+| `active` | Paid and current, or the free Sandbox plan |
 | `past_due` | A payment failed; a grace window is running |
 | `paused` | Billing stopped by request; the workspace is gated, data is kept |
 | `canceled` | Ended. Terminal: a new subscription is a new purchase |
 
-The workspace itself is either active or suspended, derived from the above: `trialing`
-and `active` are active, `paused` is suspended, and `past_due` stays active until the
-grace window closes.
+The workspace itself is either active or suspended, derived from the above: `active` is
+active, `paused` is suspended, and `past_due` stays active until the grace window closes.
 
 ### When a payment fails
 
@@ -149,8 +126,10 @@ billed by sales invoice have no card portal; talk to us instead.
 ### When a subscription ends
 
 Cancelling takes effect at the end of the paid period, with no immediate charge and no
-refund for the remainder. The workspace then falls back to the free plan, exactly like a
-trial ending.
+refund for the remainder. The workspace then falls back to Sandbox and keeps working at
+free-plan volume: the account cap reconciles to 1, and the accounts beyond the cap are
+parked newest-first with their browsers powered off. Reconnect or upgrade and they come
+back.
 
 <Warning>
 If a workspace ends up with no coverage at all, its data is retained for **8 weeks** and
@@ -207,8 +186,8 @@ rather than sending it twice.
 
 Pause, resume, cancel, and add-ons (`add-addon`, `remove-addon`) are the remaining verbs
 on the same subscription. Add-ons charge prorated immediately; removing one takes effect
-at the next period. None of these apply to trial or free-plan workspaces, which have no
-payment provider subscription behind them.
+at the next period. None of these apply to Sandbox workspaces, which have no payment
+provider subscription behind them.
 
 ## Related
 
