@@ -1,198 +1,147 @@
 ---
 title: "Changelog"
-description: "What changed in the GTM API platform and this documentation."
+description: "What's new in the GTM API platform and this documentation."
 ---
 
-<Update label="2026-08-16" description="The 5G Proxy add-on reaches the API">
-  **256 operations**: LinkedIn 159, ID and Teams 73, Orchestration 22, Support 2. Orchestration
-  reads 22 rather than 21 because the old figure undercounted the mass-action group by one; no
-  endpoint was added.
+<Update label="2026-08-16" description="5G Proxy reaches the antidetect-browser surface">
+  **256 operations**: LinkedIn 159, ID and Teams 73, Orchestration 22, Support 2.
 
-  **New: `proxy_5g` on the antidetect-browser surface.** The 5G Proxy add-on was sellable but had no
-  representation in the API, so a workspace paying for it could not tell which browsers were on it.
-  It is now on every surface of the resource: the browser row carries `proxy_5g`, both
-  `POST /api/antidetect-browsers` and `POST /api/antidetect-browsers/update-proxy` accept it, and
-  `POST /api/antidetect-browsers/search` filters on it (`proxy_5g: {eq: true}` is how slot usage is
-  counted). Arming a browser with no add-on headroom left is refused
-  `402 insufficient_proxy_5g_slots`.
-
-  **Changed: `update-proxy` accepts a body carrying `proxy_5g` alone.** Every other call to that
-  endpoint still needs exactly one proxy source. Moving only the add-on binding leaves the IP where
-  it is, so `422 proxy_assignment_missing` does not apply to that one shape.
-
-  **Changed: per-call prices left the endpoint descriptions.** Reference text only, no behaviour
-  change. `POST /api/linkedin-enrichment/post-details` no longer quotes a price for the call or for
-  resolving a shortlink, and `DELETE /api/teams/{sid}` no longer lists credit lots among the rows it
-  cascades. Metering left the public surface on 2026-08-14 and the platform two days later; plan
-  limits and per-account daily budgets are the whole capacity model.
+  **`proxy_5g` on antidetect browsers.** The 5G Proxy add-on is now on every surface of the
+  resource: the browser row carries `proxy_5g`, both `POST /api/antidetect-browsers` and
+  `POST /api/antidetect-browsers/update-proxy` accept it, and `POST /api/antidetect-browsers/search`
+  filters on it (`proxy_5g: {eq: true}` is how slot usage is counted). Arming a browser with no
+  add-on headroom left is refused `402 insufficient_proxy_5g_slots`.
 </Update>
 
 <Update label="2026-08-14" description="Scraping and enrichment pick an executor for you">
-  **Changed: omitting `linkedin_account_sid` now auto-picks one of your connected accounts.**
-  Every scraping and enrichment method runs on your own connected accounts. Pin
-  `linkedin_account_sid` and the call runs on that account only, exactly as before, refusing
-  `429 bucket_saturated` when its daily budget is spent. Omit it and the service now picks a
-  connected account with remaining budget for you, skipping accounts on hold or out of
-  capacity; Sales Navigator methods narrow the pick to accounts holding a live seat. A call
-  with no ready account answers `422` with a message starting `no_connected_accounts:` (or
-  `sales_nav_required:` for the Sales Navigator methods), and a team whose accounts are all
-  at capacity gets `429` with `retry_after`. The old `422 executor_required` refusal for an
-  executor-less call is gone.
-
-  **Changed: `enrichment` left the team limits object.** Same treatment `signals` received on
-  2026-08-09: the key no longer exists platform-wide, so it is gone from the `limits` map on
-  the team reads rather than reported as zero. `credit_policy` left the billing-product rows
-  and the `credits_pack` product type left the catalog vocabulary with it.
-
-  **Removed: the `credit-transactions` endpoint group.** Balances and per-call metering left
-  the public surface together with the fields that carried them (`use_credits` on the
-  scraping/enrichment methods, the `credits` response block, the mass-action
-  `credits_estimate` / `credits_spent` numbers). Plan limits and per-account daily budgets
-  are the platform's only public capacity model.
+  **Automatic executor selection.** Every scraping and enrichment method runs on your own connected
+  accounts. Pin `linkedin_account_sid` and the call runs on that account only, refusing
+  `429 bucket_saturated` when its daily budget is spent. Leave it out and the service picks a
+  connected account with remaining budget for you, skipping accounts on hold or out of capacity;
+  Sales Navigator methods narrow the pick to accounts holding a live seat. A call with no ready
+  account answers `422` with a message starting `no_connected_accounts:` (or `sales_nav_required:`),
+  and a team whose accounts are all at capacity gets `429` with `retry_after`.
 </Update>
 
 <Update label="2026-08-12" description="The three own-dashboard reads">
   **259 operations**: LinkedIn 159, ID and Teams 77, Orchestration 21, Support 2.
 
-  **New: the three feeds off your own LinkedIn dashboard.** All three are one-shot reads on an
-  account you connected, cursor-paginated, and none of them writes anything.
+  **Three feeds off your own LinkedIn dashboard.** All three are one-shot, cursor-paginated reads on
+  an account you connected, and none of them writes anything.
 
-  `POST /api/linkedin-accounts/{sid}/get-my-profile-views` returns who viewed the account's profile
-  over the last 90 days, newest first. The window and the sort are LinkedIn's and there is no
-  filter, so "who viewed me today" means reading the top of the feed. Rows carry rendered text
-  ("Viewed 1w ago"), never a parseable date, and an anonymized viewer arrives with `is_anonymous`
-  true, no member ids and a people-search url where the profile would be, so branch on that flag
-  before you key a row.
-
-  `POST /api/linkedin-accounts/{sid}/get-my-catch-up` returns the nurture cards on My Network:
-  birthdays, job changes and work anniversaries among the account's connections, each with the
-  one-click message LinkedIn printed on the button. It lists prompts and sends nothing. There is no
-  `page_size` here on purpose, because LinkedIn's own request carries no count knob and the page is
-  server-fixed at 10. Key a card by `card_urn`, which identifies the prompt rather than the person.
-
-  `POST /api/linkedin-accounts/{sid}/get-my-sales-nav-notifications` returns the Sales Navigator
-  alert bell. It needs a Sales Navigator seat on the account and refuses up front without one. The
-  feed is ordered by LinkedIn's relevance score rather than reverse-chronologically, so sort by
-  `published_at` yourself. Alerts arriving without an id are dropped, which means a page can be
-  shorter than `page_size` while the feed continues: do not read a short page as the end here.
-
-  **Changed: `signals` left the team limits object.** The limit no longer exists on the platform, so
-  it is gone from the `limits` map on the team reads rather than reported as zero. Nothing else in
-  that object moved.
+  - `POST /api/linkedin-accounts/{sid}/get-my-profile-views` returns who viewed the profile over the
+    last 90 days, newest first. The window and the sort are LinkedIn's and there is no filter. Rows
+    carry rendered text ("Viewed 1w ago"), never a parseable date, and an anonymized viewer arrives
+    with `is_anonymous` true, no member ids and a people-search url where the profile would be, so
+    branch on that flag before you key a row.
+  - `POST /api/linkedin-accounts/{sid}/get-my-catch-up` returns the nurture cards on My Network
+    (birthdays, job changes and work anniversaries among the account's connections), each with the
+    one-click message LinkedIn printed on the button. It lists prompts and sends nothing. There is
+    no `page_size` here: LinkedIn's own request carries no count knob and the page is server-fixed
+    at 10. Key a card by `card_urn`, which identifies the prompt rather than the person.
+  - `POST /api/linkedin-accounts/{sid}/get-my-sales-nav-notifications` returns the Sales Navigator
+    alert bell, and needs a Sales Navigator seat on the account. The feed is ordered by LinkedIn's
+    relevance score rather than reverse-chronologically, so sort by `published_at` yourself. Alerts
+    arriving without an id are dropped, which means a page can be shorter than `page_size` while the
+    feed continues: do not read a short page as the end here.
 </Update>
 
-<Update label="2026-08-09" description="Account capability checks folded into one call">
+<Update label="2026-08-09" description="LinkedIn product and school search">
   **260 operations**: LinkedIn 160, ID and Teams 77, Orchestration 21, Support 2.
 
-  **Changed: the granular subscription checks are now a parameter, not two endpoints.**
-  `POST /api/linkedin-accounts/{sid}/check-premium` accepts an optional `checks` array naming which
-  steps to run: `premium`, `sales_nav`, `recruiter`, `inmail_credits`. Leave it out and the call
-  behaves exactly as before, running all four, so nothing you have written needs changing.
-
-  `POST /api/linkedin-accounts/{sid}/check-recruiter` and `.../check-sales-nav` are **removed**.
-  They were those same steps behind their own paths. Send `checks: ["recruiter"]` or
-  `checks: ["sales_nav"]` instead.
-
-  One behaviour changed on purpose: a narrow check now writes what it read back to the account
-  record, where the old granular endpoints returned it and stored nothing. A probe that fails still
-  leaves the previous value alone, so a failed check never reads as a lost seat.
-</Update>
-
-<Update label="2026-08-09" description="LinkedIn school search">
-  **262 operations**: LinkedIn 162, ID and Teams 77, Orchestration 21, Support 2.
-
-  **New: LinkedIn schools search.** `POST /api/linkedin-scraping/search-schools` searches LinkedIn
-  school pages and returns school rows (slug, url, name, location line, a students-and-alumni
-  counter and a blurb). Send `filters` with a `keywords` string, or send a
-  `https://www.linkedin.com/search/results/schools/` url the search screen produced. Exactly one of
+  **LinkedIn products search.** `POST /api/linkedin-scraping/search-products` searches LinkedIn's
+  product catalogue and returns product rows (slug, url, name, category line, vendor name, tagline,
+  top features, a connections counter and artwork). Send `filters` with a required `keywords` plus
+  any of `free_version`, `product_category` and `product_company`, or send a
+  `https://www.linkedin.com/search/results/products/` url the search screen produced. Exactly one of
   the two.
-
-  `keywords` is the whole filter vocabulary here, the same shape the events search has, so every
-  other facet the schools screen offers is reachable only through the url form. There is no
-  school-id filter: the ids `param-id-lookup` returns for `type=school` do not fit this endpoint,
-  and sending one is refused rather than quietly ignored.
-
-  Two things to know about the rows. The identity field is `school_slug`, a slug rather than an id,
-  and it can arrive URL encoded, so pass it through as you got it. And `students_alumni_count` is a
-  rounded figure parsed from the text LinkedIn printed, counting students and alumni, not employees.
-
-  With this endpoint the LinkedIn search surface is complete: people, companies, both Sales
-  Navigator searches, service providers, posts, jobs, events, groups, courses, products and schools.
-</Update>
-
-<Update label="2026-08-09" description="LinkedIn product search">
-  **261 operations**: LinkedIn 161, ID and Teams 77, Orchestration 21, Support 2.
-
-  **New: LinkedIn products search.** `POST /api/linkedin-scraping/search-products` searches
-  LinkedIn's product catalogue and returns product rows (slug, url, name, category line, vendor
-  name, tagline, top features, a connections counter and artwork). Send `filters` with a required
-  `keywords` plus any of `free_version`, `product_category` and `product_company`, or send a
-  `https://www.linkedin.com/search/results/products/` url the search screen produced. Exactly one
-  of the two.
 
   The two id filters take digit strings from two different places: `product_category` ids come from
   `POST /api/linkedin-scraping/param-id-lookup` with `type=product_category`, while
   `product_company` takes ordinary LinkedIn organization ids. Nothing checks one against the other,
-  so a category id used as a company id returns an empty page rather than an error. `free_version`
-  is a one way switch: true narrows to products with a free tier, false is the same as leaving it
-  out.
+  so a category id used as a company id returns an empty page rather than an error. The identity
+  field on a row is `product_slug`, a slug rather than an id, and it cannot be fed back into either
+  filter.
 
-  One thing to know about the rows: the identity field is `product_slug`, and it is a slug, not an
-  id. It cannot be fed back into either filter.
+  **LinkedIn schools search.** `POST /api/linkedin-scraping/search-schools` searches LinkedIn school
+  pages and returns school rows (slug, url, name, location line, a students-and-alumni counter and a
+  blurb). `keywords` is the whole filter vocabulary here, so every other facet the schools screen
+  offers is reachable only by pasting a `https://www.linkedin.com/search/results/schools/` url into
+  the same endpoint. There is no school-id filter: the ids `param-id-lookup` returns for
+  `type=school` do not fit this endpoint, and sending one is refused rather than quietly ignored.
+
+  The identity field is `school_slug`, a slug rather than an id, and it can arrive URL encoded, so
+  pass it through as you got it. `students_alumni_count` is a rounded figure parsed from the text
+  LinkedIn printed, counting students and alumni, not employees.
+
+  With these two the LinkedIn search surface is complete: people, companies, both Sales Navigator
+  searches, service providers, posts, jobs, events, groups, courses, products and schools.
 </Update>
 
-<Update label="August 8, 2026" description="The scraping search pairs collapse into one endpoint each, and groups arrive">
-  **259 operations**: LinkedIn 159, ID and Teams 77, Orchestration 21, Support 2. The LinkedIn count
-  rose while the endpoint count fell, because the searches were merged rather than multiplied.
+<Update label="2026-08-08" description="LinkedIn course and group search">
+  **259 operations**: LinkedIn 159, ID and Teams 77, Orchestration 21, Support 2.
 
-  **One endpoint per search, url or filters.** Every LinkedIn scraping search used to ship as two
-  routes, a by-params form and a by-url twin. They are now ONE route that accepts `filters` or a
-  pasted LinkedIn search `url`, exactly one of the two, on the same rule the mass-action surface
-  already uses for `sid` versus `filter`. Sending both, or neither, is a 422.
-
-  Renamed: `POST /api/linkedin-scraping/search-people`, `search-companies`,
-  `search-sales-nav-people`, `search-sales-nav-companies`. Their `-by-url` and `-by-params` forms
-  are gone. `search-service-providers`, `search-posts`, `search-jobs` and `search-events` keep their
-  paths and simply gained the `url` member; their `-by-url` twins are gone too.
-
-  **New: LinkedIn courses search.** `POST /api/linkedin-scraping/search-courses` searches LinkedIn
+  **LinkedIn courses search.** `POST /api/linkedin-scraping/search-courses` searches LinkedIn
   Learning and returns course rows (slug, url, title, author, duration, release and viewer text,
   thumbnail). Two filters beyond `keywords`: `difficulty` (`beginner` / `intermediate` /
   `advanced`) and `time_to_complete` (`under_10_mins` through `3_plus_hours`). Send those readable
   values, not LinkedIn's own labels: the translation happens server-side. The software and subject
   facets are not in the filter vocabulary and are reachable by pasting a
-  `https://www.linkedin.com/search/results/learning/` URL into the same endpoint.
+  `https://www.linkedin.com/search/results/learning/` url into the same endpoint.
 
-  **New: LinkedIn groups search.** `POST /api/linkedin-scraping/search-groups` returns group rows
-  (id, url, name, privacy, member count, description, logo). Its filter vocabulary is `keywords`
-  and nothing else, which is LinkedIn's whole surface for that vertical rather than a subset we
-  chose; every other groups facet is reachable by pasting the UI search URL into the same endpoint.
+  **LinkedIn groups search.** `POST /api/linkedin-scraping/search-groups` returns group rows (id,
+  url, name, privacy, member count, description, logo). Its filter vocabulary is `keywords` and
+  nothing else, which is LinkedIn's whole surface for that vertical rather than a subset we chose;
+  every other groups facet is reachable by pasting the UI search url into the same endpoint.
 </Update>
 
-<Update label="July 29, 2026" description="Five new LinkedIn endpoints, seven more come out of stub">
+<Update label="2026-07-29" description="Five new LinkedIn endpoints, seven more come out of stub">
   **253 operations**, up from 248: LinkedIn 155, ID and Teams 77, Orchestration 21.
 
-  **Company reads that stay cheap.** `POST /api/linkedin-enrichment/company-lite-profile` returns id, vanity, name and logo, cached 7 days. `POST /api/linkedin-enrichment/company-public-identifier` resolves a numeric company id to its vanity slug, cached 30 days. The pattern the two are built for: resolve the id once, then address every later company read by vanity. A `/company/{slug}/` URL is one request on LinkedIn's side, while a Sales Navigator `/sales/company/{id}` URL costs two, because the vanity has to be resolved first (measured at 433 ms against 2479 ms).
+  **Company reads that stay cheap.** `POST /api/linkedin-enrichment/company-lite-profile` returns
+  id, vanity, name and logo, cached 7 days. `POST /api/linkedin-enrichment/company-public-identifier`
+  resolves a numeric company id to its vanity slug, cached 30 days. The pattern the two are built
+  for: resolve the id once, then address every later company read by vanity. A `/company/{slug}/`
+  url is one request on LinkedIn's side, while a Sales Navigator `/sales/company/{id}` url costs
+  two, because the vanity has to be resolved first (measured at 433 ms against 2479 ms).
 
-  **A middle person read.** `POST /api/linkedin-enrichment/person-basic-profile` sits between the lite identity stub and the full dossier: first and last name as separate fields, headline, country and display location, profile imagery, and the premium, influencer, creator and verified flags. One request, cached 24 hours. Addressed by `public_identifier` only, so resolve the slug first if all you hold is a URN.
+  **A middle person read.** `POST /api/linkedin-enrichment/person-basic-profile` sits between the
+  lite identity stub and the full dossier: first and last name as separate fields, headline, country
+  and display location, profile imagery, and the premium, influencer, creator and verified flags.
+  One request, cached 24 hours. Addressed by `public_identifier` only, so resolve the slug first if
+  all you hold is a URN.
 
-  **Services search by pasted URL.** `POST /api/linkedin-scraping/search-service-providers-by-url` runs one page of a `/search/results/services/` URL, for the marketplace facets the by-filters tool does not carry. Same row shape as by-filters. A URL from any other search screen is refused rather than silently scraping something else.
+  **Services search by pasted url.** The service-providers search gained a url form, so the
+  marketplace facets the filter vocabulary does not carry are reachable by pasting a
+  `/search/results/services/` url. A url from any other search screen is refused rather than
+  silently scraping something else.
 
-  **Editable account display fields.** `PATCH /api/linkedin-accounts/{sid}` sets `display_name` and `label`. They are team-authored, never synced from LinkedIn, and an explicit null clears one. Sync cadence keeps its own endpoint.
+  **Editable account display fields.** `PATCH /api/linkedin-accounts/{sid}` sets `display_name` and
+  `label`. They are team-authored, never synced from LinkedIn, and an explicit null clears one.
 
-  **Seven endpoints answer for real now**, no longer `stub_501`: my analytics, my SSI, edit my profile, person certifications, person comment activity, person recommendations, and service-provider search by filters. Stubs are down from 15 to 8.
+  **Seven more endpoints answer for real**, no longer placeholders: my analytics, my SSI, edit my
+  profile, person certifications, person comment activity, person recommendations, and
+  service-provider search by filters.
 
-  **Mass actions take nine more step verbs.** The browser lifecycle (run, stop, create, delete, and minting or revoking a cloud-browser access key) plus sync-config and smart-limit edits can now be plan steps.
+  **Mass actions take nine more step verbs.** The browser lifecycle (run, stop, create, delete, and
+  minting or revoking a cloud-browser access key) plus sync-config and smart-limit edits can now be
+  plan steps.
 </Update>
 
-<Update label="July 28, 2026" description="Initial public release of the reference">
-  **The public API contract is published.** 248 operations across three services: LinkedIn (150), ID and Teams (77), Orchestration (21). The reference is generated from the MCP tool registry, one endpoint per tool, and regenerates with it.
+<Update label="2026-07-28" description="Initial public release of the reference">
+  **The public API contract is published.** 248 operations across three services: LinkedIn (150), ID
+  and Teams (77), Orchestration (21). The reference is generated from the MCP tool registry, one
+  endpoint per tool, and regenerates with it.
 
-  **The MCP server is live** at `mcp.gtm-api.com/mcp`, exposing the same contract as 160+ typed tools across 10 toolsets. Connect guides for Claude, Cursor and Docker-based clients are in the [MCP tab](/mcp/overview).
+  **The MCP server is live** at `mcp.gtm-api.com/mcp`, exposing the same contract as 160+ typed
+  tools across 10 toolsets. Connect guides for Claude, Cursor and Docker-based clients are in the
+  [MCP tab](/mcp/overview).
 
-  **Webhooks are platform-wide.** Subscriptions, signed deliveries (`X-Webhook-Signature`, HMAC-SHA256 with a timestamp), a queryable delivery log, and a test endpoint live on the Orchestration service.
+  **Webhooks are platform-wide.** Subscriptions, signed deliveries (`X-Webhook-Signature`,
+  HMAC-SHA256 with a timestamp), a queryable delivery log, and a test endpoint live on the
+  Orchestration service.
 
-  **Mass actions ship with a two-phase consent flow.** Preview validates the whole plan and mints a 15-minute commit token; commit consumes it. Canary mode, randomized pacing and per-item retry are part of the same surface.
-
-  15 LinkedIn operations are published as `stub_501`: their request contracts are final and validated, the capability behind them is still rolling out. They are marked deprecated in the reference until live.
+  **Mass actions ship with a two-phase consent flow.** Preview validates the whole plan and mints a
+  15-minute commit token; commit consumes it. Canary mode, randomized pacing and per-item retry are
+  part of the same surface.
 </Update>
