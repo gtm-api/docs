@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 159 operations. Internal (`/internal`) and health endpoints are deliberately absent; the code-faithful spec that documents those lives in `product/openapi/gtm.openapi.tech`.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 159 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -546,7 +546,7 @@ paths:
       operationId: update_antidetect_browser_proxy
       summary: Change antidetect browser proxy
       description: |-
-        Change the proxy of an existing antidetect browser, country included. Supply EXACTLY ONE source: antidetect_browser_proxy_sid pins a pooled proxy, proxy_country_code takes the least-loaded active one there, custom_proxy_config moves the browser to a customer-supplied upstream. Pooled arms need browser_owner=platform (422 managed_proxy_forbidden_for_owner); custom_proxy_config is the reverse, forbidden on platform (422 custom_proxy_forbidden_for_owner). Zero sources 422 proxy_assignment_missing, more than one 422 proxy_assignment_conflict, empty pool 422 proxy_pool_empty. The vendor profile is updated before the row is re-bound, so a vendor failure (503 vendor_proxy_update_failed) changes nothing. DANGEROUS twice over: the country may change, and a location flip mid-campaign can trip a LinkedIn risk check; and a running browser is stopped and started again, since a live session keeps the old proxy until it respawns. Read result.restarted. To rotate the IP in place, use replace_antidetect_browser_proxy.
+        Change the proxy of an existing antidetect browser, country included. Supply EXACTLY ONE source: antidetect_browser_proxy_sid, proxy_country_code or custom_proxy_config. Pooled arms need browser_owner=platform (422 managed_proxy_forbidden_for_owner); custom_proxy_config is the reverse, forbidden on platform (422 custom_proxy_forbidden_for_owner). Zero sources 422 proxy_assignment_missing, more than one 422 proxy_assignment_conflict, empty pool 422 proxy_pool_empty. One exception: a body carrying proxy_5g alone is valid, since moving the 5G Proxy add-on binding leaves the IP untouched. The vendor profile is updated before the row is re-bound, so a vendor failure (503 vendor_proxy_update_failed) changes nothing. DANGEROUS twice over: the country may change, and a location flip mid-campaign can trip a LinkedIn risk check; and a running browser is restarted, since a live session keeps the old proxy until it respawns. Read result.restarted. To rotate the IP in place, use replace_antidetect_browser_proxy.
 
         Contract:
         - MCP tool `update_antidetect_browser_proxy`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -5330,7 +5330,7 @@ paths:
       operationId: enrich_linkedin_post_details
       summary: Enrich post details
       description: |-
-        One post's own data by its urn: full text, author, media, engagement counters, per-reaction breakdown, is_reshare with the original post embedded. LIVE since 2026-08-14 (node get-post). Accepts post_urn XOR url. result.post is null when the post is deleted or unavailable - a delivered answer, not an error, so do not retry it. Cost 2 credits, cached 7d. WHO engaged is scraping (get-post-commenters / get-post-reactors / get-post-resharers); impressions exist only on the executor's own posts.
+        One post's own data by its urn: full text, author, media, engagement counters, per-reaction breakdown, is_reshare with the original post embedded. LIVE since 2026-08-14 (node get-post). Accepts post_urn XOR url. result.post is null when the post is deleted or unavailable - a delivered answer, not an error, so do not retry it. Cached 7d. WHO engaged is scraping (get-post-comments / get-post-reactors / get-post-resharers); impressions exist only on the executor's own posts.
 
         Contract:
         - MCP tool `enrich_linkedin_post_details`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -6079,7 +6079,7 @@ paths:
       operationId: create_linkedin_comment
       summary: Create LinkedIn comment
       description: |-
-        Leave ONE outbound comment on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-comment): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. Outward and fire-on-success: the post does NOT need to be tracked or owned by us, and nothing is persisted on this service. Identity-bound: linkedin_account_sid REQUIRED, spends the comment_posts bucket (30/day at a 360 s floor), saturation returns 429. Reply to an existing comment by passing parent_comment_urn. The comment text comes in text; templates and AI generation are outside this API. Returns the created comment ref plus the activity-log row. To react instead use react_linkedin_post; to read a post's existing comments or commenters use the linkedin-scraping get-post-comments / get-post-commenters tools; to resolve a post URL to its activity URN use get_activity_urn_by_url.
+        Leave ONE outbound comment on any LinkedIn post, addressed by its post-thread URN in entity_urn (wire create-comment): member posts by urn:li:activity:<id>, company-page posts and newsletter issues by urn:li:ugcPost:<id>. Outward and fire-on-success: the post does NOT need to be tracked or owned by us, and nothing is persisted on this service. Identity-bound: linkedin_account_sid REQUIRED, spends the comment_posts bucket (30/day at a 360 s floor), saturation returns 429. Reply to an existing comment by passing parent_comment_urn. The comment text comes in text; templates and AI generation are outside this API. Returns the created comment ref plus the activity-log row. To react instead use react_linkedin_post; to read a post's existing comments and who wrote them use the linkedin-scraping get-post-comments tool (one read, both halves); to resolve a post URL to its activity URN use get_activity_urn_by_url.
 
         Contract:
         - MCP tool `create_linkedin_comment`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -6279,15 +6279,15 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-  /api/linkedin-scraping/get-post-commenters:
+  /api/linkedin-scraping/get-post-comments:
     post:
-      operationId: scrape_linkedin_get_post_commenters
-      summary: Scrape post commenters
+      operationId: scrape_linkedin_get_post_comments
+      summary: Scrape post comments
       description: |-
-        Direct LinkedIn read (bypasses our DB): live pull of who is commenting on ONE post right now. Returns transient commenter objects (member id, nickname, name, headline, comment text, posted_at, reactions_count) annotated with is_own and is_stored / linkedin_comment_sid. Target any post by URL or activity URN in post; tracking is not a thing here any more (the tracked-post entity was retired 2026-08-09). One wire page per call; page on with cursor.
+        Direct LinkedIn read (bypasses our DB): one page of the COMMENTS on ONE post, live. This is the only comments read there is - a row carries the comment AND the person who wrote it (content, posted_at, comment_permalink, reactions_count, replies_count, is_pinned, is_edited + member id, nickname, name, headline), annotated with is_own, so reading "what was written" and "who commented" is a single call and never two. Target any post by URL, activity URN, or the backend urn a company-page post / newsletter issue / group thread carries (share, ugcPost, groupPost) in post. Top-level comments only: replies are not on this wire at all, replies_count is a count. Order with sort_order; one wire page per call, page on with cursor.
 
         Contract:
-        - MCP tool `scrape_linkedin_get_post_commenters`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
+        - MCP tool `scrape_linkedin_get_post_comments`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
         - Flags: none.
       tags:
@@ -6297,19 +6297,19 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/ScrapeLinkedinGetPostCommentersRequest"
+              $ref: "#/components/schemas/ScrapeLinkedinGetPostCommentsRequest"
       responses:
         "200":
           description: "`action` success envelope."
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ScrapeLinkedinGetPostCommentersResponse"
+                $ref: "#/components/schemas/ScrapeLinkedinGetPostCommentsResponse"
         4XX:
           $ref: "#/components/responses/McpClientError"
         5XX:
           $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: scrape_linkedin_get_post_commenters
+      x-gtm-mcp-tool: scrape_linkedin_get_post_comments
       x-gtm-mcp-mount: linkedin.scraping
       x-gtm-entity: linkedin_scraping
       x-gtm-operation: action
@@ -6366,7 +6366,7 @@ paths:
       operationId: scrape_linkedin_get_post_resharers
       summary: Scrape post resharers
       description: |-
-        Direct LinkedIn read (bypasses our DB): live pull of the profiles that RESHARED one post, the third and typically highest-intent leg of the engagement trio. Same targeting (post URL or activity URN); is_own annotated, no is_stored (reshares have no persisted entity). When exposed, resharer_commentary carries the added text and reshare_urn is the reshare’s own activity URN (feed it back into get-post-commenters / -reactors). One wire page per call; page on with cursor.
+        Direct LinkedIn read (bypasses our DB): live pull of the profiles that RESHARED one post, the third and typically highest-intent leg of the engagement trio. Same targeting (post URL or activity URN); is_own annotated, no is_stored (reshares have no persisted entity). When exposed, resharer_commentary carries the added text and reshare_urn is the reshare’s own activity URN (feed it back into get-post-comments / -reactors). One wire page per call; page on with cursor.
 
         Contract:
         - MCP tool `scrape_linkedin_get_post_resharers`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -8817,6 +8817,9 @@ components:
             - ip
             - port
           description: Custom proxy connection tuple (customer BYO path).
+        proxy_5g:
+          type: boolean
+          description: "Provision the browser on the 5G Proxy add-on: the dedicated 5G mobile route, sold for speed (faster command execution, fewer retries). Each flagged browser takes one add-on slot; with no headroom left the create is refused 402 insufficient_proxy_5g_slots."
     CreateAntidetectBrowserResponse:
       type: object
       properties:
@@ -8915,6 +8918,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -9033,6 +9039,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -9102,7 +9109,7 @@ components:
             - similar-profiles
             - company-employees
             - company-decision-makers
-            - get-post-commenters
+            - get-post-comments
             - get-post-reactors
             - get-post-resharers
             - search-service-providers
@@ -9165,7 +9172,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers
@@ -10880,7 +10887,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - company
             - data_request
@@ -11121,7 +11128,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - posts
             - data_request
@@ -11258,7 +11265,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - company
             - data_request
@@ -11343,7 +11350,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - public_identifier
             - data_request
@@ -11426,7 +11433,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - activity_urn
             - data_request
@@ -11580,7 +11587,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - profile
             - data_request
@@ -11691,7 +11698,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - certifications
             - data_request
@@ -11851,7 +11858,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - comments
             - paging
@@ -11979,7 +11986,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - contact_info
             - data_request
@@ -12095,7 +12102,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - educations
             - data_request
@@ -12237,7 +12244,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - experience
             - data_request
@@ -12361,7 +12368,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - featured
             - data_request
@@ -12584,7 +12591,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - profile
             - data_request
@@ -12748,7 +12755,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - tab
             - interests
@@ -12845,7 +12852,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - languages
             - data_request
@@ -12955,7 +12962,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - profile
             - data_request
@@ -13187,7 +13194,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - posts
             - data_request
@@ -13354,7 +13361,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - reactions
             - paging
@@ -13496,7 +13503,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - recommendations
             - data_request
@@ -13612,7 +13619,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - services
             - data_request
@@ -13733,7 +13740,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - skills
             - data_request
@@ -13781,7 +13788,7 @@ components:
         url:
           type: string
           maxLength: 2048
-          description: Any post URL. A feed permalink or share link resolves locally for free; a link with no id in it (a shortlink) is resolved by opening the page via get_activity_urn_by_url, adding 1 credit. Provide url XOR post_urn.
+          description: Any post URL. A feed permalink or share link resolves locally; a link with no id in it (a shortlink) costs an extra round trip, resolved by opening the page via get_activity_urn_by_url. Provide url XOR post_urn.
         linkedin_account_sid:
           type: string
           nullable: true
@@ -13946,7 +13953,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest ledger row (status / charged / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
           required:
             - post
             - data_request
@@ -13992,7 +13999,7 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_ac_
-          description: "REQUIRED executor: the OWN account (ln_ac_…) the call runs on. There is NO pool fallback (an arbitrary call must never run under a shared infra account)."
+          description: "REQUIRED executor: the OWN account (ln_ac_…) the call runs as. Every custom request runs on the account named here, carrying that account's session, permissions and limits, so name the account whose identity the request should carry. There is no default and no substitute: omit it and the call is rejected."
         url:
           type: string
           minLength: 1
@@ -14702,6 +14709,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -14820,6 +14830,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -14968,6 +14979,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -15086,6 +15100,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -15592,7 +15607,7 @@ components:
                 - company_decision_makers
                 - search_posts
                 - search_posts_by_url
-                - get_post_commenters
+                - get_post_comments
                 - get_post_reactors
                 - get_post_resharers
                 - search_param_id_lookup
@@ -15636,14 +15651,6 @@ components:
               enum:
                 - own_account
                 - infra_pool
-            charged:
-              type: number
-            charge_reason:
-              type: string
-              nullable: true
-              enum:
-                - infra_pool
-                - limit_fallback
             served_from_cache:
               type: boolean
             cached_from_sid:
@@ -15715,8 +15722,6 @@ components:
             - sn_id
             - nickname
             - executed_on
-            - charged
-            - charge_reason
             - served_from_cache
             - cached_from_sid
             - idempotency_key
@@ -21360,7 +21365,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers
@@ -25484,7 +25489,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers
@@ -26529,6 +26534,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -26647,6 +26655,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -27328,7 +27337,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers
@@ -27639,6 +27648,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -27757,6 +27769,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -27913,6 +27926,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -28031,6 +28047,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -28107,7 +28124,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers
@@ -28424,7 +28441,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -28590,7 +28607,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -28628,9 +28645,9 @@ components:
         - item
         - result
         - meta
-    ScrapeLinkedinGetPostCommentersRequest:
+    ScrapeLinkedinGetPostCommentsRequest:
       type: object
-      description: Request body of `scrape_linkedin_get_post_commenters`.
+      description: Request body of `scrape_linkedin_get_post_comments`.
       properties:
         linkedin_account_sid:
           type: string
@@ -28647,19 +28664,26 @@ components:
         post:
           type: string
           maxLength: 512
-          description: "A post URL or an activity URN. Accepted verbatim: `urn:li:activity:<id>`, the feed permalink (`/feed/update/urn:li:activity:<id>/`) and the share link the copy-link button produces (`/posts/<slug>-activity-<id>-<hash>`): all three are parsed locally, at no extra cost. A link with no id in it (a shortlink, a bare slug URL) is resolved by opening the page through get_activity_urn_by_url, which adds one extra page load to this call and is cached 7 days. The post does NOT need to be tracked or owned by you."
+          description: "The post, named any way you have it. Cheapest is a post urn - `urn:li:share:<id>`, `urn:li:ugcPost:<id>` (company-page posts, newsletter issues), `urn:li:groupPost:<group>-<post>` - because that is what the comment list is actually addressed by. An `urn:li:activity:<id>`, a feed permalink (`/feed/update/urn:li:activity:<id>/`) or the share link the copy-link button produces (`/posts/<slug>-activity-<id>-<hash>`) all work too: the urn is parsed out locally at no cost, then converted to the post urn through one extra read that is cached for 7 days, so only the first call on a given post pays it. A linkedin.com link with no id in it (a bare slug URL) adds one more page load to find the urn. An `lnkd.in` shortlink is NOT resolvable and is refused 422 post_not_resolvable: expand it yourself first. A post LinkedIn will not name (deleted, or not visible to the executing account) is refused 422 post_urn_not_resolvable. The post does NOT need to be tracked or owned by you."
         page_size:
           type: integer
           minimum: 1
           maximum: 100
           description: Default 50; one wire page per call.
+        sort_order:
+          type: string
+          enum:
+            - RELEVANCE
+            - CHRONOLOGICAL
+            - REVERSE_CHRONOLOGICAL
+          description: Order of the comment list. RELEVANCE is LinkedIn's own default and what you get when this is omitted; REVERSE_CHRONOLOGICAL is "Most recent" in the UI, CHRONOLOGICAL walks oldest-first. Polling a watched post for new comments wants REVERSE_CHRONOLOGICAL, because under relevance a new comment is not guaranteed to be on page 1. A cursor belongs to the order it was issued under - do not resume a walk with a different sort_order.
         cursor:
           type: string
           nullable: true
           description: Opaque resume token from paging.next_cursor; null = first page.
       required:
         - post
-    ScrapeLinkedinGetPostCommentersResponse:
+    ScrapeLinkedinGetPostCommentsResponse:
       type: object
       properties:
         success:
@@ -28723,12 +28747,6 @@ components:
                   is_own:
                     type: boolean
                     description: Commenter matches one of the team’s managed accounts (same rule as sync).
-                  is_stored:
-                    type: boolean
-                    description: Already persisted as a linkedin-comments row (resolvable only for a tracked post).
-                  linkedin_comment_sid:
-                    type: string
-                    nullable: true
                 required:
                   - commenter_ln_member_id
                   - commenter_ln_id
@@ -28745,8 +28763,6 @@ components:
                   - is_pinned
                   - is_edited
                   - is_own
-                  - is_stored
-                  - linkedin_comment_sid
               description: The transient result list, in LinkedIn’s order; NOTHING persisted.
             paging:
               type: object
@@ -28770,7 +28786,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
             post:
               type: object
               properties:
@@ -28914,12 +28930,6 @@ components:
                     nullable: true
                   is_own:
                     type: boolean
-                  is_stored:
-                    type: boolean
-                    description: Already persisted as a linkedin-engagements row (resolvable only for a tracked post).
-                  linkedin_engagement_sid:
-                    type: string
-                    nullable: true
                 required:
                   - reactor_ln_member_id
                   - reactor_ln_id
@@ -28930,8 +28940,6 @@ components:
                   - reaction_type
                   - reacted_at
                   - is_own
-                  - is_stored
-                  - linkedin_engagement_sid
               description: The transient result list, in LinkedIn’s order; NOTHING persisted.
             paging:
               type: object
@@ -28955,7 +28963,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
             post:
               type: object
               properties:
@@ -29091,7 +29099,7 @@ components:
                   reshare_urn:
                     type: string
                     nullable: true
-                    description: The reshare’s own activity URN. Feed it back into get-post-commenters/-reactors to scrape the reshare itself.
+                    description: The reshare’s own activity URN. Feed it back into get-post-comments/-reactors to scrape the reshare itself.
                   is_own:
                     type: boolean
                 required:
@@ -29127,7 +29135,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
             post:
               type: object
               properties:
@@ -29274,7 +29282,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -29416,7 +29424,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -29606,7 +29614,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -29796,7 +29804,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -29971,7 +29979,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -30136,7 +30144,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -30388,7 +30396,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -30647,7 +30655,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
             commercial_use_limit_hit:
               type: boolean
               description: LinkedIn’s people-search commercial-use-limit upsell fired (wire wasStrike), so rows may be truncated; switch to the SN engine or wait for the monthly reset.
@@ -30913,7 +30921,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -31110,7 +31118,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -31533,7 +31541,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -32089,7 +32097,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -32254,7 +32262,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -32454,7 +32462,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -32598,7 +32606,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -32752,7 +32760,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" data_requests ledger row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
           required:
             - rows
             - paging
@@ -33487,6 +33495,13 @@ components:
                   items:
                     type: string
               additionalProperties: false
+            proxy_5g:
+              type: object
+              properties:
+                eq:
+                  type: boolean
+              additionalProperties: false
+              description: eq:true = the browsers occupying a 5G Proxy add-on slot (that is how slot usage is counted).
             fail_count:
               type: object
               properties:
@@ -33735,6 +33750,9 @@ components:
                   proxy_country_code:
                     type: string
                     nullable: true
+                  proxy_5g:
+                    type: boolean
+                    description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
                   cloud_browser_access:
                     type: array
                     items:
@@ -33853,6 +33871,7 @@ components:
                   - last_activity_at
                   - antidetect_browser_proxy_sid
                   - proxy_country_code
+                  - proxy_5g
                   - cloud_browser_access
                   - created_by
                   - deleted_by
@@ -34489,7 +34508,7 @@ components:
                     - company_decision_makers
                     - search_posts
                     - search_posts_by_url
-                    - get_post_commenters
+                    - get_post_comments
                     - get_post_reactors
                     - get_post_resharers
                     - search_param_id_lookup
@@ -34549,7 +34568,7 @@ components:
                       - company_decision_makers
                       - search_posts
                       - search_posts_by_url
-                      - get_post_commenters
+                      - get_post_comments
                       - get_post_reactors
                       - get_post_resharers
                       - search_param_id_lookup
@@ -34609,7 +34628,7 @@ components:
                       - company_decision_makers
                       - search_posts
                       - search_posts_by_url
-                      - get_post_commenters
+                      - get_post_comments
                       - get_post_reactors
                       - get_post_resharers
                       - search_param_id_lookup
@@ -34673,28 +34692,13 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: is_null:true ⇒ never dispatched (rejected / cache-served).
+              description: "is_null:true ⇒ never dispatched (rejected / cache-served). `own_account` is what every dispatched row records. `infra_pool` is HISTORICAL: no run since 2026-08-16 produces it, so filtering on it matches only rows stored before that date."
             served_from_cache:
               type: object
               properties:
                 eq:
                   type: boolean
               additionalProperties: false
-            charged:
-              type: object
-              properties:
-                eq:
-                  type: integer
-                gte:
-                  type: integer
-                lte:
-                  type: integer
-                gt:
-                  type: integer
-                lt:
-                  type: integer
-              additionalProperties: false
-              description: gt:0 ⇒ rows we actually paid for.
             ln_member_id:
               type: object
               properties:
@@ -34735,7 +34739,6 @@ components:
               enum:
                 - created_at
                 - completed_at
-                - charged
             direction:
               type: string
               enum:
@@ -34837,7 +34840,7 @@ components:
                       - company_decision_makers
                       - search_posts
                       - search_posts_by_url
-                      - get_post_commenters
+                      - get_post_comments
                       - get_post_reactors
                       - get_post_resharers
                       - search_param_id_lookup
@@ -34881,14 +34884,6 @@ components:
                     enum:
                       - own_account
                       - infra_pool
-                  charged:
-                    type: number
-                  charge_reason:
-                    type: string
-                    nullable: true
-                    enum:
-                      - infra_pool
-                      - limit_fallback
                   served_from_cache:
                     type: boolean
                   cached_from_sid:
@@ -34960,8 +34955,6 @@ components:
                   - sn_id
                   - nickname
                   - executed_on
-                  - charged
-                  - charge_reason
                   - served_from_cache
                   - cached_from_sid
                   - idempotency_key
@@ -39075,7 +39068,7 @@ components:
                     - similar-profiles
                     - company-employees
                     - company-decision-makers
-                    - get-post-commenters
+                    - get-post-comments
                     - get-post-reactors
                     - get-post-resharers
                     - search-service-providers
@@ -39095,7 +39088,7 @@ components:
                     - similar-profiles
                     - company-employees
                     - company-decision-makers
-                    - get-post-commenters
+                    - get-post-comments
                     - get-post-reactors
                     - get-post-resharers
                     - search-service-providers
@@ -39117,7 +39110,7 @@ components:
                       - similar-profiles
                       - company-employees
                       - company-decision-makers
-                      - get-post-commenters
+                      - get-post-comments
                       - get-post-reactors
                       - get-post-resharers
                       - search-service-providers
@@ -39139,7 +39132,7 @@ components:
                       - similar-profiles
                       - company-employees
                       - company-decision-makers
-                      - get-post-commenters
+                      - get-post-comments
                       - get-post-reactors
                       - get-post-resharers
                       - search-service-providers
@@ -39420,7 +39413,7 @@ components:
                       - similar-profiles
                       - company-employees
                       - company-decision-makers
-                      - get-post-commenters
+                      - get-post-comments
                       - get-post-reactors
                       - get-post-resharers
                       - search-service-providers
@@ -43280,7 +43273,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers
@@ -43857,6 +43850,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -43975,6 +43971,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -45341,7 +45338,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers
@@ -45582,6 +45579,9 @@ components:
             - ip
             - port
           description: Custom proxy connection tuple (customer BYO path).
+        proxy_5g:
+          type: boolean
+          description: "Arm (true) or release (false) the 5G Proxy add-on binding on this browser. Omit to leave the binding untouched. A body carrying proxy_5g alone is a valid source-less call: it moves only the add-on binding and leaves the IP where it is."
       required:
         - sid
     UpdateAntidetectBrowserProxyResponse:
@@ -45686,6 +45686,9 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_5g:
+              type: boolean
+              description: "5G Proxy add-on: the browser runs on the dedicated 5G mobile route (faster command execution, fewer retries). Each flagged browser occupies one add-on slot."
             cloud_browser_access:
               type: array
               items:
@@ -45804,6 +45807,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_5g
             - cloud_browser_access
             - created_by
             - deleted_by
@@ -47009,7 +47013,7 @@ components:
                 - similar-profiles
                 - company-employees
                 - company-decision-makers
-                - get-post-commenters
+                - get-post-comments
                 - get-post-reactors
                 - get-post-resharers
                 - search-service-providers

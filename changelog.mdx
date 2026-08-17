@@ -3,6 +3,30 @@ title: "Changelog"
 description: "What changed in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-08-16" description="The 5G Proxy add-on reaches the API">
+  **256 operations**: LinkedIn 159, ID and Teams 73, Orchestration 22, Support 2. Orchestration
+  reads 22 rather than 21 because the old figure undercounted the mass-action group by one; no
+  endpoint was added.
+
+  **New: `proxy_5g` on the antidetect-browser surface.** The 5G Proxy add-on was sellable but had no
+  representation in the API, so a workspace paying for it could not tell which browsers were on it.
+  It is now on every surface of the resource: the browser row carries `proxy_5g`, both
+  `POST /api/antidetect-browsers` and `POST /api/antidetect-browsers/update-proxy` accept it, and
+  `POST /api/antidetect-browsers/search` filters on it (`proxy_5g: {eq: true}` is how slot usage is
+  counted). Arming a browser with no add-on headroom left is refused
+  `402 insufficient_proxy_5g_slots`.
+
+  **Changed: `update-proxy` accepts a body carrying `proxy_5g` alone.** Every other call to that
+  endpoint still needs exactly one proxy source. Moving only the add-on binding leaves the IP where
+  it is, so `422 proxy_assignment_missing` does not apply to that one shape.
+
+  **Changed: per-call prices left the endpoint descriptions.** Reference text only, no behaviour
+  change. `POST /api/linkedin-enrichment/post-details` no longer quotes a price for the call or for
+  resolving a shortlink, and `DELETE /api/teams/{sid}` no longer lists credit lots among the rows it
+  cascades. Metering left the public surface on 2026-08-14 and the platform two days later; plan
+  limits and per-account daily budgets are the whole capacity model.
+</Update>
+
 <Update label="2026-08-14" description="Scraping and enrichment pick an executor for you">
   **Changed: omitting `linkedin_account_sid` now auto-picks one of your connected accounts.**
   Every scraping and enrichment method runs on your own connected accounts. Pin
@@ -27,7 +51,7 @@ description: "What changed in the GTM API platform and this documentation."
   are the platform's only public capacity model.
 </Update>
 
-<Update label="2026-08-12" description="The three own-dashboard reads, and get-post-comments folds away">
+<Update label="2026-08-12" description="The three own-dashboard reads">
   **259 operations**: LinkedIn 159, ID and Teams 77, Orchestration 21, Support 2.
 
   **New: the three feeds off your own LinkedIn dashboard.** All three are one-shot reads on an
@@ -51,11 +75,6 @@ description: "What changed in the GTM API platform and this documentation."
   feed is ordered by LinkedIn's relevance score rather than reverse-chronologically, so sort by
   `published_at` yourself. Alerts arriving without an id are dropped, which means a page can be
   shorter than `page_size` while the feed continues: do not read a short page as the end here.
-
-  **Removed: `POST /api/linkedin-scraping/get-post-comments`.** It and `get-post-commenters` were
-  calling the same underlying read, and the commenters form is the one that carries the parent post
-  and the member ids. Use `POST /api/linkedin-scraping/get-post-commenters` instead. Replies to a
-  comment are not on the wire at all, from either endpoint.
 
   **Changed: `signals` left the team limits object.** The limit no longer exists on the platform, so
   it is gone from the `limits` map on the team reads rather than reported as zero. Nothing else in

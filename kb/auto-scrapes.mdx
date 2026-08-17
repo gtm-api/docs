@@ -48,7 +48,7 @@ The modal classifies four URL families (`/search/results/people`, `/search/resul
 | `filters` | `search-people-by-params`, `search-companies-by-params`, `search-service-providers`, `search-sales-nav-people-by-params` (SN), `search-sales-nav-companies-by-params` (SN) |
 | `anchor_company_ln_id` | `company-employees`, `company-decision-makers` (SN), `similar-companies` |
 | `anchor_nickname` | `similar-profiles` |
-| `activity_urn` | `get-post-commenters`, `get-post-reactors`, `get-post-resharers` |
+| `activity_urn` | `get-post-comments`, `get-post-reactors`, `get-post-resharers` |
 
 `result_kind` is `company` for the four company searches and `similar-companies`, `person` for the rest, frozen at create.
 One detail costs a create-time 422: `company-decision-makers` needs a Sales Navigator seat (`sales_nav_required`) although its
