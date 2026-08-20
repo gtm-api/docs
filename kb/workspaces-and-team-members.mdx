@@ -67,8 +67,8 @@ else answers `403 forbidden`, reason `wrong_team`. See [authentication](/authent
 ## How member access is expressed
 
 There is no role column in the data. Access is a flat list of permission tokens shaped
-`can_{verb}_{noun}`, plus an optional account slice. The catalog holds **49 tokens** (24
-platform-level, 25 channel-level), and the wildcard `*` means all of them.
+`can_{verb}_{noun}`, plus an optional account slice. The catalog holds **44 tokens** (22
+platform-level, 22 channel-level), and the wildcard `*` means all of them.
 
 | Token | Grants |
 |---|---|
@@ -83,12 +83,12 @@ platform-level, 25 channel-level), and the wildcard `*` means all of them.
 The `account_sids` field is the slice: `null` is every account in the workspace (rendered **All**), a
 list of `ln_ac_` sids is only those (**{n} of {total}**), an empty list is none.
 
-<Warning>
-Inviting from the app grants the full token list today, and there is no screen for editing a
-member's permissions or account slice: `PATCH /api/team-members/{sid}` is the only way to narrow one.
-Until per-member scoping is enforced end to end across every service, treat anybody you invite as
-having full access to the workspace, including its keys and billing.
-</Warning>
+<Note>
+Both scoping surfaces are in the app. The invite dialog carries the permission editor, so an
+invitation goes out with exactly the tokens you tick, and **Access** on a member row reopens the same
+editor for somebody already in the workspace. Either one writes the full list, so the editor's state
+is the grant: unticking is how you narrow. `PATCH /api/team-members/{sid}` does the same over the API.
+</Note>
 
 ## Invite a teammate
 
