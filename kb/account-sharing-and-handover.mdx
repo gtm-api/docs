@@ -3,26 +3,18 @@ title: "Share or transfer a connected account"
 description: "Lend a connected LinkedIn account to another workspace and get it back, or hand ownership over permanently. Covers what the receiving side gets, what happens to the browser and the sync, and every status both sides see."
 ---
 
-Sharing lends a connected LinkedIn account to another workspace and is revocable at any moment; a
-transfer moves ownership for good. Both keep the same LinkedIn session and the same antidetect
-browser profile, so nobody re-logs in. Prefer sharing even when the move sounds permanent: only a
-share can be rolled back.
+Sharing lends a connected LinkedIn account to another workspace and is revocable at any moment; a transfer moves ownership permanently and cannot be undone. Both keep the same LinkedIn session and the same antidetect browser profile, so nobody re-logs in. Prefer sharing even when the move sounds permanent: only a share can be rolled back.
 
 <Tip>
-**Give this to your AI agent** to lend an account without touching the app:
+  **Give this to your AI agent** to lend an account without touching the app:
 
-"Lend a LinkedIn account to another gtm-api workspace. POST to https://app.gtm-api.com/id/v4/api/account-shares
-with `{"channel":"linkedin","account_sid":"ln_ac_...","to_email":"..."}` using my API key. It answers 201 with
-status pending, which means nothing has started yet. Poll POST /api/account-shares/search with filter
-`{"sid":{"eq":"ac_sh_..."}}` every 15 seconds until status is active or failed, then report the status,
-holder_over_slot and failure_reason. Do not call recall or return unless I ask. Never touch
-account-transfers, it is permanent."
+  "Lend a LinkedIn account to another gtm-api workspace. POST to [https://app.gtm-api.com/id/v4/api/account-shares](https://app.gtm-api.com/id/v4/api/account-shares) with `{"channel":"linkedin","account_sid":"ln_ac_...","to_email":"..."}` using my API key. It answers 201 with status pending, which means nothing has started yet. Poll POST /api/account-shares/search with filter `{"sid":{"eq":"ac_sh_..."}}` every 15 seconds until status is active or failed, then report the status, holder\_over\_slot and failure\_reason. Do not call recall or return unless I ask. Never touch account-transfers, it is permanent."
 </Tip>
 
 ## Share or transfer
 
-| | Share | Transfer |
-|---|---|---|
+|  | Share | Transfer |
+| --- | --- | --- |
 | Ownership | stays with you | moves to the receiver |
 | Reversible | yes, `recall` at any time | no |
 | Your copy | parked, comes back on recall | gone |
@@ -32,11 +24,7 @@ account-transfers, it is permanent."
 
 ## Lend an account
 
-The account must be one your workspace owns, past its LinkedIn login, and not already a side of
-another share or transfer. A billing hold does not block a loan. LinkedIn only, so passing
-`"channel": "email"` is not supported. The receiving workspace must exist and be neither suspended
-nor deleted; target it by `to_email` (resolved to that user's working team) or by `to_team_sid`,
-exactly one of the two. One call lends one account, so lending five accounts is five calls.
+The account must be one your workspace owns, past its LinkedIn login, and not already a side of another share or transfer. A billing hold does not block a loan. LinkedIn only, so passing `"channel": "email"` is not supported. The receiving workspace must exist and be neither suspended nor deleted; target it by `to_email` (resolved to that user's working team) or by `to_team_sid`, exactly one of the two. One call lends one account, so lending five accounts is five calls.
 
 ```bash
 curl -X POST "https://app.gtm-api.com/id/v4/api/account-shares" \
@@ -45,125 +33,85 @@ curl -X POST "https://app.gtm-api.com/id/v4/api/account-shares" \
        "to_email": "ops@partner.example", "planned_return_at": "2026-09-30T12:00:00Z"}'
 ```
 
-The `201` answers with `item.sid` (`ac_sh_...`) and `item.status: "pending"`: the row was written, the
-loan has not started. Poll `POST /api/account-shares/search` (the loans you issued) until the status
-is `active`. The receiving side polls `POST /api/account-shares/list-received`, scoped to loans made to them.
+The `201` answers with `item.sid` (`ac_sh_...`) and `item.status: "pending"`: the row was written, the loan has not started. Poll `POST /api/account-shares/search` (the loans you issued) until the status is `active`. The receiving side polls `POST /api/account-shares/list-received`, scoped to loans made to them.
 
 <Note>
-There is no error response for a loan that fails after the `201`: the outcome lands on the row as
-`status` plus `failure_reason`, so poll it. A background reconciler re-drives any share that
-stalls, **every 5 minutes**, until it advances or a human intervenes.
+  There is no error response for a loan that fails after the `201`: the outcome lands on the row as `status` plus `failure_reason`, so poll it. A background reconciler re-drives any share that stalls, **every 5 minutes**, until it advances or a human intervenes.
 </Note>
 
 ## Statuses
 
 | Share | Transfer | What it means |
-|---|---|---|
+| --- | --- | --- |
 | `pending` | `pending` | The row is committed, nothing has happened on LinkedIn's side yet |
 | `owner_parked` | `giver_parked` | Your account and browser are parked, the copy is being made |
 | `active` | `receiver_copied` | The other side has the account. Only this status means the loan started, and from here there is no failure path |
-| `closing` | | An ending was requested (recall, return, deletion or purge) |
-| `holder_released` | | The borrowed copy is gone, your original is still parked |
+| `closing` |  | An ending was requested (recall, return, deletion or purge) |
+| `holder_released` |  | The borrowed copy is gone, your original is still parked |
 | `rolling_back` | `rolling_back` | An early phase gave up and the un-park is owed. Not terminal, so a fresh share on the same account is still refused |
 | `returned` / `recalled` | `completed` | Terminal: ended by the borrowing side, ended by you, or ownership changed at `completed_at` |
 | `failed` | `failed` | Terminal, never started, and your account is provably back in service |
 
-Nothing leaves a terminal status, and there is no `expired` status. `failure_reason` is one of
-`park_failed`, `export_failed`, `copy_refused`, `probe_stale` or `team_purged` on a share, and
-`park_failed`, `copy_refused` or `probe_stale` on a transfer.
+Nothing leaves a terminal status, and there is no `expired` status. `failure_reason` is one of `park_failed`, `export_failed`, `copy_refused`, `probe_stale` or `team_purged` on a share, and `park_failed`, `copy_refused` or `probe_stale` on a transfer.
 
 <Note>
-A row on `owner_parked` whose `phase_attempts` passes 10 with no `failure_reason` is stuck in the
-copy retry, which never terminates on its own. An export failure is different: it gives up after 5
-attempts and lands `failed` with `export_failed`. Send support the share sid plus the exact `status`
-and `phase_attempts`.
+  A row on `owner_parked` whose `phase_attempts` passes 10 with no `failure_reason` is stuck in the copy retry, which never terminates on its own. An export failure is different: it gives up after 5 attempts and lands `failed` with `export_failed`. Send support the share sid plus the exact `status` and `phase_attempts`.
 </Note>
 
 ## What happens on your side
 
-Account status and browser status both become `shared_out` (the Senders list shows the browser as
-`shared out`, hold reason "Lent to another workspace"), the browser session is stopped and its
-automation server is released. The account leaves every scheduler, dispatcher and stale-heartbeat
-sweep, so silence from a parked account is expected, not a fault.
+Account status and browser status both become `shared_out` (the Senders list shows the browser as `shared out`, hold reason "Lent to another workspace"), the browser session is stopped and its automation server is released. The account leaves every scheduler, dispatcher and stale-heartbeat sweep, so silence from a parked account is expected, not a fault.
 
 <Warning>
-Parking stops in-flight work: running sync runs are **cancelled** with the reason
-`account_shared_out`, auto-scrapes and mass-action runs are **paused** with the reason
-`account_unavailable`. On recall only what the park paused is resumed, so a manual pause or a limit
-hold you set survives the round trip. Cancelled sync runs are never recreated: the scheduler mints
-fresh ones once the account is back.
+  Parking stops in-flight work: running sync runs are **cancelled** with the reason `account_shared_out`, auto-scrapes and mass-action runs are **paused** with the reason `account_unavailable`. On recall only what the park paused is resumed, so a manual pause or a limit hold you set survives the round trip. Cancelled sync runs are never recreated: the scheduler mints fresh ones once the account is back.
 </Warning>
 
-You keep two things while the account is away: a cloud-browser session on the parked original, and
-its proxy. That session is how you fix a LinkedIn logout mid-loan, and nobody is notified when one
-happens, so the borrower has to tell you. You cannot delete the parked account or re-connect the
-same LinkedIn member to work around the share: both answer `409 conflict`, `account_shared_out`.
+You keep two things while the account is away: a cloud-browser session on the parked original, and its proxy. That session is how you fix a LinkedIn logout mid-loan, and nobody is notified when one happens, so the borrower has to tell you. You cannot delete the parked account or re-connect the same LinkedIn member to work around the share: both answer `409 conflict`, `account_shared_out`.
 
 ## What the receiving side gets
 
 | Crosses with the copy | Does not cross |
-|---|---|
+| --- | --- |
 | The same LinkedIn identity and browser profile, so no re-login | Every synced child record (connections, conversations, messages, invitations), all ten timestamp clocks, including `initial_sync_completed_at`, so the copy runs its own initial sync before it may do outbound work |
 | LinkedIn member ids, name, avatar, premium and Sales Navigator flags, InMail credits | Warmup and smart limits, re-derived from scratch on the receiving side |
 | The sync schedule and the webhook config | The proxy (`custom_proxy_config`, the proxy sid, the proxy country) and cloud-browser access keys, which the receiving side mints itself |
 
-One exception: if the receiving workspace held this account before and its old copy is still
-soft-deleted, that row is restored rather than created fresh: same sid, old conversation and
-connection history back, sync clocks preserved, no full backfill. Use `reset-sync` to force one.
+One exception: if the receiving workspace held this account before and its old copy is still soft-deleted, that row is restored rather than created fresh: same sid, old conversation and connection history back, sync clocks preserved, no full backfill. Use `reset-sync` to force one.
 
 The receiving side also cannot:
 
-- **See the browser profile id.** `vendor_profile_id` reads back as `***` on every borrowed
-  browser, during the loan and after it ends, so an ex-holder cannot re-bind the profile later.
-- **Re-share it** (an account can be in at most one live share), **manage the proxy** (no proxy field
-  crosses), or **inherit your roles**: permissions are never granted across workspaces, and the copy
-  is governed entirely by their own roles.
+- **See the browser profile id.** `vendor_profile_id` reads back as `***` on every borrowed browser, during the loan and after it ends, so an ex-holder cannot re-bind the profile later.
+- **Re-share it** (an account can be in at most one live share), **manage the proxy** (no proxy field crosses), or **inherit your roles**: permissions are never granted across workspaces, and the copy is governed entirely by their own roles.
 
 <Warning>
-Lending an account out does **not** free your slot. Your claim is held for the whole loan, and the
-receiving workspace claims a slot of its own. If they have no free slot, the share still reaches
-`active` with `holder_over_slot: true` and their copy lands in the `subscription_required` hold, so
-they cannot run it until they upgrade. A share never fails because of slots. Plan slot caps are
-in [Billing and plans](/kb/billing-and-plans).
+  Lending an account out does **not** free your slot. Your claim is held for the whole loan, and the receiving workspace claims a slot of its own. If they have no free slot, the share still reaches `active` with `holder_over_slot: true` and their copy lands in the `subscription_required` hold, so they cannot run it until they upgrade. A share never fails because of slots. Plan slot caps are in [Billing and plans](/kb/billing-and-plans).
 </Warning>
 
-A lent-out account is skipped by the downgrade sweep, so it cannot slip into `subscription_required`
-while away; the check re-runs when it comes back. Lending out an already-downgraded account is allowed.
+A lent-out account is skipped by the downgrade sweep, so it cannot slip into `subscription_required` while away; the check re-runs when it comes back. Lending out an already-downgraded account is allowed.
 
 ## End a share
 
 | How | Who | `end_reason` | Final status |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `POST /api/account-shares/recall` | Owner, no consent needed from the other side | `recalled_by_owner` | `recalled` |
 | `POST /api/account-shares/return` | Borrower | `returned_by_holder` | `returned` |
 | Borrower deletes the borrowed copy | Borrower | `holder_deleted_copy` | `returned` |
 | Either workspace is purged | System | `holder_team_purged` / `owner_team_purged` | `returned` / `recalled` |
 
-Teardown soft-deletes the borrowed copy, stops its browser, revokes every cloud-browser key it minted,
-and fails its pending activity rows with `browser_deleted`. The borrower keeps the conversations and
-connections that copy synced. Your original is un-parked: browser back to `stopped`, account status recomputed from its own signals.
+Teardown soft-deletes the borrowed copy, stops its browser, revokes every cloud-browser key it minted, and fails its pending activity rows with `browser_deleted`. The borrower keeps the conversations and connections that copy synced. Your original is un-parked: browser back to `stopped`, account status recomputed from its own signals.
 
 <Warning>
-Instead of `sid` you may pass a `filter` plus a `confirmation_count`. Filter mode pins `status` to
-`active` server-side (your filter can only narrow the set), drains **at most 100 shares per call**, and
-requires `confirmation_count` to equal the count that same filter returns with `status: {"eq": "active"}`
-pinned and `page_size: 0`. Anything else answers `409 confirmation_count_mismatch`. It is not atomic: on a mid-batch error the
-response carries no counters and the shares already stamped keep closing, so re-query rather than
-retrying the same body, and take a fresh count before each call. `closing_count` counts shares that
-**started** closing, never ones already recalled.
+  Instead of `sid` you may pass a `filter` plus a `confirmation_count`. Filter mode pins `status` to `active` server-side (your filter can only narrow the set), drains **at most 100 shares per call**, and requires `confirmation_count` to equal the count that same filter returns with `status: {"eq": "active"}` pinned and `page_size: 0`. Anything else answers `409 confirmation_count_mismatch`. It is not atomic: on a mid-batch error the response carries no counters and the shares already stamped keep closing, so re-query rather than retrying the same body, and take a fresh count before each call. `closing_count` counts shares that **started** closing, never ones already recalled.
 </Warning>
 
 <Note>
-`planned_return_at` does not auto-return anything. When it passes, an hourly job emails the owner
-**once** that the date passed, and stamps `expiry_notified_at`. The loan runs until somebody ends it. A
-soft-deleted workspace changes nothing: the 30-day recovery window has to elapse and the purge has to
-run before the loan is driven to a terminal status.
+  `planned_return_at` does not auto-return anything. When it passes, an hourly job emails the owner **once** that the date passed, and stamps `expiry_notified_at`. The loan runs until somebody ends it. A soft-deleted workspace changes nothing: the 30-day recovery window has to elapse and the purge has to run before the loan is driven to a terminal status.
 </Note>
 
 ## Refusals
 
 | Situation | HTTP | `error.code` | Discriminator |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Bad target: your own workspace; neither or both of `to_email` and `to_team_sid`; no workspace for that email | 422 | `validation_failed` | `field_errors.to_team_sid = ["cannot_share_to_self"]`; `field_errors.to_email = ["exactly_one_of_to_email_or_to_team_sid"]`; `field_errors.to_email` |
 | Target workspace suspended or deleted | 409 | `conflict` | `context.reason = holder_team_unavailable` |
 | Account is not lendable, already lent out, or has a transfer in flight | 409 | `conflict` | `context.reason = account_not_shareable`, `account_already_shared`, `handover_in_flight` |
@@ -174,25 +122,17 @@ An active share blocks a transfer of the same account (`409 account_currently_sh
 
 ## Transfer permanently
 
-Transfers use the same machinery and the same body as a share, minus `planned_return_at`. Create with
-`POST /api/account-transfers`, then poll `GET /api/account-transfers/{sid}` or `POST /api/account-transfers/search`.
-Transferring out of a billing hold is allowed, and is the intended exit for an account you no longer want to pay for.
+Transfers use the same machinery and the same body as a share, minus `planned_return_at`. Create with `POST /api/account-transfers`, then poll `GET /api/account-transfers/{sid}` or `POST /api/account-transfers/search`. Transferring out of a billing hold is allowed, and is the intended exit for an account you no longer want to pay for.
 
 <Warning>
-There is no MCP tool for any transfer route, including the read ones, and that is on purpose: an AI
-agent must not be able to give an account away. There is also no view-only permission tier, so
-`can_manage_account_transfers` gates reads as well as writes. Point agents at sharing instead.
+  There is no MCP tool for any transfer route, including the read ones, and that is on purpose: an AI agent must not be able to give an account away. There is also no view-only permission tier, so `can_manage_account_transfers` gates reads as well as writes. Point agents at sharing instead.
 </Warning>
 
 ## Who gets told
 
-Emails go to the counterparty, not to whoever made the call. The receiving workspace owner gets
-`account_share_received`, `account_share_recalled` and `account_transfer_received`; you get
-`account_share_returned`, `account_share_expired` and `account_share_failed`.
+Emails go to the counterparty, not to whoever made the call. The receiving workspace owner gets `account_share_received`, `account_share_recalled` and `account_transfer_received`; you get `account_share_returned`, `account_share_expired` and `account_share_failed`.
 
-Webhooks are owner-side only and fan out to the workspace that owns the row: `account-shares.created`,
-`account-shares.returned`, `.recalled` and `.failed`, plus `account-transfers.completed` and `.failed`.
-The borrowing side has no webhook, so its arrival signal is the email plus polling `list-received`.
+Webhooks are owner-side only and fan out to the workspace that owns the row: `account-shares.created`, `account-shares.returned`, `.recalled` and `.failed`, plus `account-transfers.completed` and `.failed`. The borrowing side has no webhook, so its arrival signal is the email plus polling `list-received`.
 
 ## Related
 
