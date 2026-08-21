@@ -110,6 +110,14 @@ A logout is almost always noticed at the next start, not mid-run: the post-start
 what probes the LinkedIn session, so a session LinkedIn invalidated while the browser sat
 idle only surfaces when the browser comes back up.
 
+<Note>
+The ACCOUNT row does not change when this happens: its `status` is platform lifecycle and
+keeps reading `active` while the browser sits in `login_issue`. Any health read, human or
+API, must look at the browser: over the API that is `include[]=antidetect_browser` on the
+account search, plus the always-present `counts.signed_out_count`
+([account health](/kb/account-health)).
+</Note>
+
 No email is sent when an account is logged out. The event goes to analytics and to
 webhooks as `antidetect-browsers.logged-out`; on screen it is the red pill. If you run
 many accounts, [subscribe to that webhook](/guides/receive-webhooks) rather than waiting

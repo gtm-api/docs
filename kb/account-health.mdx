@@ -1,10 +1,11 @@
 ---
 title: "Account health"
-description: "Every connected LinkedIn account carries a warmup score built from six compounding signals, a snapshot history, a limit-hit log and a block log. What each one records and what to do about it."
+description: "A sender health summary has four parts: the browser login state (signed out of LinkedIn or not), a warmup score built from six compounding signals, the smart-limit budgets, and two incident logs. What each one records and what to do about it."
 ---
 
-Every connected LinkedIn account carries a health record: a warmup score with its six inputs, a
-snapshot every 22 hours, and two incident logs. What each signal measures, and what to do about it.
+Every connected LinkedIn account carries a health record: the login state of its browser, a warmup
+score with its six inputs, a snapshot every 22 hours, and two incident logs. What each signal
+measures, and what to do about it.
 
 ## Where health lives
 
@@ -13,6 +14,28 @@ score, a band label, and a table of **Metric**, **Health** and **Comment**, one 
 signal reads `ok`; an unhealthy one shows the percentage it costs and the reason. Below it, **Incident
 logs** holds the **Limit-hit log** and the **Block log**, then the per-action caps. The **Senders** list
 carries a **Safety** column for a quick per-account read.
+
+## Signed in at all: check the browser first
+
+A warmup score is meaningless for a sender that is signed out of LinkedIn, so every health read
+starts with the login state, and the login state lives on the account's **browser**, not on the
+account itself.
+
+<Warning>
+The account's `status` field is platform lifecycle (`new`, `initial_syncing`, `active`, `sync_failed`,
+`shared_out`, `subscription_required`). It is not health and not login state: a sender whose LinkedIn
+session died still reads `status: "active"`. The signed-out fact is the bound browser's
+`status: "login_issue"`, which is the platform's only "signed out of LinkedIn" state. There is no
+separate `logged_out` value.
+</Warning>
+
+In the app the signal is the red **Signed out of LinkedIn** state on the sender row and in the
+drawer. Over the API it is two things on `/api/linkedin-accounts/search`: the always-present
+`counts.signed_out_count` (how many matching senders have a signed-out browser), and per row the
+`include[]=antidetect_browser` relation, whose `status`, `error_reason`, `logout_count` and
+`last_logout_at` say who is out, since when, and what LinkedIn answered. A signed-out browser is
+powered off, sticky, and never woken automatically; re-login is the only fix
+([browser troubleshooting](/kb/browser-troubleshooting)).
 
 ## The warmup score
 
@@ -166,6 +189,7 @@ release a hold are in [smart limits and warmup](/kb/smart-limits-and-warmup).
 
 | What you see | What it means, what to do |
 |---|---|
+| Everything reads fine but the sender does nothing | Check the browser first: a sender signed out of LinkedIn keeps `status: "active"` on the account row, and its score and logs freeze at their last values. The **Signed out of LinkedIn** state on the row (browser `status: "login_issue"`) is the tell; re-login is the only fix ([browser troubleshooting](/kb/browser-troubleshooting)) |
 | The score dropped overnight | Read the **Comment** column of the rows that are not `ok`; a drop is always one of the six signals. The score moves only on a capture, so a fix shows up at the next snapshot, up to 22 hours later |
 | **Activity** penalises an account that is sending | The floor counts only actions the platform executed. Sends you made by hand in LinkedIn are not in it. Route the volume through the platform, or accept the penalty as accurate |
 | **Blocks** shows 1 or more | One block removes 40% of the remaining score, two remove 64%, capped at 85%. They age out of the 30-day window on their own: slow down or change the segment you contact, and never retry a target that is already blocking you |
@@ -175,9 +199,42 @@ release a hold are in [smart limits and warmup](/kb/smart-limits-and-warmup).
 | A budget is blocked and the limit-hit log explains it | Read `reason` and the unlock time. The platform restores the budget within a minute of expiry and parked work resumes on its own; nothing needs re-queuing |
 | The account is red but both incident logs are empty | Either a captcha (every budget blocked for 6 hours, no row written, because it wants a person) or a browser or proxy fault. Go to the **Browser** tab, then to [browser troubleshooting](/kb/browser-troubleshooting) |
 
-## Reading health over the API
+## A sender health summary over the API
 
-All three records are read-only and searchable at `/api/linkedin-account-snapshots/search`,
+One `/api/linkedin-accounts/search` call carries all four dimensions of health when you ask for the
+right includes. `antidetect_browser` is the one that answers "is this sender signed in at all";
+the account item alone cannot.
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/search" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "filter": {"deleted_at": {"is_null": true}},
+    "include": ["antidetect_browser", "linkedin_account_smart_limits", "linkedin_account_snapshot", "linkedin_account_block_log_counts"],
+    "page_size": 10
+  }'
+```
+
+Read it per sender, in this order:
+
+| Dimension | Where in the response | Healthy looks like |
+|---|---|---|
+| Login state | included `antidetect_browser.status` | Anything but `login_issue`. `login_issue` = signed out of LinkedIn; `error_reason` and `last_logout_at` say what and when. NOT the account's own `status`, which is lifecycle and stays `active` through a logout |
+| Warmup | included `linkedin_account_snapshot.warmup_score` | 90 or above; unhealthy signals are listed in `warmup_breakdown` |
+| Budgets | included `linkedin_account_smart_limits` | `active` rows; `held` / `linkedin_blocked` mean a budget is parked |
+| Blocks | included `linkedin_account_block_log_counts` | `last_7d_count` of 3 or fewer; more says the targeting is the problem |
+
+The `counts` block rides every search response, includes or not: `counts.signed_out_count` is the
+number of matching senders whose browser sits in `login_issue`, so a summary that skips the browser
+include still cannot miss them. `active_today_count` and `stale_count` are the heartbeat tallies.
+
+<Note>
+Items with these includes are large. Keep `page_size` at 10 or below and follow
+`pagination.next_cursor` instead of requesting the whole fleet in one page.
+</Note>
+
+The three record surfaces are also searchable directly at `/api/linkedin-account-snapshots/search`,
 `/api/linkedin-account-quota-hits/search` (filter `linkedin_quota_hit_till` with `gt` now for live locks
 only) and `/api/linkedin-account-block-log/search`; shapes are in the
 [API reference](/api-reference/overview). Includes on the account are cheaper than three searches:
@@ -188,10 +245,13 @@ only) and `/api/linkedin-account-block-log/search`; shapes are in the
 Paste this to your coding agent to read the whole fleet at once:
 
 > Using the GTM API at `https://app.gtm-api.com/linkedin/v4` with the bearer token in `GTM_API_KEY`, post to
-> `/api/linkedin-accounts/search` with `include[]` of `linkedin_account_snapshot`, `linkedin_account_quota_hits`
-> and `linkedin_account_block_log_counts`. For every account print the nickname, `warmup_score`, each
+> `/api/linkedin-accounts/search` with `include[]` of `antidetect_browser`, `linkedin_account_snapshot`,
+> `linkedin_account_quota_hits` and `linkedin_account_block_log_counts`, `page_size` 10, following
+> `pagination.next_cursor` to the end. For every account print the nickname, the browser `status`
+> (flag `login_issue` as SIGNED OUT with its `last_logout_at`), `warmup_score`, each
 > `warmup_breakdown` entry as `driver: penalty_pct`, and `last_7d_count` / `last_30d_count`, sorted by
-> `warmup_score` ascending, flagging any account with more than 3 blocks in the last 7 days.
+> `warmup_score` ascending, flagging any account with more than 3 blocks in the last 7 days. Do not
+> report the account `status` field as health; it is platform lifecycle.
 </Tip>
 
 ## Health events
