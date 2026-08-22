@@ -1301,6 +1301,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -1479,6 +1487,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -1810,6 +1826,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -2104,6 +2128,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -2181,6 +2213,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -2237,6 +2277,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -2430,6 +2478,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -2763,6 +2819,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -3165,6 +3229,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -3329,6 +3401,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -3453,6 +3533,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -3656,6 +3744,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -3898,6 +3994,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -4098,6 +4202,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -4298,6 +4410,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -4579,6 +4699,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -4750,6 +4878,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -5216,6 +5352,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -5640,6 +5784,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -6077,6 +6229,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -6448,6 +6608,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -6650,6 +6818,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id
@@ -6952,6 +7128,14 @@ components:
             debug_url:
               type: string
               description: Deep link to the post-call analysis UI.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
           required:
             - trace_id
             - span_id

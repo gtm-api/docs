@@ -3,6 +3,88 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-08-22" description="Scheduled posts, media posts, mentions, and explicit browser states">
+  **263 operations**: LinkedIn 167, ID and Teams 74, Orchestration 22.
+
+  **Scheduled posts.** `POST /api/linkedin-posting/create-post` takes `scheduled_at` (ISO 8601, in the
+  future) and LinkedIn queues the post instead of publishing it. A scheduled share answers with
+  `post_urn` only - `activity_urn` and `url` stay null until it publishes - and that `post_urn` is the
+  handle the new pair takes: `POST /api/linkedin-posting/get-scheduled-posts` lists the account's queue
+  (or a company page's, with `author_organization_id`), and
+  `POST /api/linkedin-posting/delete-scheduled-post` removes a draft by that backend urn. A refused
+  delete is `409 scheduled_post_not_deleted`, never a success body. All of it spends the `posting`
+  bucket, which grew to fit: 20 a day in series of 3 before the 1200 s pause (4 a day on the free plan).
+
+  **Media posts.** `images` takes up to 20 (array order is carousel order; with two or more the service
+  supplies the author id itself, there is no `profile_id` to send), or one `video` instead. LinkedIn
+  does not mix the two in a share, so sending both is a 422, and the decoded bytes across all media
+  must stay under 35 MB. These calls are synchronous: a heavy upload can outlive your client timeout
+  while the post still publishes, so do not retry a timeout blindly - read the queue or your own posts
+  first.
+
+  **Posting as a page, into a group, as a partnership.** `author_organization_id` (the bare numeric
+  company id) publishes as a page the account administers; `group_id` posts into a group and is
+  mutually exclusive with `visibility`; `brand_partnership: true` adds LinkedIn's label.
+
+  **Mentions.** `create-comment` takes `mentions` as `{profile_id, name}` pairs, `name` being an exact
+  substring of `text`, matched left to right in list order. `create-post` takes ready positions
+  instead, `{profile_id, start, length}` in UTF-16 code units - the way JavaScript counts string
+  length, so an emoji is two. Both are validated before anything is dispatched.
+
+  **Reactions on comments, and a new reaction.** `entity_urn` on `react` and `unreact` now takes a post
+  urn in any family (`activity`, `share`, `ugcPost`, `groupPost`) or a comment urn in either form, so a
+  reaction can land on a comment, and `react` returns `reaction_urn`. `reaction_type` gains
+  `interested`, LinkedIn's reaction on event posts; on an ordinary post LinkedIn silently ignores it and
+  `reaction_urn` comes back null, which is the tell. `POST /api/linkedin-scraping/get-post-reactors`
+  accepts a comment urn in `post` to read a comment's reactors.
+
+  **Reactor rows changed vocabulary.** `reaction_type` on `get-post-reactors` rows now uses the values
+  you write with (`like`, `celebrate`, `support`, `love`, `insightful`, `funny`, `interested`). Until now
+  the rows leaked LinkedIn's internal names (`interest`, `praise`, `empathy`, `appreciation`,
+  `entertainment`) while the schema promised ours; a caller matching on the old strings must switch.
+
+  **Resharers.** `post` on `get-post-resharers` takes a post URL, an activity urn, or a backend
+  `share` / `ugcPost` urn. A `groupPost` urn is refused `422 reshare_target_unsupported`: group posts
+  have no reshare feed.
+
+  **Undo verbs, and recalling a message** (shipped 2026-08-20). `delete-post`, `delete-comment` and
+  `unreact` retract what `create-post`, `comment` and `react` did, spending the same bucket as the
+  action they undo. `POST /api/linkedin-messages/{sid}/delete-on-linkedin` recalls one of your own
+  messages for every participant. LinkedIn allows that only within an hour of sending, so an older
+  message answers `409 message_too_old_to_recall` with nothing dispatched; the row stays in the thread
+  marked `is_deleted` with an empty body.
+
+  **`is_deleted` on message rows.** Every message row carries it, and the sync keeps it true to
+  LinkedIn: a message recalled by either side is marked on the next read of its thread, with the body
+  emptied. Sales Navigator threads carry no recall marker on LinkedIn's side and are left alone.
+
+  **Post readers.** `person-posts`, `company-posts`, `post-details` and the post-by-url read carry
+  `group`, the group a post was published in (null elsewhere). On a group post LinkedIn shows the
+  group as the card actor, so `author` there is a bare name with no profile url or ids; do not read
+  that as an organization author.
+
+  **Auto-scrapes.** A `get-post-comments` source accepts `sort_order` in `source_input` (`RELEVANCE`,
+  `CHRONOLOGICAL`, `REVERSE_CHRONOLOGICAL`). It is frozen at create and used on every page of every
+  run, because LinkedIn's pagination cursor belongs to the order it was issued under.
+
+  **Browser states are explicit.** A call that needs a browser which is down no longer times out or
+  hides behind a generic conflict. `503 browser_unavailable` says the session is gone;
+  `503 browser_unreachable` says the service tried once to start the browser inside the call and
+  carries the error that attempt hit plus a `retry_after`; `503 browser_starting` says a cold start is
+  still warming up; `409 browser_logged_out` says the account itself is signed out;
+  `409 no_live_browsers` says an enrichment or scrape with no pinned account found no live browser to
+  run on; `503 infrastructure_maintenance` says the browser fleet is being updated.
+
+  **Sender health.** `POST /api/linkedin-accounts/search` counters carry `signed_out_count`, so a
+  logged-out sender shows without opening each row.
+
+  **Billing.** `POST /api/billing-subscriptions/{sid}/undo-cancel` reverses a scheduled cancellation
+  before the period ends.
+
+  **Response meta.** Every response `meta` block now carries `team_sid` and `actor_type`, across all
+  three services.
+</Update>
+
 <Update label="2026-08-16" description="5G Proxy reaches the antidetect-browser surface">
   **256 operations**: LinkedIn 159, ID and Teams 73, Orchestration 22, Support 2.
 
