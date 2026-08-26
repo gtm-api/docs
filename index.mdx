@@ -11,7 +11,7 @@ gtm-api runs LinkedIn accounts as managed infrastructure. Each account you conne
 Three services, one contract style. Every endpoint authenticates the same way, returns the same response envelope, and fails with the same error taxonomy.
 
 | Service | Base URL | What it covers |
-|---|---|---|
+| --- | --- | --- |
 | LinkedIn | `https://app.gtm-api.com/linkedin/v4` | Connected accounts, health and smart limits, conversations and messages, the connection graph, posting, scraping, profile and company enrichment, anti-detect browsers |
 | ID and Teams | `https://app.gtm-api.com/id/v4` | Users, teams, API keys, OAuth, billing, subscriptions, notifications |
 | Orchestration | `https://app.gtm-api.com/orchestration/v4` | Mass actions (preview, commit, pace, canary) and the platform-wide webhook registry |
@@ -24,19 +24,23 @@ Paths in the reference are relative to these base URLs. `GET /api/linkedin-accou
   <Card title="Quickstart" href="/quickstart">
     Mint an API key and make your first call in a few minutes.
   </Card>
+
   <Card title="Authentication" href="/authentication">
     API keys, JWTs and the Team-SID header.
   </Card>
+
   <Card title="Knowledge base" href="/kb">
-    How the platform works, for the person running outreach: accounts and
-    browsers, safety and pacing, finding and enriching data. With screenshots.
+    How the platform works, for the person running outreach: accounts and browsers, safety and pacing, finding and enriching datafinding and enriching data. With screenshots.
   </Card>
+
   <Card title="API reference" href="/api-reference/overview">
     Every endpoint of the three services, with an interactive playground.
   </Card>
+
   <Card title="MCP server" href="/mcp/overview">
     Give Claude, Cursor or ChatGPT the same tools over the Model Context Protocol.
   </Card>
+
   <Card title="Changelog" href="/changelog">
     What shipped, in the order it shipped.
   </Card>

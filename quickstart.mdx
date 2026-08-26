@@ -6,14 +6,14 @@ description: "Mint an API key and make your first authenticated call."
 This page takes you from nothing to a successful API response.
 
 <Tip>
-**Give this to your AI agent** and it will handle the API side while you sign up and log the LinkedIn account in:
+  **Give this to your AI agent** and it will handle the API side while you sign up and log the LinkedIn account in:
 
-"Connect to gtm-api: add the MCP connector at https://mcp.gtm-api.com/mcp (OAuth) or call the REST API at app.gtm-api.com with my key. Then search my linkedin-accounts, tell me each account's status, and once one reaches active, show what its smart limits allow today. Read-only for now: do not send or post anything."
+  "Connect to gtm-api: add the MCP connector at [https://mcp.gtm-api.com/mcp](https://mcp.gtm-api.com/mcp) (OAuth) or call the REST API at app.gtm-api.com with my key. Then search my linkedin-accounts, tell me each account's status, and once one reaches active, show what its smart limits allow today. Read-only for now: do not send or post anything."
 </Tip>
 
 <Steps>
   <Step title="Create an account and connect LinkedIn">
-    Sign up at [app.gtm-api.com](https://app.gtm-api.com/login). Your workspace starts on Sandbox, the forever free plan: no card, no time limit. Connect a LinkedIn account you own: it opens in a dedicated anti-detect cloud browser with its own proxy, and the platform starts an initial sync of your inbox, connections and profile.
+    Sign up at [app.gtm-api.com](https://app.gtm-api.com/login). Your workspace starts on Sandbox, the forever free plan: no card, no time limitYour workspace starts on Sandbox, the forever free plan: no card, no time limit. Connect a LinkedIn account you own: it opens in a dedicated anti-detect cloud browser with its own proxy, and the platform starts an initial sync of your inbox, connections and profile.
 
     You can make read calls right away. Outbound actions (connection requests, messages) stay blocked with an `invalid_transition` error until the initial sync finishes.
   </Step>
@@ -51,7 +51,7 @@ This page takes you from nothing to a successful API response.
 
     ```python Python
     import os, requests
-
+    
     res = requests.post(
         "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/search",
         headers={"Authorization": f"Bearer {os.environ['GTM_API_KEY']}"},
@@ -99,12 +99,15 @@ This page takes you from nothing to a successful API response.
   <Card title="Authentication" href="/authentication">
     Key rotation, permissions and the Team-SID header.
   </Card>
+
   <Card title="Envelopes and errors" href="/concepts/envelopes-and-errors">
     The response contract and the 16 error codes.
   </Card>
+
   <Card title="Run a mass action" href="/guides/run-a-mass-action">
     Preview, commit and monitor a bulk dispatch.
   </Card>
+
   <Card title="Connect the MCP server" href="/mcp/connect">
     The same tools, callable by an AI agent.
   </Card>
