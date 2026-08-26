@@ -7518,9 +7518,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -7534,7 +7531,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -7694,9 +7690,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -7710,7 +7703,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -7889,9 +7881,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -7905,7 +7894,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8084,9 +8072,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8100,7 +8085,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8195,9 +8179,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8211,7 +8192,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8633,9 +8613,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8649,7 +8626,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9076,9 +9052,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9092,7 +9065,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9229,9 +9201,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9245,7 +9214,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9596,9 +9564,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9612,7 +9577,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9884,9 +9848,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9900,7 +9861,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9998,9 +9958,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10014,7 +9971,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10208,9 +10164,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10224,7 +10177,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10294,9 +10246,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10310,7 +10259,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10358,9 +10306,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10374,7 +10319,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10447,9 +10391,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10463,7 +10404,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10645,9 +10585,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10661,7 +10598,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10739,9 +10675,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10755,7 +10688,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10828,9 +10760,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10844,7 +10773,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10927,9 +10855,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10943,7 +10868,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -11021,9 +10945,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -11037,7 +10958,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -11513,9 +11433,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -11529,7 +11446,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -11958,9 +11874,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -11974,7 +11887,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12076,9 +11988,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12092,7 +12001,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12351,9 +12259,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12367,7 +12272,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12506,9 +12410,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12522,7 +12423,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12605,9 +12505,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12621,7 +12518,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12702,9 +12598,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12718,7 +12611,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12870,9 +12762,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12886,7 +12775,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12995,9 +12883,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13011,7 +12896,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13170,9 +13054,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13186,7 +13067,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13311,9 +13191,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13327,7 +13204,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13441,9 +13317,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13457,7 +13330,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13597,9 +13469,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13613,7 +13482,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13735,9 +13603,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13751,7 +13616,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13972,9 +13836,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13988,7 +13849,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -14152,9 +14012,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -14168,7 +14025,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -14261,9 +14117,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -14277,7 +14130,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -14385,9 +14237,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -14401,7 +14250,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -14651,9 +14499,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -14667,7 +14512,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -14833,9 +14677,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -14849,7 +14690,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -14988,9 +14828,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15004,7 +14841,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -15118,9 +14954,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15134,7 +14967,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -15253,9 +15085,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15269,7 +15098,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -15500,9 +15328,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15516,7 +15341,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -15623,9 +15447,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15639,7 +15460,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -16099,9 +15919,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -16115,7 +15932,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -16443,9 +16259,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -16459,7 +16272,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -16744,9 +16556,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -16760,7 +16569,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -17135,9 +16943,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17151,7 +16956,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -17384,9 +17188,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17400,7 +17201,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -17480,9 +17280,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17496,7 +17293,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -17628,9 +17424,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17644,7 +17437,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -18117,9 +17909,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -18133,7 +17922,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -18632,9 +18420,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -18648,7 +18433,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19053,9 +18837,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19069,7 +18850,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19485,9 +19265,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19501,7 +19278,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19906,9 +19682,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19922,7 +19695,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -20327,9 +20099,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -20343,7 +20112,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -20848,9 +20616,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -20864,7 +20629,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -21445,9 +21209,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -21461,7 +21222,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -21866,9 +21626,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -21882,7 +21639,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -22350,9 +22106,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -22366,7 +22119,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -22771,9 +22523,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -22787,7 +22536,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -22962,9 +22710,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -22978,7 +22723,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -23081,9 +22825,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -23097,7 +22838,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -23311,9 +23051,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -23327,7 +23064,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -23444,9 +23180,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -23460,7 +23193,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -23569,9 +23301,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -23585,7 +23314,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -23700,9 +23428,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -23716,7 +23441,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -24058,9 +23782,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -24074,7 +23795,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -24217,9 +23937,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -24233,7 +23950,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -24356,9 +24072,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -24372,7 +24085,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -24617,9 +24329,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -24633,7 +24342,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -24770,9 +24478,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -24786,7 +24491,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -24901,9 +24605,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -24917,7 +24618,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -25072,9 +24772,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -25088,7 +24785,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -25270,9 +24966,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -25286,7 +24979,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -25445,9 +25137,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -25461,7 +25150,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -25709,9 +25397,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -25725,7 +25410,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -25921,9 +25605,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -25937,7 +25618,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -26076,9 +25756,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -26092,7 +25769,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -26359,9 +26035,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -26375,7 +26048,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -26655,9 +26327,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -26671,7 +26340,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -26830,9 +26498,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -26846,7 +26511,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -26907,9 +26571,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -26923,7 +26584,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -26987,9 +26647,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -27003,7 +26660,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -27148,9 +26804,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -27164,7 +26817,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -27309,9 +26961,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -27325,7 +26974,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -27373,17 +27021,15 @@ components:
               additionalProperties:
                 type: array
                 items:
-                  anyOf:
-                    - type: string
-                    - type: object
-                      properties:
-                        rule:
-                          type: string
-                        message:
-                          type: string
-                      required:
-                        - rule
-                        - message
+                  type: object
+                  properties:
+                    rule:
+                      type: string
+                    message:
+                      type: string
+                  required:
+                    - rule
+                    - message
             blockers:
               type: array
               items:
@@ -27441,9 +27087,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -27457,7 +27100,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - error
@@ -27605,9 +27247,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -27621,7 +27260,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -27837,9 +27475,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -27853,7 +27488,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -28050,9 +27684,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -28066,7 +27697,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -28149,9 +27779,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -28165,7 +27792,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -28282,9 +27908,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -28298,7 +27921,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -28458,9 +28080,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -28474,7 +28093,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -28630,9 +28248,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -28646,7 +28261,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -28965,9 +28579,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -28981,7 +28592,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -29111,9 +28721,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -29127,7 +28734,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -29570,9 +29176,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -29586,7 +29189,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -29804,9 +29406,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -29820,7 +29419,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -30124,9 +29722,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -30140,7 +29735,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -30437,9 +30031,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -30453,7 +30044,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -30685,9 +30275,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -30701,7 +30288,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -30842,9 +30428,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -30858,7 +30441,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -31016,9 +30598,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -31032,7 +30611,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -31216,9 +30794,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -31232,7 +30807,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -31395,9 +30969,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -31411,7 +30982,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -31564,9 +31134,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -31580,7 +31147,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -31703,9 +31269,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -31719,7 +31282,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -31853,9 +31415,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -31869,7 +31428,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -32051,9 +31609,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -32067,7 +31622,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -32249,9 +31803,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -32265,7 +31816,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -32432,9 +31982,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -32448,7 +31995,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -32605,9 +32151,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -32621,7 +32164,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -32865,9 +32407,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -32881,7 +32420,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -33136,9 +32674,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -33152,7 +32687,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -33405,9 +32939,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -33421,7 +32952,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -33610,9 +33140,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -33626,7 +33153,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -34041,9 +33567,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -34057,7 +33580,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -34605,9 +34127,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -34621,7 +34140,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -34778,9 +34296,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -34794,7 +34309,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -34986,9 +34500,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -35002,7 +34513,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -35138,9 +34648,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -35154,7 +34661,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -35300,9 +34806,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -35316,7 +34819,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -35570,9 +35072,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -35586,7 +35085,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -35874,9 +35372,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -35890,7 +35385,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -36492,9 +35986,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -36508,7 +35999,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -36976,9 +36466,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -36992,7 +36479,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -37602,9 +37088,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -37618,7 +37101,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -37999,9 +37481,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -38015,7 +37494,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -38271,9 +37749,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -38287,7 +37762,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -38611,9 +38085,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -38627,7 +38098,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -39045,9 +38515,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -39061,7 +38528,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -39607,9 +39073,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -39623,7 +39086,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -39998,9 +39460,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -40014,7 +39473,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -40875,9 +40333,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -40891,7 +40346,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -41304,9 +40758,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -41320,7 +40771,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -41713,9 +41163,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -41729,7 +41176,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -42325,9 +41771,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -42341,7 +41784,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -42716,9 +42158,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -42732,7 +42171,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -43080,9 +42518,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -43096,7 +42531,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -43487,9 +42921,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -43503,7 +42934,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -43998,9 +43428,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -44014,7 +43441,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -44307,9 +43733,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -44323,7 +43746,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -44850,9 +44272,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -44866,7 +44285,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -45003,9 +44421,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -45019,7 +44434,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -45265,9 +44679,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -45281,7 +44692,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -45528,9 +44938,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -45544,7 +44951,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -45791,9 +45197,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -45807,7 +45210,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -46029,9 +45431,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -46045,7 +45444,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -46284,9 +45682,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -46300,7 +45695,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -46554,9 +45948,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -46570,7 +45961,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -46870,9 +46260,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -46886,7 +46273,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -47027,9 +46413,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -47043,7 +46426,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -47185,9 +46567,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -47201,7 +46580,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -47343,9 +46721,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -47359,7 +46734,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -47538,9 +46912,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -47554,7 +46925,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -47733,9 +47103,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -47749,7 +47116,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -48211,9 +47577,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -48227,7 +47590,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -48299,9 +47661,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -48315,7 +47674,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -48536,9 +47894,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -48552,7 +47907,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -48903,9 +48257,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -48919,7 +48270,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -49338,9 +48688,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -49354,7 +48701,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -49512,9 +48858,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -49528,7 +48871,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -50033,9 +49375,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -50049,7 +49388,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -50282,9 +49620,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -50298,7 +49633,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -50722,9 +50056,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -50738,7 +50069,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -50847,9 +50177,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -50863,7 +50190,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation

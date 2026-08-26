@@ -67,8 +67,15 @@ else answers `403 forbidden`, reason `wrong_team`. See [authentication](/authent
 ## How member access is expressed
 
 There is no role column in the data. Access is a flat list of permission tokens shaped
-`can_{verb}_{noun}`, plus an optional account slice. The catalog holds **44 tokens** (22
-platform-level, 22 channel-level), and the wildcard `*` means all of them.
+`can_{verb}_{noun}`, plus an optional account slice. The catalog holds **43 tokens** (21
+platform-level, 18 LinkedIn, 4 orchestration), and the wildcard `*` means all of them.
+
+The picker offers three named presets over that list: **Superadmin** (everything, stored as `*`),
+**Operator** (the default for a new invite: run outreach on every account, no billing, keys,
+sessions or admin surfaces) and **View only** (read everything the product shows, act on nothing).
+A preset is a starting point, not a stored role: after picking one you can still tick or untick
+individual tokens. One token, `can_view_teams`, is part of every membership and cannot be unticked -
+without it a member could not even resolve their own workspace.
 
 | Token | Grants |
 |---|---|
@@ -81,13 +88,19 @@ platform-level, 22 channel-level), and the wildcard `*` means all of them.
 | `can_manage_account_transfers` | Transfer an account to another workspace. No read-only tier by design |
 
 The `account_sids` field is the slice: `null` is every account in the workspace (rendered **All**), a
-list of `ln_ac_` sids is only those (**{n} of {total}**), an empty list is none.
+list of `ln_ac_` sids is only those (**{n} of {total}**). An explicit empty list is refused with a
+`422` - a member scoped to zero accounts would see a workspace that looks empty rather than
+forbidden, which is a support ticket, not a grant.
 
 <Note>
 Both scoping surfaces are in the app. The invite dialog carries the permission editor, so an
 invitation goes out with exactly the tokens you tick, and **Access** on a member row reopens the same
 editor for somebody already in the workspace. Either one writes the full list, so the editor's state
 is the grant: unticking is how you narrow. `PATCH /api/team-members/{sid}` does the same over the API.
+A change applies immediately: the member's live tokens are invalidated and silently re-minted with
+the new grant on their next request - no re-login, and no waiting for a token to expire. You can
+only grant what you hold yourself: a request that exceeds your own access answers
+`403 grant_exceeds_ceiling`.
 </Note>
 
 ## Invite a teammate
@@ -187,10 +200,10 @@ the full request shape are in the [API reference](/api-reference/overview).
 | `accept-invitation` after 7 days | `409 conflict`, reason `invitation_expired` | Press **Resend** in the app, which gives another 7 days |
 | `PATCH` with neither field | `422 nothing_to_update` | Send `permissions` or `account_sids` |
 | An `account_sids` entry that is not an `ln_ac_` sid | `422 validation_failed` | Use LinkedIn account sids, not user or member sids |
-| A sid with the wrong prefix | `422 validation_failed`, message `Invalid input for 'sid': Expected ts_mb_ prefix, got ...` | Member sids start with `ts_mb_` |
+| A sid with the wrong prefix | `422 validation_failed`, `field_errors.sid[0].message` reads `Expected ts_mb_ prefix, got ...` | Member sids start with `ts_mb_` |
 | `switch-team` to a workspace you do not belong to | `403 forbidden`, reason `not_a_member` | The same code covers a deleted workspace and a revoked membership, on purpose |
 | `switch-team` with an OAuth installation token | `403 forbidden`, reason `not_a_login_session` | Only login sessions switch. Agent tokens are minted per workspace |
-| A call with no `Team-SID` on a workspace-less token | `422 validation_failed`, with `field_errors.team_sid: ["Team-SID header is required"]` | Get a token minted for a workspace. The header cannot supply one to a token that has none |
+| A call with no `Team-SID` on a workspace-less token | `422 validation_failed`, with `field_errors.team_sid[0].rule` = `team_sid_required` | Get a token minted for a workspace. The header cannot supply one to a token that has none |
 | `Team-SID` naming a workspace the token was not minted for | `403 forbidden`, reason `wrong_team` | Send the header the token was minted with, or drop it |
 
 ## Related

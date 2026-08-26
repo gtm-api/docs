@@ -164,7 +164,7 @@ run before the loan is driven to a terminal status.
 
 | Situation | HTTP | `error.code` | Discriminator |
 |---|---|---|---|
-| Bad target: your own workspace; neither or both of `to_email` and `to_team_sid`; no workspace for that email | 422 | `validation_failed` | `field_errors.to_team_sid = ["cannot_share_to_self"]`; `field_errors.to_email = ["exactly_one_of_to_email_or_to_team_sid"]`; `field_errors.to_email` |
+| Bad target: your own workspace; neither or both of `to_email` and `to_team_sid`; no workspace for that email | 422 | `validation_failed` | `field_errors.to_team_sid[0].rule = "cannot_share_to_self"`; `field_errors.to_email[0].rule = "exactly_one_of_to_email_or_to_team_sid"`; or `field_errors.to_email` with the unresolved address |
 | Target workspace suspended or deleted | 409 | `conflict` | `context.reason = holder_team_unavailable` |
 | Account is not lendable, already lent out, or has a transfer in flight | 409 | `conflict` | `context.reason = account_not_shareable`, `account_already_shared`, `handover_in_flight` |
 | The share is not `active` | 409 | `conflict` | `context.reason = share_not_active`, plus `context.current_status` |

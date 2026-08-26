@@ -7,11 +7,11 @@ openapi: 3.0.3
 info:
   title: "GTM API public contract: gtm.service.id"
   description: |-
-    Identity, access and money: users, teams and members, API keys, OAuth clients and authorizations, billing products, subscriptions, transactions and payment methods, notifications, TLS certificates, observability and support requests.
+    Identity, access and money: users, teams and members, API keys, OAuth clients and authorizations, billing products, subscriptions, transactions and payment methods, notifications, TLS certificates and support requests.
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.id`, 74 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.id`, 72 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -53,8 +53,6 @@ tags:
     description: Registry package `mcp.id/oauth_authorizations`, served on MCP mount `id.access`.
   - name: oauth_clients
     description: Registry package `mcp.id/oauth_clients`, served on MCP mount `id.access`.
-  - name: observability_requests
-    description: Registry package `mcp.id/observability_requests`, served on MCP mount `id.platform`.
   - name: sessions
     description: Registry package `mcp.id/sessions`, served on MCP mount `id.identity`.
   - name: ssl_certificates
@@ -73,7 +71,7 @@ paths:
       operationId: create_account_share
       summary: Lend an account to another workspace
       description: |-
-        Lend ONE of your connected accounts to another workspace, temporarily and revocably. This is a loan, not a handover: permanent ownership transfer has no MCP tool at all. Target exactly one of to_email (resolved to that user's working team) or to_team_sid; neither, both, a bad email or a self-target is 422. account_sid is prefix agnostic (ln_ac_); `channel` says which service owns it. ALWAYS ASYNC: returns 201 with status pending, and the loan has NOT started. Poll search_account_shares with filter { sid: { eq } } until status is active (the holder can work) or failed (read failure_reason); rolling_back means it is being undone, so do not re-issue. holder_over_slot true means the copy landed in the holder's subscription hold and they cannot work until they upgrade; a share never fails on slots. One row is one account with no bulk arm, so N accounts is N calls. planned_return_at only emails the owner a recall link; there is no auto return. Needs can_manage_account_shares.
+        Lend ONE of your connected accounts to another workspace, temporarily and revocably. This is a loan, not a handover: permanent ownership transfer has no MCP tool at all. Target exactly one of to_email (resolved to that user's working team) or to_team_sid; neither, both, a bad email or a self-target is 422. account_sid is prefix agnostic (ln_ac_, em_ac_); `channel` says which service owns it. ALWAYS ASYNC: returns 201 with status pending, and the loan has NOT started. Poll search_account_shares with filter { sid: { eq } } until status is active (the holder can work) or failed (read failure_reason); rolling_back means it is being undone, so do not re-issue. holder_over_slot true means the copy landed in the holder's subscription hold and they cannot work until they upgrade; a share never fails on slots. One row is one account with no bulk arm, so N accounts is N calls. planned_return_at only emails the owner a recall link; there is no auto return. Needs can_manage_account_shares.
 
         Contract:
         - MCP tool `create_account_share`, registry package `mcp.id/account_shares`, mount `id.access`.
@@ -319,7 +317,7 @@ paths:
       operationId: get_api_keys_metrics
       summary: API key metrics
       description: |-
-        Period-bound counts of the team's keys by status, plus issuance / expiry tallies inside the window (created_in_period, expired_in_period). Requires period {from, to}. Optional filter. Counts key rows, not key traffic; for per-key request usage use observability.
+        Period-bound counts of the team's keys by status, plus issuance / expiry tallies inside the window (created_in_period, expired_in_period). Requires period {from, to}. Optional filter. Counts key rows, not key traffic.
 
         Contract:
         - MCP tool `get_api_keys_metrics`, registry package `mcp.id/api_keys`, mount `id.access`.
@@ -1698,7 +1696,7 @@ paths:
       operationId: get_notification
       summary: Get notification
       description: |-
-        Fetch a single notification by sid: the rendered subject / body, delivery state, and failure reason if any. Useful in post-call analysis: follow a notification's event_sid back through observability to explain "why did I get this email".
+        Fetch a single notification by sid: the rendered subject / body, delivery state, and failure reason if any.
 
         Contract:
         - MCP tool `get_notification`, registry package `mcp.id/notifications`, mount `id.platform`.
@@ -2165,88 +2163,6 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-  /api/observability/get-request:
-    post:
-      operationId: get_observability_request
-      summary: Get observability request
-      description: |-
-        Fetch the full execution of one past MCP request by trace_id: spans, timings, status, the redacted input/output bodies, errors, emitted events, permission decisions, DB queries and the span tree. Read-only debugging instrument (Tempo + Loki facade, no local storage). Use when a user pastes a trace_id and asks "what happened / why did this fail", or to introspect a past tool call. Returns not_found when the trace was sampled out or is past retention; 403 (not 404) when the trace belongs to another actor/team.
-
-        Contract:
-        - MCP tool `get_observability_request`, registry package `mcp.id/observability_requests`, mount `id.platform`.
-        - Operation `get`, response envelope `get`.
-        - Flags: read only.
-      tags:
-        - observability_requests
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GetObservabilityRequestRequest"
-      responses:
-        "200":
-          description: "`get` success envelope."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetObservabilityRequestResponse"
-        4XX:
-          $ref: "#/components/responses/McpClientError"
-        5XX:
-          $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: get_observability_request
-      x-gtm-mcp-mount: id.platform
-      x-gtm-entity: observability_requests
-      x-gtm-operation: get
-      x-gtm-envelope: get
-      x-gtm-availability: ga
-      x-gtm-dangerous: false
-      x-gtm-mass-action: false
-      x-gtm-step-eligible: false
-      x-gtm-schedule-required: false
-      x-gtm-tool-class: complex
-  /api/observability/get-session:
-    post:
-      operationId: get_observability_session
-      summary: Get observability session
-      description: |-
-        Fetch the full tool-call history of one agent session by agent_session_id: total turns, total tool calls, and the per-turn tool-call breakdown. Read-only (Tempo + Loki facade). Use for post-mortems ("explain what my agent did / why it gave up") or handoff between agents. Returns not_found past retention; 403 when the session belongs to another actor/team.
-
-        Contract:
-        - MCP tool `get_observability_session`, registry package `mcp.id/observability_requests`, mount `id.platform`.
-        - Operation `get`, response envelope `get`.
-        - Flags: read only.
-      tags:
-        - observability_requests
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/GetObservabilitySessionRequest"
-      responses:
-        "200":
-          description: "`get` success envelope."
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/GetObservabilitySessionResponse"
-        4XX:
-          $ref: "#/components/responses/McpClientError"
-        5XX:
-          $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: get_observability_session
-      x-gtm-mcp-mount: id.platform
-      x-gtm-entity: observability_requests
-      x-gtm-operation: get
-      x-gtm-envelope: get
-      x-gtm-availability: ga
-      x-gtm-dangerous: false
-      x-gtm-mass-action: false
-      x-gtm-step-eligible: false
-      x-gtm-schedule-required: false
-      x-gtm-tool-class: complex
   /api/sessions/search:
     post:
       operationId: search_sessions
@@ -2794,7 +2710,7 @@ paths:
       operationId: create_team_member
       summary: Invite team member
       description: |-
-        Invite a person by email. Born status=invited, user_sid=null, with a one-time code (+7d expiry); dispatches the invite email. permissions is the explicit token list (expand a UI preset in code first); account_sids is the optional profile slice (null/omitted = all team profiles). Natural key (team, email) over live rows; re-inviting a live member returns already_exists:true.
+        Invite a person by email. Born status=invited, user_sid=null, with a one-time code (+7d expiry); dispatches the invite email. permissions is the explicit token list validated against the catalog (403 grant_exceeds_ceiling when it exceeds the CALLER's own grant; '*' is grantable only by the owner or a wildcard holder; can_view_teams is always added - the membership floor). account_sids is the optional profile slice (null/omitted = all team profiles; an explicit empty list is refused, and a sliced caller cannot grant beyond their own slice). Natural key (team, email) over live rows; re-inviting a live member returns already_exists:true.
 
         Contract:
         - MCP tool `create_team_member`, registry package `mcp.id/team_members`, mount `id.identity`.
@@ -2917,7 +2833,7 @@ paths:
       operationId: update_team_member
       summary: Update team member
       description: |-
-        Re-scope an existing member: replace permissions and/or account_sids. email / status / user_sid / team_sid are read-only (rejected silently). At least one field required. Updating the owner's permissions is allowed but cannot strip ownership (use transfer_team_ownership).
+        Re-scope an existing member: replace permissions and/or account_sids. email / status / user_sid / team_sid are read-only (rejected silently). At least one field with an ACTUAL change required (a value-identical PATCH answers 422 nothing_to_update). The change applies immediately: the member's live tokens are invalidated and re-minted with the new grant on their next request (agents re-exchange). Bounded by the caller's own grant (403 grant_exceeds_ceiling); the structural owner's seat is not re-scopable (409 owner_cannot_be_rescoped - move ownership via transfer_team_ownership).
 
         Contract:
         - MCP tool `update_team_member`, registry package `mcp.id/team_members`, mount `id.identity`.
@@ -3604,9 +3520,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -3620,7 +3533,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -3838,9 +3750,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -3854,7 +3763,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -4062,9 +3970,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -4078,7 +3983,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -4274,9 +4178,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -4290,7 +4191,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -4500,9 +4400,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -4516,7 +4413,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -4780,9 +4676,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -4796,7 +4689,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -4938,9 +4830,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -4954,7 +4843,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -5190,9 +5078,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -5206,7 +5091,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -5383,9 +5267,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -5399,7 +5280,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -5552,9 +5432,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -5568,7 +5445,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -5587,8 +5463,52 @@ components:
           type: array
           items:
             type: string
-            maxLength: 128
-          description: Unified permission tokens; [] = membership only.
+            enum:
+              - can_view_teams
+              - can_manage_teams
+              - can_view_team_members
+              - can_manage_team_members
+              - can_view_api_keys
+              - can_manage_api_keys
+              - can_view_oauth_clients
+              - can_manage_oauth_clients
+              - can_view_sessions
+              - can_manage_sessions
+              - can_view_account_shares
+              - can_manage_account_shares
+              - can_manage_account_transfers
+              - can_view_billing
+              - can_manage_billing
+              - can_view_ssl_certificates
+              - can_manage_ssl_certificates
+              - can_view_notifications
+              - can_manage_notifications
+              - can_view_support_requests
+              - can_manage_support_requests
+              - can_view_linkedin_connections
+              - can_act_linkedin_connections
+              - can_view_linkedin_messages
+              - can_act_linkedin_messages
+              - can_act_linkedin_engagements
+              - can_view_linkedin_searches
+              - can_act_linkedin_searches
+              - can_view_linkedin_enrichment
+              - can_act_linkedin_enrichment
+              - can_view_linkedin_accounts
+              - can_update_linkedin_accounts
+              - can_manage_linkedin_accounts
+              - can_open_cloud_browser
+              - can_change_proxy
+              - can_edit_schedule
+              - can_manage_smart_limits
+              - can_manage_cloud_browser_external_links
+              - can_act_linkedin_custom_requests
+              - can_view_mass_actions
+              - can_manage_mass_actions
+              - can_view_webhooks
+              - can_manage_webhooks
+              - "*"
+          description: Unified catalog tokens; the can_view_teams floor is always unioned in.
         account_sids:
           type: array
           nullable: true
@@ -5598,7 +5518,8 @@ components:
             maxLength: 18
             pattern: ^ln_ac_
             description: "Connected-account sid (ln_ac_…): a member profile-slice entry."
-          description: Profile slice; null/omitted = all team profiles.
+          minItems: 1
+          description: Profile slice; null/omitted = all team profiles. An empty list is refused (422).
       required:
         - email
         - permissions
@@ -5708,9 +5629,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -5724,7 +5642,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -5875,9 +5792,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -5891,7 +5805,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -5937,9 +5850,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -5953,7 +5863,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6001,9 +5910,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6017,7 +5923,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6065,9 +5970,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6081,7 +5983,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6129,9 +6030,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6145,7 +6043,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6193,9 +6090,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6209,7 +6103,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6257,9 +6150,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6273,7 +6163,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6344,9 +6233,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6360,7 +6246,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6520,9 +6405,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6536,7 +6418,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6661,9 +6542,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6677,7 +6555,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6907,9 +6784,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6923,7 +6797,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -6975,9 +6848,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -6991,7 +6861,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -7187,9 +7056,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -7203,7 +7069,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -7399,9 +7264,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -7415,7 +7277,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -7556,9 +7417,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -7572,7 +7430,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -7713,9 +7570,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -7729,7 +7583,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8013,9 +7866,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8029,7 +7879,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8178,9 +8027,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8194,7 +8040,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8343,9 +8188,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8359,7 +8201,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8594,9 +8435,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8610,7 +8448,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -8745,9 +8582,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -8761,509 +8595,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
-      required:
-        - success
-        - operation
-        - item
-        - included
-        - includes
-        - meta
-    GetObservabilityRequestRequest:
-      type: object
-      description: Request body of `get_observability_request`.
-      properties:
-        trace_id:
-          type: string
-          description: "The request trace_id: the dashed UUID from meta.trace_id / X-Trace-Id, or the same id in the bare 32-hex OTel form."
-      required:
-        - trace_id
-    GetObservabilityRequestResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        operation:
-          type: string
-          enum:
-            - get
-        item:
-          type: object
-          properties:
-            sid:
-              type: string
-            trace_id:
-              type: string
-            agent_session_id:
-              type: string
-              nullable: true
-            agent_turn_id:
-              type: string
-              nullable: true
-            tool:
-              type: string
-            actor:
-              type: object
-              nullable: true
-              properties:
-                actor_type:
-                  type: string
-                  enum:
-                    - user
-                    - support
-                    - api_key
-                    - system
-                    - agent
-                actor_sid:
-                  type: string
-                team_sid:
-                  type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
-                  type: string
-                  nullable: true
-                reason:
-                  type: string
-                  nullable: true
-              required:
-                - actor_type
-                - actor_sid
-                - team_sid
-                - permissions
-                - reason
-            team_sid:
-              type: string
-            status:
-              type: string
-              enum:
-                - ok
-                - error
-            started_at:
-              type: string
-            duration_ms:
-              type: number
-            input:
-              type: object
-              additionalProperties: {}
-            output:
-              type: object
-              additionalProperties: {}
-            errors:
-              type: array
-              items:
-                type: object
-                properties:
-                  code:
-                    type: string
-                  message:
-                    type: string
-                  path:
-                    type: array
-                    nullable: true
-                    items:
-                      type: string
-                  span_id:
-                    type: string
-                required:
-                  - code
-                  - message
-                  - path
-                  - span_id
-            events_emitted:
-              type: array
-              items:
-                type: object
-                properties:
-                  event_sid:
-                    type: string
-                  name:
-                    type: string
-                  payload_size:
-                    type: number
-                  emitted_at:
-                    type: string
-                required:
-                  - event_sid
-                  - name
-                  - payload_size
-                  - emitted_at
-            permission_decisions:
-              type: array
-              items:
-                type: object
-                properties:
-                  policy:
-                    type: string
-                  decision:
-                    type: string
-                    enum:
-                      - allow
-                      - deny
-                  reason:
-                    type: string
-                required:
-                  - policy
-                  - decision
-                  - reason
-            child_calls:
-              type: array
-              items:
-                type: object
-                properties:
-                  trace_id:
-                    type: string
-                  tool:
-                    type: string
-                  duration_ms:
-                    type: number
-                  status:
-                    type: string
-                    enum:
-                      - ok
-                      - error
-                required:
-                  - trace_id
-                  - tool
-                  - duration_ms
-                  - status
-            db_queries:
-              type: array
-              items:
-                type: object
-                properties:
-                  sql_fingerprint:
-                    type: string
-                  duration_ms:
-                    type: number
-                  rows:
-                    type: number
-                  table:
-                    type: string
-                    nullable: true
-                  operation:
-                    type: string
-                    enum:
-                      - SELECT
-                      - INSERT
-                      - UPDATE
-                      - DELETE
-                      - OTHER
-                required:
-                  - sql_fingerprint
-                  - duration_ms
-                  - rows
-                  - table
-                  - operation
-            span_tree:
-              type: object
-              properties:
-                span_id:
-                  type: string
-                parent_span_id:
-                  type: string
-                  nullable: true
-                name:
-                  type: string
-                kind:
-                  type: string
-                  enum:
-                    - server
-                    - client
-                    - producer
-                    - consumer
-                    - internal
-                started_at:
-                  type: string
-                duration_ms:
-                  type: number
-                status:
-                  type: string
-                  enum:
-                    - ok
-                    - error
-                    - unset
-                attributes:
-                  type: object
-                  additionalProperties:
-                    anyOf:
-                      - type: string
-                      - type: number
-                      - type: boolean
-                      - {}
-                      - {}
-                events:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                      at:
-                        type: string
-                      attributes:
-                        type: object
-                        additionalProperties: {}
-                    required:
-                      - name
-                      - at
-                      - attributes
-                children:
-                  type: array
-                  items:
-                    type: object
-                    additionalProperties: {}
-                    description: "Recursive node: the same object shape repeats here. A static OpenAPI document cannot express the cycle, so this level is documented as an open object."
-              required:
-                - span_id
-                - parent_span_id
-                - name
-                - kind
-                - started_at
-                - duration_ms
-                - status
-                - attributes
-                - events
-                - children
-            debug_url:
-              type: string
-          required:
-            - sid
-            - trace_id
-            - agent_session_id
-            - agent_turn_id
-            - tool
-            - actor
-            - team_sid
-            - status
-            - started_at
-            - duration_ms
-            - input
-            - output
-            - errors
-            - events_emitted
-            - permission_decisions
-            - child_calls
-            - db_queries
-            - span_tree
-            - debug_url
-        included:
-          type: object
-          additionalProperties: {}
-        includes:
-          type: array
-          items:
-            type: string
-        meta:
-          type: object
-          properties:
-            trace_id:
-              type: string
-              description: UUID v7; same 128-bit value as the X-Trace-Id header.
-            span_id:
-              type: string
-              pattern: ^[0-9a-f]{16}$
-              description: 16 hex chars, root span of this request.
-            timestamp:
-              type: string
-              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
-            duration_ms:
-              type: integer
-              minimum: 0
-              description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
-            team_sid:
-              type: string
-              nullable: true
-              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
-            actor_type:
-              type: string
-              nullable: true
-              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
-          required:
-            - trace_id
-            - span_id
-            - timestamp
-            - duration_ms
-            - debug_url
-      required:
-        - success
-        - operation
-        - item
-        - included
-        - includes
-        - meta
-    GetObservabilitySessionRequest:
-      type: object
-      description: Request body of `get_observability_session`.
-      properties:
-        agent_session_id:
-          type: string
-          description: The agent session id (UUID v7, 36 chars).
-      required:
-        - agent_session_id
-    GetObservabilitySessionResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        operation:
-          type: string
-          enum:
-            - get
-        item:
-          type: object
-          properties:
-            sid:
-              type: string
-            agent_session_id:
-              type: string
-            started_at:
-              type: string
-            last_activity_at:
-              type: string
-            duration_ms:
-              type: number
-            total_turns:
-              type: number
-            total_tool_calls:
-              type: number
-            actor:
-              type: object
-              nullable: true
-              properties:
-                actor_type:
-                  type: string
-                  enum:
-                    - user
-                    - support
-                    - api_key
-                    - system
-                    - agent
-                actor_sid:
-                  type: string
-                team_sid:
-                  type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
-                  type: string
-                  nullable: true
-                reason:
-                  type: string
-                  nullable: true
-              required:
-                - actor_type
-                - actor_sid
-                - team_sid
-                - permissions
-                - reason
-            team_sid:
-              type: string
-              nullable: true
-            turns:
-              type: array
-              items:
-                type: object
-                properties:
-                  agent_turn_id:
-                    type: string
-                  started_at:
-                    type: string
-                  duration_ms:
-                    type: number
-                  tool_calls:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        trace_id:
-                          type: string
-                        tool:
-                          type: string
-                        started_at:
-                          type: string
-                        duration_ms:
-                          type: number
-                        status:
-                          type: string
-                          enum:
-                            - ok
-                            - error
-                      required:
-                        - trace_id
-                        - tool
-                        - started_at
-                        - duration_ms
-                        - status
-                required:
-                  - agent_turn_id
-                  - started_at
-                  - duration_ms
-                  - tool_calls
-            debug_url:
-              type: string
-          required:
-            - sid
-            - agent_session_id
-            - started_at
-            - last_activity_at
-            - duration_ms
-            - total_turns
-            - total_tool_calls
-            - actor
-            - team_sid
-            - turns
-            - debug_url
-        included:
-          type: object
-          additionalProperties: {}
-        includes:
-          type: array
-          items:
-            type: string
-        meta:
-          type: object
-          properties:
-            trace_id:
-              type: string
-              description: UUID v7; same 128-bit value as the X-Trace-Id header.
-            span_id:
-              type: string
-              pattern: ^[0-9a-f]{16}$
-              description: 16 hex chars, root span of this request.
-            timestamp:
-              type: string
-              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
-            duration_ms:
-              type: integer
-              minimum: 0
-              description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
-            team_sid:
-              type: string
-              nullable: true
-              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
-            actor_type:
-              type: string
-              nullable: true
-              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
-          required:
-            - trace_id
-            - span_id
-            - timestamp
-            - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9412,9 +8743,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9428,7 +8756,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9562,9 +8889,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9578,7 +8902,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9716,9 +9039,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9732,7 +9052,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -9901,9 +9220,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -9917,7 +9233,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -10027,9 +9342,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10043,7 +9355,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -10588,9 +9899,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10604,7 +9912,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -10656,17 +9963,15 @@ components:
               additionalProperties:
                 type: array
                 items:
-                  anyOf:
-                    - type: string
-                    - type: object
-                      properties:
-                        rule:
-                          type: string
-                        message:
-                          type: string
-                      required:
-                        - rule
-                        - message
+                  type: object
+                  properties:
+                    rule:
+                      type: string
+                    message:
+                      type: string
+                  required:
+                    - rule
+                    - message
             blockers:
               type: array
               items:
@@ -10724,9 +10029,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10740,7 +10042,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - error
@@ -10932,9 +10233,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -10948,7 +10246,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -11158,9 +10455,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -11174,7 +10468,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -11678,9 +10971,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -11694,7 +10984,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -11906,9 +11195,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -11922,7 +11208,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12091,9 +11376,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12107,7 +11389,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12228,9 +11509,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12244,7 +11522,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12440,9 +11717,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12456,7 +11730,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -12960,9 +12233,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -12976,7 +12246,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13064,9 +12333,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13080,7 +12346,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13188,9 +12453,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13204,7 +12466,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13339,9 +12600,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13355,7 +12613,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -13896,9 +13153,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -13912,7 +13166,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           additionalProperties: {}
@@ -14222,9 +13475,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -14238,7 +13488,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -14512,9 +13761,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -14528,7 +13774,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -15000,9 +14245,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15016,7 +14258,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -15424,9 +14665,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15440,7 +14678,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -15791,9 +15028,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -15807,7 +15041,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -16024,9 +15257,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -16040,7 +15270,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -16357,9 +15586,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -16373,7 +15599,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -16674,9 +15899,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -16690,7 +15912,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -17009,9 +16230,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17025,7 +16243,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -17350,9 +16567,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17366,7 +16580,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties: {}
@@ -17646,9 +16859,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17662,7 +16872,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -17961,9 +17170,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -17977,7 +17183,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
         counts:
           type: object
           properties:
@@ -18139,9 +17344,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -18155,7 +17357,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -18351,9 +17552,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -18367,7 +17565,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -18563,9 +17760,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -18579,7 +17773,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -18719,9 +17912,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -18735,7 +17925,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -18945,9 +18134,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -18961,7 +18147,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19072,9 +18257,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19088,7 +18270,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19268,9 +18449,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19284,7 +18462,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19433,9 +18610,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19449,7 +18623,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19465,7 +18638,52 @@ components:
           type: array
           items:
             type: string
-            maxLength: 128
+            enum:
+              - can_view_teams
+              - can_manage_teams
+              - can_view_team_members
+              - can_manage_team_members
+              - can_view_api_keys
+              - can_manage_api_keys
+              - can_view_oauth_clients
+              - can_manage_oauth_clients
+              - can_view_sessions
+              - can_manage_sessions
+              - can_view_account_shares
+              - can_manage_account_shares
+              - can_manage_account_transfers
+              - can_view_billing
+              - can_manage_billing
+              - can_view_ssl_certificates
+              - can_manage_ssl_certificates
+              - can_view_notifications
+              - can_manage_notifications
+              - can_view_support_requests
+              - can_manage_support_requests
+              - can_view_linkedin_connections
+              - can_act_linkedin_connections
+              - can_view_linkedin_messages
+              - can_act_linkedin_messages
+              - can_act_linkedin_engagements
+              - can_view_linkedin_searches
+              - can_act_linkedin_searches
+              - can_view_linkedin_enrichment
+              - can_act_linkedin_enrichment
+              - can_view_linkedin_accounts
+              - can_update_linkedin_accounts
+              - can_manage_linkedin_accounts
+              - can_open_cloud_browser
+              - can_change_proxy
+              - can_edit_schedule
+              - can_manage_smart_limits
+              - can_manage_cloud_browser_external_links
+              - can_act_linkedin_custom_requests
+              - can_view_mass_actions
+              - can_manage_mass_actions
+              - can_view_webhooks
+              - can_manage_webhooks
+              - "*"
+          description: Full replacement; the can_view_teams floor is always unioned in.
         account_sids:
           type: array
           nullable: true
@@ -19475,7 +18693,8 @@ components:
             maxLength: 18
             pattern: ^ln_ac_
             description: "Connected-account sid (ln_ac_…): a member profile-slice entry."
-          description: null resets to "all profiles".
+          minItems: 1
+          description: null resets to "all profiles"; an empty list is refused (422).
     UpdateTeamMemberResponse:
       type: object
       properties:
@@ -19587,9 +18806,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19603,7 +18819,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation
@@ -19757,9 +18972,6 @@ components:
               type: integer
               minimum: 0
               description: Server-side wall clock.
-            debug_url:
-              type: string
-              description: Deep link to the post-call analysis UI.
             team_sid:
               type: string
               nullable: true
@@ -19773,7 +18985,6 @@ components:
             - span_id
             - timestamp
             - duration_ms
-            - debug_url
       required:
         - success
         - operation

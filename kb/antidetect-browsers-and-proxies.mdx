@@ -36,6 +36,53 @@ uptime), and the event log underneath.
   <img src="/images/kb/account-drawer-browser.png" alt="Account drawer Browser tab showing the antidetect browser block, proxy block and browser event log" />
 </Frame>
 
+## Connect a profile you already own
+
+Instead of letting the platform mint a browser, you can bind a GoLogin profile that already
+exists in your own account. Open **Senders**, click **Connect account**, switch to **Existing
+profile ID**. The profile keeps its own proxy and its own fingerprint, and it stays yours.
+
+The one thing that trips people up: we read that profile through **our** GoLogin account, not
+through yours. GoLogin's API only answers for profiles the calling account can see, so a profile
+sitting in your account is invisible to us until you share it.
+
+<Steps>
+<Step title="Share the profile with us in GoLogin">
+
+Open the profile in GoLogin, click **Share**, and add **pro@getsales.io**.
+
+The share has to let us RUN the profile, not only see it. Before anything is created we read the
+profile's own `canBeRunning` flag, and a share that cannot launch it is refused right there.
+
+</Step>
+<Step title="Leave the profile unlocked">
+
+GoLogin's profile lock (`lockEnabled`) blocks launching. We read it in the same check, so a
+locked profile is refused at connect too. Turn the lock off first.
+
+</Step>
+<Step title="Paste the profile ID">
+
+Copy the profile ID from GoLogin (the long hex string, e.g. `88857ca36ce45f284aab6213`) and paste
+it into **GoLogin profile ID**, then click **Verify & connect**.
+
+</Step>
+</Steps>
+
+Both checks happen before the browser exists, so a refusal costs you nothing:
+
+| What you see | What it means |
+|---|---|
+| Profile not found, or it is not shared with gtm-api | The ID is wrong, or the share never happened. GoLogin answers the same way for "no such profile" and "not yours to see", so check both. |
+| This profile is shared with gtm-api but cannot be started | We can see it, but it is not runnable: the share does not allow launching, or the profile lock is on. |
+| This vendor profile ID is already in use | The profile is already bound to a browser, here or in another workspace. One profile drives one sender. |
+
+<Note>
+Sharing a profile does not hand over your GoLogin account, and we never change the profile's
+proxy or fingerprint. Un-share it in GoLogin whenever you want; the browser stops working on our
+side and nothing else about your account changes.
+</Note>
+
 ## Proxies: cloud and BYO
 
 - **Cloud-minted browsers require a proxy.** You pick the country when creating the
