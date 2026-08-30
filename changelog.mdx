@@ -3,6 +3,94 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-08-30" description="Browser ownership is derived, deletes confirm the stop, and a key is not a person">
+  **262 operations**: LinkedIn 168, ID and Teams 72, Orchestration 22.
+
+  **`browser_owner` is no longer an input.** `POST /api/antidetect-browsers` derives it from the one
+  fact that decides it: send `vendor_profile_id` and the profile is yours (`customer`), omit it and we
+  mint one in our own vendor account (`platform`). The field stays on the row and in filters, but its
+  vocabulary is now exactly those two values; `mirror_profiles` is gone from the enum. Sending
+  `browser_owner` on create is a validation error naming the field.
+
+  **`vendor_profile_id` is validated as what it is**: a GoLogin profile id, 24 hex characters, not a
+  profile URL or a share link. A profile that is not shared with our vendor account answers
+  `422 vendor_profile_not_found`; an owning account over its GoLogin plan answers
+  `402 vendor_profile_plan_limit`, and retrying will not help until the plan changes.
+
+  **Deleting a running browser now stops it first and waits for the confirm.** The call can take up to
+  ~20 s; if the node does not confirm the teardown, the delete is refused
+  `409` with `context.reason: browser_stop_unconfirmed` and nothing is deleted - retry in a minute
+  rather than assuming success.
+
+  **A key is not a person.** `GET /api/users/current` (`get_current_user`) on an API key answers `403`
+  with `context.reason: not_a_user_actor` instead of a misleading validation error about a `sid` field
+  you never sent. No permission on the key changes that: the endpoint returns a signed-in person's
+  profile, and a key has none. The same applies to `PATCH /api/users/current`.
+
+  **A freshly connected sender starts on business hours.** Its `sync_config.window` is seeded
+  Monday-Friday 09:00-18:00 in the workspace timezone (UTC when the workspace has none). An empty
+  window still means round the clock, as it always has - there is no "off" through this field.
+</Update>
+
+<Update label="2026-08-28" description="Person languages goes GA, short links resolve, and hand-off links carry a purpose">
+  **Person languages is live.** `POST /api/linkedin-enrichment/person-languages` answers with the
+  profile's Languages card (raw `name` plus optional `proficiency` strings) instead of `501`. Same
+  shape and paging as certifications and recommendations.
+
+  **`lnkd.in` short links are a first-class input.** LinkedIn's own "Copy link to post" mints
+  `https://lnkd.in/p/...`, so every endpoint that takes a post link now accepts one and expands it
+  server-side: enrichment reads, `get-activity-urn-by-url`, reactions, reshares. A post page URL also
+  resolves its backend `share` / `ugcPost` urn where only the activity urn resolved before.
+
+  **Cloud-browser links say what they are for.** `generate-cloud-browser-access-key` takes `purpose`:
+  `relogin` (the default, and what every key minted before the field carries) walks the visitor
+  through a LinkedIn sign-in whose confirm re-binds the account; `share` just hands the browser over,
+  with a Done button instead of a sign-in flow. The mass-action step forwards the same argument, so a
+  batch of links minted to be handed out must say `share` explicitly.
+
+  **`used_connects` is gone from access-key entries.** Nothing ever incremented it, so every reader
+  saw `0` forever. `max_connects` caps CONCURRENT sessions and is enforced against live
+  `cloud-browser-sessions` rows at connect time. On session rows, `access_key` is now masked to
+  `cb_ak_********` plus the last 4 characters - enough to attribute a session to a key you hold, and
+  nothing anyone else could redeem.
+
+  **Workspace capacity in one read.** `POST /api/antidetect-browsers/seat-usage` answers the seats and
+  5G proxy slots the whole workspace occupies against its plan ceilings - what the plan card prints,
+  independent of any member's account scope.
+
+  **Held profiles get a schedule.** A workspace holding more browser profiles than its plan allows
+  gets a warning at day 21 of the hold and a teardown of the over-cap profiles at day 28, oldest
+  first. Growing the plan back at any point before day 28 keeps everything.
+
+  **Message attachments deliver again.** `send-message` with `attachments` produced
+  `handler_failed: Invalid File URL` on the wire since the wire expects a full `data:` URL; fixed
+  server-side, no request change needed.
+</Update>
+
+<Update label="2026-08-27" description="One operator field on a sender, and it is now searchable">
+  **`display_name` is gone from the LinkedIn account.** It is off the account object in every response,
+  off `PATCH /api/linkedin-accounts/{sid}`, and its column is dropped. The field was meant to override
+  the LinkedIn name wherever an account was listed, and it never did: a few screens honoured it and the
+  rest read the synced name, so one account could answer to two names depending on which page asked.
+  The name a sender carries is LinkedIn's own `full_name`, refreshed by the account snapshot, and no
+  endpoint edits it.
+
+  **The update verb now sets `label`, and only `label`.** In MCP the tool `update_linkedin_account` is
+  renamed `set_linkedin_account_label`. `label` is a required key rather than an optional one: send the
+  field on every call, with a string to set it or `null` to clear it. An empty body is now a validation
+  error that names the field, instead of a `nothing_to_update` whose cause you had to guess.
+
+  **`label` is searchable and filterable.** `filter.label` takes `eq`, `ne`, `in`, `nin` and `is_null`
+  (`is_null: true` finds untagged senders), and the reserved `q` now runs its LIKE over `label`
+  alongside `full_name` and `nickname`, so "find the account of Jane Roe" and "find the one we call
+  burner #3" are the same search. It is deliberately not a sort axis: the tag is sparse, so a page
+  ordered by it is a page of nulls.
+
+  **The label is private to the workspace that wrote it.** LinkedIn never sees it and no recipient ever
+  sees it, and sharing or transferring an account hands over the account, not your note about it, so
+  the borrowing team's copy starts empty.
+</Update>
+
 <Update label="2026-08-22" description="Scheduled posts, media posts, mentions, and explicit browser states">
   **263 operations**: LinkedIn 167, ID and Teams 74, Orchestration 22.
 

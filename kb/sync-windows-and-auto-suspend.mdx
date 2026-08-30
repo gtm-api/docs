@@ -7,6 +7,16 @@ Each LinkedIn account has a **sync window**: the days and hours during which rec
 synchronizations (inbox, connections, invitations, followers) are created and picked
 up. Outside the window no new recurring sync starts.
 
+A newly connected account starts on business hours, Monday to Friday 09:00-18:00, in
+your workspace timezone. Change it whenever you like on the Account Sync tab.
+
+<Note>
+An account with no window at all syncs **around the clock**, every day. That is what
+accounts connected before this default existed do, and it is what you get if you switch
+every day off. Emptying the window opens the account up rather than pausing it; to stop
+an account from working, stop its browser instead.
+</Note>
+
 <Frame caption="The Account Sync tab: sync days and hours at the top, per-kind sync intervals below, each editable.">
   <img src="/images/kb/account-drawer-sync.png" alt="Account Sync tab showing the sync days chips, the sync window hours and per-kind sync intervals" />
 </Frame>
@@ -18,8 +28,10 @@ up. Outside the window no new recurring sync starts.
 - **Actions are not.** Sending a message or a connection request runs whenever you or
   an automation triggers it, at any hour, subject to
   [smart limits](/kb/smart-limits-and-warmup).
-- **Onboarding respects the window.** The initial import of a freshly connected account
-  runs within the configured hours.
+- **The first import ignores the window.** The initial backfill of a freshly connected
+  account runs to completion whatever the hours say, so onboarding never stalls
+  overnight. Smart limits and pacing still apply. Only the recurring syncs that follow
+  it are gated.
 
 Edit the window and the per-kind intervals on the **Account Sync** tab of the account
 drawer. Each sync kind shows its interval, the last run and the next due time.
@@ -94,7 +106,8 @@ await fetch(
 
 </CodeGroup>
 
-Omit `window` entirely to sync around the clock. Per-kind intervals ride the same
+Omit `window`, or send it as an empty list, to sync around the clock. Both mean the
+same thing, and neither switches syncing off. Per-kind intervals ride the same
 request's `entries` object.
 
 Field names and the full request shape are in the

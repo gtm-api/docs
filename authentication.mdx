@@ -20,6 +20,7 @@ An API key is an opaque bearer token of the form `gtm_live_` plus 40 characters.
 - **Keys expire.** Default expiry is 3 years from creation; pass `expires_at: null` on create for a perpetual key.
 - **Keys carry permissions.** A key created by another key can only hold a subset of the parent's permissions. Downscoping is allowed, escalation is a `forbidden` error.
 - **Keys are team-scoped.** A key belongs to the team it was created in and acts on that team's data.
+- **A key is not a person.** It authenticates as itself, with its own permissions, so no user account sits behind it. `GET /api/users/current` (`get_current_user`) therefore answers `403` with `context.reason: not_a_user_actor` on a key, and no permission you add to the key changes that: the profile that endpoint returns belongs to a signed-in person. Sign in, or connect through OAuth, when you actually need it.
 
 Manage keys in the app or over the [ID and Teams API](/api-reference/id): search them for an access audit (`last_used_at` shows stale keys worth revoking), check `expires_at` for keys about to lapse, and revoke what you no longer use.
 
