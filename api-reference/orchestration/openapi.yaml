@@ -1605,7 +1605,7 @@ components:
                   args:
                     type: object
                     additionalProperties: {}
-                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run."
+                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run. One arg is worth stating explicitly because its default is silent and not what a bulk hand-out usually wants: on 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share'. A relogin link ends in a confirm that re-binds the browser to the account; a share link just lets the visitor drive it. The two links look identical, so an omitted `purpose` mints N re-login links without complaining."
                 required:
                   - tool
               minItems: 1
@@ -3823,7 +3823,7 @@ components:
                   args:
                     type: object
                     additionalProperties: {}
-                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run."
+                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run. One arg is worth stating explicitly because its default is silent and not what a bulk hand-out usually wants: on 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share'. A relogin link ends in a confirm that re-binds the browser to the account; a share link just lets the visitor drive it. The two links look identical, so an omitted `purpose` mints N re-login links without complaining."
                 required:
                   - tool
               minItems: 1
@@ -4491,10 +4491,11 @@ components:
                   type: string
                   enum:
                     - task_pending
+                    - maintenance
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: eq:'task_pending' selects the items deferred on an async task.
+              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window.
             retry_count:
               type: object
               properties:
@@ -4945,10 +4946,11 @@ components:
                   type: string
                   enum:
                     - task_pending
+                    - maintenance
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: eq:'task_pending' selects the items deferred on an async task.
+              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window.
             retry_count:
               type: object
               properties:
@@ -5196,6 +5198,7 @@ components:
                     nullable: true
                     enum:
                       - task_pending
+                      - maintenance
                     description: Why the item is deferred mid-cascade. Null when it is not waiting; a parent-level pause leaves this null.
                   error_message:
                     type: string

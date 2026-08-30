@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 167 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 168 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -341,7 +341,7 @@ paths:
       operationId: generate_cloud_browser_access_key
       summary: Generate cloud-browser access key
       description: |-
-        Mint a cloud-browser access key (smart-link) on a browser so a user can sign into LinkedIn through the cloud browser. Returns the raw cb_ak_ key in result.access_key (shown once) AND result.public_connect_url, the ready-to-share link to hand to whoever signs the account in (no platform account needed on their side). Optional ttl_hours / max_connects / allowed_ips / allowed_countries scope the key. DANGEROUS: the link is a bearer secret granting remote browser access.
+        Mint a cloud-browser access key (smart-link) on a browser. Returns the whole minted entry in result.access_key, whose `key` field is the raw cb_ak_ token (shown once), AND result.public_connect_url, the ready-to-share link to hand to whoever opens it (no platform account needed on their side). Pass result.access_key.key, never result.access_key, to revoke_cloud_browser_access_key. `purpose` decides what the page behind the link does: `relogin` walks them through signing the LinkedIn session back in and re-binds the browser once they confirm, `share` just hands them the browser to drive. Optional ttl_hours / max_connects / allowed_ips / allowed_countries scope the key. DANGEROUS: both the key and the link are bearer secrets granting remote browser access.
 
         Contract:
         - MCP tool `generate_cloud_browser_access_key`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -576,6 +576,41 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+  /api/antidetect-browsers/seat-usage:
+    post:
+      operationId: get_antidetect_browser_seat_usage
+      summary: Get seat usage
+      description: |-
+        Seats and 5G proxy slots the workspace occupies: every live browser row, whatever its status and whether a LinkedIn account is bound. Team-wide; compare against limits.accounts and limits.proxy_5g.
+
+        Contract:
+        - MCP tool `get_antidetect_browser_seat_usage`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
+        - Operation `action`, response envelope `action`.
+        - Flags: read only.
+      tags:
+        - antidetect_browsers
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetAntidetectBrowserSeatUsageResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: get_antidetect_browser_seat_usage
+      x-gtm-mcp-mount: linkedin.browsers
+      x-gtm-entity: antidetect_browsers
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: trivial
   /api/antidetect-browsers/stop:
     post:
       operationId: stop_antidetect_browser
@@ -721,7 +756,7 @@ paths:
       operationId: delete_antidetect_browser
       summary: Delete antidetect browser
       description: |-
-        Decommission (soft-delete) a single antidetect browser by sid: outward, destructive, one-way through MCP. Variant B cascade: the bound linkedin-account is soft-deleted and pending plugin tasks transition to failed; the cascade block reports the counts. A platform-minted GoLogin profile is reclaimed (deleted) at the vendor unless another live browser row still holds it; customer BYO vendor profiles are left intact.
+        Decommission (soft-delete) a single antidetect browser by sid: outward, destructive, one-way through MCP. A browser in an active-run status is stopped FIRST and the node must confirm: the call can take up to ~20s waiting for that confirm, and if it does not arrive the delete is refused with 409 conflict (context.reason=browser_stop_unconfirmed) and NOTHING is deleted - retry in a minute rather than assuming success. Variant B cascade: the bound linkedin-account is soft-deleted and pending plugin tasks transition to failed; the cascade block reports the counts. A platform-minted GoLogin profile is reclaimed (deleted) at the vendor unless another live browser row still holds it; customer BYO vendor profiles are left intact.
 
         Contract:
         - MCP tool `delete_antidetect_browser`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -818,7 +853,7 @@ paths:
       operationId: search_cloud_browser_sessions
       summary: Search cloud browser sessions
       description: |-
-        List cloud-browser sessions on the team with filters, sorting and cursor pagination. This is the audit trail of who connected to which browser, from where, and how each login attempt resolved. The smart-link access_key is masked to null and is not a public filter.
+        List cloud-browser sessions on the team with filters, sorting and cursor pagination. This is the audit trail of who connected to which browser, from where, and how each login attempt resolved. The smart-link access_key is redacted to cb_ak_ followed by asterisks and the key's last 4 characters, so a session can be attributed to one of the browser's access keys without exposing a redeemable token; it is null only when there was no key at all (an internal session). It is not a public filter.
 
         Contract:
         - MCP tool `search_cloud_browser_sessions`, registry package `mcp.linkedin/cloud_browser_sessions`, mount `linkedin.browsers`.
@@ -1583,13 +1618,13 @@ paths:
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
     patch:
-      operationId: update_linkedin_account
-      summary: Update account display fields
+      operationId: set_linkedin_account_label
+      summary: Set account label
       description: |-
-        Set the account's operator display fields: display_name and label. These are team-authored (never synced from LinkedIn) and are the only editable fields on the account row - sync cadence has its own tool (update_linkedin_account_sync_config), premium flags have their checks, and lifecycle is driven by the browser. Send only the fields to change; an explicit null clears a field. Returns the updated account. To edit these across many accounts at once, author a mass action with the linkedin-accounts.update step instead.
+        Set the private operator tag on one sender. `label` is team-authored free text (pod, campaign, owner) stored on the account row and visible only inside the owning workspace: LinkedIn never sees it and no recipient sees it. It is not the sender's name, which is LinkedIn's own (full_name) and is not editable by any tool. Send label to replace the tag, null to clear it; the key is required, so an empty call is a schema error. Filter on it with search_linkedin_accounts filter.label.
 
         Contract:
-        - MCP tool `update_linkedin_account`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
+        - MCP tool `set_linkedin_account_label`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `update`, response envelope `update`.
         - Flags: none.
       tags:
@@ -1606,23 +1641,23 @@ paths:
             pattern: ^ln_ac_
             description: LinkedIn account sid (ln_ac_…).
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLinkedinAccountRequest"
+              $ref: "#/components/schemas/SetLinkedinAccountLabelRequest"
       responses:
         "200":
           description: "`update` success envelope."
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UpdateLinkedinAccountResponse"
+                $ref: "#/components/schemas/SetLinkedinAccountLabelResponse"
         4XX:
           $ref: "#/components/responses/McpClientError"
         5XX:
           $ref: "#/components/responses/McpServerError"
-      x-gtm-mcp-tool: update_linkedin_account
+      x-gtm-mcp-tool: set_linkedin_account_label
       x-gtm-mcp-mount: linkedin.accounts
       x-gtm-entity: linkedin_accounts
       x-gtm-operation: update
@@ -4712,7 +4747,7 @@ paths:
       operationId: enrich_linkedin_get_activity_urn_by_url
       summary: Enrich activity URN by URL
       description: |-
-        Resolve any linkedin.com post URL (feed permalink, /posts/ slug, shortlink) to its stable activity URN (urn:li:activity:…). The URN never changes, so this is a cacheable enrichment lookup at cached 7d. It is the resolver the get-post-* / tracked-post flows build on. Returns activity_urn (null if the URL could not be resolved).
+        Resolve any linkedin.com post URL (feed permalink, /posts/ slug) or lnkd.in shortlink to its stable activity URN (urn:li:activity:…). A shortlink is expanded server-side before the page is opened. The URN never changes, so this is a cacheable enrichment lookup at cached 7d. It is the resolver the get-post-* / tracked-post flows build on. Returns activity_urn (null if the URL could not be resolved - notably a shortlink of a ugcPost-threaded post, whose page exposes no activity urn at all; address such posts by post_urn via enrich_linkedin_post_details instead, which takes the shortlink directly).
 
         Contract:
         - MCP tool `enrich_linkedin_get_activity_urn_by_url`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5120,11 +5155,9 @@ paths:
   /api/linkedin-enrichment/person-languages:
     post:
       operationId: enrich_linkedin_person_languages
-      summary: Enrich person languages (not shipped)
+      summary: Enrich person languages
       description: |-
-        ⛔ NOT SHIPPED YET. Contract locked, capability not built; returns not_implemented, do not retry. The Languages section: spoken languages with self-declared proficiency. Cheap localization signal: write the opener in the prospect's native language. cached 7d.
-
-        Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset.
+        The Languages section: spoken languages with self-declared proficiency. Cheap localization signal: write the opener in the prospect's native language. cached 7d. Most profiles declare NONE, so an empty list is a real answer about the person rather than a failed read. proficiency is the RAW string LinkedIn renders, suffix included ("Native or bilingual proficiency", "Full professional proficiency", ...), localized on non-English sessions and null when the member declared the language without a level. Address by profile_id XOR public_identifier; like certifications, the screen behind this one needs the vanity slug AND the member urn at once, so the backend resolves whichever half you did not send.
 
         Contract:
         - MCP tool `enrich_linkedin_person_languages`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5154,14 +5187,12 @@ paths:
       x-gtm-entity: linkedin_enrichment
       x-gtm-operation: action
       x-gtm-envelope: action
-      x-gtm-availability: stub_501
+      x-gtm-availability: ga
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
-      x-gtm-not-implemented-reason: "Not shipped yet. The registry marks this route availability=stub_501: the backend validates the whole request and then answers 501 not_implemented. The request contract is final, so integrations can be written and tested against it today. Marked deprecated so generated clients flag it at compile time; this is a NOT-YET flag, not a sunset."
-      deprecated: true
   /api/linkedin-enrichment/person-lite-profile:
     post:
       operationId: enrich_linkedin_person_lite_profile
@@ -8279,9 +8310,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -8571,7 +8599,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -8718,9 +8745,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -9010,7 +9034,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -9225,13 +9248,6 @@ components:
       type: object
       description: Request body of `create_antidetect_browser`.
       properties:
-        browser_owner:
-          type: string
-          enum:
-            - platform
-            - customer
-            - mirror_profiles
-          description: "Omit to infer: vendor_profile_id present ⇒ customer, absent ⇒ platform."
         vendor_provider:
           type: string
           enum:
@@ -9243,8 +9259,8 @@ components:
         vendor_profile_id:
           type: string
           nullable: true
-          maxLength: 128
-          description: Bind an EXISTING vendor profile (BYO). Omit to mint a fresh one.
+          pattern: ^[0-9a-f]{24}$
+          description: "Bind an EXISTING vendor profile (BYO): the GoLogin profile id, 24 hex characters. NOT a profile URL, share link or LinkedIn slug. Omit to mint a fresh one. The profile must be shared with our GoLogin account, or the create is 422 vendor_profile_not_found; if the owning GoLogin account is over its plan the create is 402 vendor_profile_plan_limit and retrying will not help."
         os:
           type: string
           enum:
@@ -9345,7 +9361,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -9426,11 +9441,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -9441,12 +9463,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -11087,9 +11116,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -11379,7 +11405,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -11540,9 +11565,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -11832,7 +11854,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -15116,7 +15137,7 @@ components:
         url:
           type: string
           maxLength: 2048
-          description: Any post URL. A feed permalink or a share link carrying the id resolves locally, one round trip. A linkedin.com link with NO id in it is fetched by the link itself, also one round trip. Only a shortlink (lnkd.in) still costs two, because it has to be opened to be read. Provide url XOR post_urn.
+          description: Any post URL, a lnkd.in shortlink included. A feed permalink or a slug link carrying the id (activity or ugcPost family) resolves locally, one round trip; a shortlink is expanded server-side first (this is the form Copy link to post mints) and then resolves the same way; a linkedin.com link with NO id in it is fetched by the link itself, also one round trip. Provide url XOR post_urn.
         linkedin_account_sid:
           type: string
           nullable: true
@@ -15562,9 +15583,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -15854,7 +15872,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -15953,12 +15970,12 @@ components:
           type: integer
           minimum: 1
           maximum: 720
-          description: Key lifetime in hours (default 8; the link is a bearer secret, keep it short).
+          description: Key lifetime in hours (default 8; the link is a bearer secret, keep it short). Sets expires_at on the entry.
         max_connects:
           type: integer
           minimum: 1
           maximum: 1000
-          description: Max connect count before the key is spent.
+          description: "Cap on CONCURRENT sessions held on this key, counted live at connect. Not a lifetime quota: a key does not spend itself and never becomes exhausted. Omit for unlimited."
         allowed_ips:
           type: array
           items:
@@ -15972,6 +15989,12 @@ components:
             minLength: 2
             maxLength: 2
           description: ISO country allow-list checked at connect time.
+        purpose:
+          type: string
+          enum:
+            - relogin
+            - share
+          description: "What the page behind the link does: relogin = sign the LinkedIn session back in and re-bind the browser on confirm (default); share = drive the browser, no sign-in step."
       required:
         - sid
     GenerateCloudBrowserAccessKeyResponse:
@@ -16031,7 +16054,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -16112,11 +16134,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -16127,12 +16156,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -16235,10 +16271,48 @@ components:
           type: object
           properties:
             access_key:
-              type: string
+              type: object
+              properties:
+                key:
+                  type: string
+                  minLength: 18
+                  maxLength: 18
+                  pattern: ^cb_ak_
+                  description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                expires_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
+                max_connects:
+                  type: number
+                  nullable: true
+                  description: Cap on CONCURRENT sessions on this key; null means unlimited.
+                allowed_ips:
+                  type: array
+                  nullable: true
+                  items:
+                    type: string
+                allowed_countries:
+                  type: array
+                  nullable: true
+                  items:
+                    type: string
+                purpose:
+                  type: string
+                  enum:
+                    - relogin
+                    - share
+                  description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
+              required:
+                - key
+                - expires_at
+                - max_connects
+                - allowed_ips
+                - allowed_countries
+              description: "The minted entry, key included. Shown once: the key is a bearer secret and is never read back in full from any other surface."
             public_connect_url:
               type: string
-              description: Shareable smart link carrying the key. Give this to the person signing the account in.
+              description: Shareable smart link carrying the key. Give this to the person who will open it.
           required:
             - access_key
             - public_connect_url
@@ -16332,7 +16406,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -16413,11 +16486,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -16428,12 +16508,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -16575,6 +16662,72 @@ components:
         - item
         - included
         - includes
+        - meta
+    GetAntidetectBrowserSeatUsageResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            accounts_used:
+              type: integer
+              minimum: 0
+              description: Live browser rows the team holds. This is the count the create gate refuses on (402 insufficient_slots).
+            proxy_5g_used:
+              type: integer
+              minimum: 0
+              description: Of those, the ones carrying the 5G Proxy add-on.
+          required:
+            - accounts_used
+            - proxy_5g_used
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
         - meta
     GetCloudBrowserSessionsMetricsRequest:
       type: object
@@ -17519,9 +17672,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -17811,7 +17961,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -18000,9 +18149,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -18292,7 +18438,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -18503,9 +18648,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -18795,7 +18937,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -18931,9 +19072,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -19223,7 +19361,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -19348,9 +19485,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -19640,7 +19774,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -19765,9 +19898,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -20057,7 +20187,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -20195,9 +20324,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -20487,7 +20613,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -20712,9 +20837,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -21004,7 +21126,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -21292,9 +21413,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -21584,7 +21702,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -21709,9 +21826,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -22001,7 +22115,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -22185,9 +22298,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -22477,7 +22587,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -28344,7 +28453,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -28425,11 +28533,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -28440,12 +28555,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -28825,9 +28947,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -29117,7 +29236,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -29502,7 +29620,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -29583,11 +29700,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -29598,12 +29722,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -29811,7 +29942,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -29892,11 +30022,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -29907,12 +30044,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -30637,7 +30781,7 @@ components:
         post:
           type: string
           maxLength: 512
-          description: "The post, named any way you have it. Cheapest is a post urn - `urn:li:share:<id>`, `urn:li:ugcPost:<id>` (company-page posts, newsletter issues), `urn:li:groupPost:<group>-<post>` - because that is what the comment list is actually addressed by. An `urn:li:activity:<id>`, a feed permalink (`/feed/update/urn:li:activity:<id>/`) or the share link the copy-link button produces (`/posts/<slug>-activity-<id>-<hash>`) all work too: the urn is parsed out locally at no cost, then converted to the post urn through one extra read that is cached for 7 days, so only the first call on a given post pays it. A linkedin.com link with no id in it (a bare slug URL) adds one more page load to find the urn. An `lnkd.in` shortlink is NOT resolvable and is refused 422 post_not_resolvable: expand it yourself first. A post LinkedIn will not name (deleted, or not visible to the executing account) is refused 422 post_urn_not_resolvable. The post does NOT need to be tracked or owned by you."
+          description: "The post, named any way you have it. Cheapest is a post urn - `urn:li:share:<id>`, `urn:li:ugcPost:<id>` (company-page posts, newsletter issues), `urn:li:groupPost:<group>-<post>` - because that is what the comment list is actually addressed by. An `urn:li:activity:<id>`, a feed permalink (`/feed/update/urn:li:activity:<id>/`) or the share link the copy-link button produces (`/posts/<slug>-activity-<id>-<hash>`) all work too: the urn is parsed out locally at no cost, then converted to the post urn through one extra read that is cached for 7 days, so only the first call on a given post pays it. A linkedin.com link with no id in it (a bare slug URL) adds one more page load to find the urn. An `lnkd.in` shortlink (the form Copy link to post mints) is expanded server-side and its slug id lifted locally, one wire page like any id-carrying URL; one that expands to a non-LinkedIn target is refused 422 post_not_resolvable. A post LinkedIn will not name (deleted, or not visible to the executing account) is refused 422 post_urn_not_resolvable. The post does NOT need to be tracked or owned by you."
         page_size:
           type: integer
           minimum: 1
@@ -35741,7 +35885,6 @@ components:
                     enum:
                       - platform
                       - customer
-                      - mirror_profiles
                   status:
                     type: string
                     enum:
@@ -35822,11 +35965,18 @@ components:
                       properties:
                         key:
                           type: string
-                        till:
+                          minLength: 18
+                          maxLength: 18
+                          pattern: ^cb_ak_
+                          description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                        expires_at:
                           type: string
+                          nullable: true
+                          description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                         max_connects:
                           type: number
                           nullable: true
+                          description: Cap on CONCURRENT sessions on this key; null means unlimited.
                         allowed_ips:
                           type: array
                           nullable: true
@@ -35837,12 +35987,19 @@ components:
                           nullable: true
                           items:
                             type: string
+                        purpose:
+                          type: string
+                          enum:
+                            - relogin
+                            - share
+                          description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                       required:
                         - key
-                        - till
+                        - expires_at
                         - max_connects
                         - allowed_ips
                         - allowed_countries
+                    description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
                   created_by:
                     type: object
                     properties:
@@ -36319,6 +36476,7 @@ components:
                   access_key:
                     type: string
                     nullable: true
+                    description: "Masked smart-link key: cb_ak_ followed by asterisks and the key's last 4 characters. Null when the session used no key at all (access_type internal). Join it to antidetect_browsers.cloud_browser_access[].key on the last 4 characters, never on equality."
                   access_type:
                     type: string
                     enum:
@@ -39493,7 +39651,7 @@ components:
           properties:
             q:
               type: string
-              description: Full-text LIKE over full_name + nickname. Identity ids (ln_member_id, sn_id) are exact-match fields, not q targets.
+              description: Full-text LIKE over full_name + nickname + label, so it is the substring path for the operator tag too. Identity ids (ln_member_id, sn_id) are exact-match fields, not q targets.
             status:
               type: object
               properties:
@@ -39657,6 +39815,25 @@ components:
                   type: boolean
               additionalProperties: false
               description: Display-completeness predicate only (is_null); the URL value is not a filter axis.
+            label:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The owning team's private tag on the account (pod, campaign, owner). eq / in for whole-tag matches, is_null:true for the untagged senders and is_null:false for the tagged ones; for a substring use q.
             has_premium:
               type: object
               properties:
@@ -39974,9 +40151,6 @@ components:
                   avatar_url:
                     type: string
                     nullable: true
-                  display_name:
-                    type: string
-                    nullable: true
                   label:
                     type: string
                     nullable: true
@@ -40266,7 +40440,6 @@ components:
                   - nickname
                   - full_name
                   - avatar_url
-                  - display_name
                   - label
                   - has_premium
                   - has_sn
@@ -44500,7 +44673,7 @@ components:
                 minimum: 1
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
-          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
+          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send. An item whose file_type is video/* is delivered as a playable video in the thread; any other type arrives as a generic file attachment.
       required:
         - linkedin_account_sid
         - subject
@@ -44760,7 +44933,7 @@ components:
                 minimum: 1
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
-          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
+          description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send. An item whose file_type is video/* is delivered as a playable video in the thread; any other type arrives as a generic file attachment.
       required:
         - linkedin_account_sid
         - text
@@ -45451,6 +45624,430 @@ components:
         - item
         - result
         - meta
+    SetLinkedinAccountLabelRequest:
+      type: object
+      description: Request body of `set_linkedin_account_label`.
+      properties:
+        label:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: "The owning team's private tag on the sender; null clears it. Required: send the field on every call."
+      required:
+        - label
+    SetLinkedinAccountLabelResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - update
+        item:
+          type: object
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            antidetect_browser_sid:
+              type: string
+            status:
+              type: string
+              enum:
+                - new
+                - initial_syncing
+                - active
+                - sync_failed
+                - shared_out
+                - subscription_required
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+            account_share_sid:
+              type: string
+              nullable: true
+            share_role:
+              type: string
+              nullable: true
+              enum:
+                - owner
+                - holder
+                - giver
+                - receiver
+            ln_id:
+              type: string
+              nullable: true
+            ln_member_id:
+              type: string
+              nullable: true
+            sn_id:
+              type: string
+              nullable: true
+            nickname:
+              type: string
+              nullable: true
+            full_name:
+              type: string
+              nullable: true
+            avatar_url:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
+            has_premium:
+              type: boolean
+            has_sn:
+              type: boolean
+            has_recruiter:
+              type: boolean
+            inmail_credits:
+              type: number
+              nullable: true
+            last_premium_check_at:
+              type: string
+              nullable: true
+            last_connections_sync_at:
+              type: string
+              nullable: true
+            last_conversations_sync_at:
+              type: string
+              nullable: true
+            last_sales_navigator_conversations_sync_at:
+              type: string
+              nullable: true
+            last_connection_requests_sync_at:
+              type: string
+              nullable: true
+            last_connection_invitations_sync_at:
+              type: string
+              nullable: true
+            last_followers_sync_at:
+              type: string
+              nullable: true
+            last_snapshot_at:
+              type: string
+              nullable: true
+            initial_sync_completed_at:
+              type: string
+              nullable: true
+            last_heartbeat_at:
+              type: string
+              nullable: true
+            sync_config:
+              type: object
+              nullable: true
+              properties:
+                entries:
+                  type: object
+                  properties:
+                    connections:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    sales_navigator_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_requests:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_invitations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    premium_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    snapshot_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: Per-track sync-interval overrides, keyed by sync track.
+                timezone:
+                  type: string
+                  description: IANA timezone the window is evaluated in.
+                window:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day_of_week:
+                        type: integer
+                        minimum: 1
+                        maximum: 7
+                      start_minute:
+                        type: integer
+                        minimum: 0
+                        maximum: 1439
+                      end_minute:
+                        type: integer
+                        minimum: 1
+                        maximum: 1440
+                    required:
+                      - day_of_week
+                      - start_minute
+                      - end_minute
+                  description: Weekly sync-activity window blocks; empty = always open.
+            webhook_config:
+              type: object
+              nullable: true
+              properties:
+                connections:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_requests:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_invitations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                sales_navigator_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                messages:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                followers:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                snapshot:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                strike_log:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                limits:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+            created_by:
+              type: object
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+                - reason
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - antidetect_browser_sid
+            - status
+            - account_share_sid
+            - share_role
+            - ln_id
+            - ln_member_id
+            - sn_id
+            - nickname
+            - full_name
+            - avatar_url
+            - label
+            - has_premium
+            - has_sn
+            - has_recruiter
+            - inmail_credits
+            - last_premium_check_at
+            - last_connections_sync_at
+            - last_conversations_sync_at
+            - last_sales_navigator_conversations_sync_at
+            - last_connection_requests_sync_at
+            - last_connection_invitations_sync_at
+            - last_followers_sync_at
+            - last_snapshot_at
+            - initial_sync_completed_at
+            - last_heartbeat_at
+            - sync_config
+            - webhook_config
+            - created_by
+            - created_at
+            - updated_at
+            - deleted_at
+        updated_fields:
+          type: array
+          items:
+            type: string
+        previous_values:
+          type: object
+          additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - item
+        - updated_fields
+        - previous_values
+        - meta
     SetLinkedinAutoScrapeMassActionRequest:
       type: object
       description: Request body of `set_linkedin_auto_scrape_mass_action`.
@@ -46040,7 +46637,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -46121,11 +46717,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -46136,12 +46739,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -47220,9 +47830,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -47512,7 +48119,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -48022,7 +48628,6 @@ components:
               enum:
                 - platform
                 - customer
-                - mirror_profiles
             status:
               type: string
               enum:
@@ -48103,11 +48708,18 @@ components:
                 properties:
                   key:
                     type: string
-                  till:
+                    minLength: 18
+                    maxLength: 18
+                    pattern: ^cb_ak_
+                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  expires_at:
                     type: string
+                    nullable: true
+                    description: ISO 8601 expiry; null means it never expires. Checked at connect and never again, so a session can outlive its own key.
                   max_connects:
                     type: number
                     nullable: true
+                    description: Cap on CONCURRENT sessions on this key; null means unlimited.
                   allowed_ips:
                     type: array
                     nullable: true
@@ -48118,12 +48730,19 @@ components:
                     nullable: true
                     items:
                       type: string
+                  purpose:
+                    type: string
+                    enum:
+                      - relogin
+                      - share
+                    description: What the public page behind the link does. Stamped at mint and never re-negotiated at connect, because the visitor is unauthenticated. Absent on keys minted before the field existed, which the backend reads as relogin.
                 required:
                   - key
-                  - till
+                  - expires_at
                   - max_connects
                   - allowed_ips
                   - allowed_countries
+              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -48276,437 +48895,6 @@ components:
         - action
         - item
         - result
-        - meta
-    UpdateLinkedinAccountRequest:
-      type: object
-      description: Request body of `update_linkedin_account`.
-      properties:
-        display_name:
-          type: string
-          nullable: true
-          maxLength: 255
-          description: Team-facing display name for the account; null clears it.
-        label:
-          type: string
-          nullable: true
-          maxLength: 255
-          description: Free-form label/tag for the account (e.g. a pod or campaign name); null clears it.
-    UpdateLinkedinAccountResponse:
-      type: object
-      properties:
-        success:
-          type: boolean
-          enum:
-            - true
-        operation:
-          type: string
-          enum:
-            - update
-        item:
-          type: object
-          properties:
-            sid:
-              type: string
-            team_sid:
-              type: string
-            antidetect_browser_sid:
-              type: string
-            status:
-              type: string
-              enum:
-                - new
-                - initial_syncing
-                - active
-                - sync_failed
-                - shared_out
-                - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
-            account_share_sid:
-              type: string
-              nullable: true
-            share_role:
-              type: string
-              nullable: true
-              enum:
-                - owner
-                - holder
-                - giver
-                - receiver
-            ln_id:
-              type: string
-              nullable: true
-            ln_member_id:
-              type: string
-              nullable: true
-            sn_id:
-              type: string
-              nullable: true
-            nickname:
-              type: string
-              nullable: true
-            full_name:
-              type: string
-              nullable: true
-            avatar_url:
-              type: string
-              nullable: true
-            display_name:
-              type: string
-              nullable: true
-            label:
-              type: string
-              nullable: true
-            has_premium:
-              type: boolean
-            has_sn:
-              type: boolean
-            has_recruiter:
-              type: boolean
-            inmail_credits:
-              type: number
-              nullable: true
-            last_premium_check_at:
-              type: string
-              nullable: true
-            last_connections_sync_at:
-              type: string
-              nullable: true
-            last_conversations_sync_at:
-              type: string
-              nullable: true
-            last_sales_navigator_conversations_sync_at:
-              type: string
-              nullable: true
-            last_connection_requests_sync_at:
-              type: string
-              nullable: true
-            last_connection_invitations_sync_at:
-              type: string
-              nullable: true
-            last_followers_sync_at:
-              type: string
-              nullable: true
-            last_snapshot_at:
-              type: string
-              nullable: true
-            initial_sync_completed_at:
-              type: string
-              nullable: true
-            last_heartbeat_at:
-              type: string
-              nullable: true
-            sync_config:
-              type: object
-              nullable: true
-              properties:
-                entries:
-                  type: object
-                  properties:
-                    connections:
-                      type: object
-                      properties:
-                        interval_minutes:
-                          type: number
-                      required:
-                        - interval_minutes
-                    conversations:
-                      type: object
-                      properties:
-                        interval_minutes:
-                          type: number
-                      required:
-                        - interval_minutes
-                    sales_navigator_conversations:
-                      type: object
-                      properties:
-                        interval_minutes:
-                          type: number
-                      required:
-                        - interval_minutes
-                    connection_requests:
-                      type: object
-                      properties:
-                        interval_minutes:
-                          type: number
-                      required:
-                        - interval_minutes
-                    connection_invitations:
-                      type: object
-                      properties:
-                        interval_minutes:
-                          type: number
-                      required:
-                        - interval_minutes
-                    premium_check:
-                      type: object
-                      properties:
-                        interval_minutes:
-                          type: number
-                      required:
-                        - interval_minutes
-                    snapshot_check:
-                      type: object
-                      properties:
-                        interval_minutes:
-                          type: number
-                      required:
-                        - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
-                timezone:
-                  type: string
-                  description: IANA timezone the window is evaluated in.
-                window:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      day_of_week:
-                        type: integer
-                        minimum: 1
-                        maximum: 7
-                      start_minute:
-                        type: integer
-                        minimum: 0
-                        maximum: 1439
-                      end_minute:
-                        type: integer
-                        minimum: 1
-                        maximum: 1440
-                    required:
-                      - day_of_week
-                      - start_minute
-                      - end_minute
-                  description: Weekly sync-activity window blocks; empty = always open.
-            webhook_config:
-              type: object
-              nullable: true
-              properties:
-                connections:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                connection_requests:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                connection_invitations:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                conversations:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                sales_navigator_conversations:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                messages:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                followers:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                snapshot:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                strike_log:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-                limits:
-                  type: object
-                  properties:
-                    enabled:
-                      type: boolean
-                    since:
-                      type: string
-                      nullable: true
-                  required:
-                    - enabled
-                    - since
-            created_by:
-              type: object
-              properties:
-                actor_type:
-                  type: string
-                  enum:
-                    - user
-                    - support
-                    - api_key
-                    - system
-                    - agent
-                actor_sid:
-                  type: string
-                  nullable: true
-                team_sid:
-                  type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
-                  type: string
-                  nullable: true
-                reason:
-                  type: string
-                  nullable: true
-              required:
-                - actor_type
-                - actor_sid
-                - team_sid
-                - permissions
-                - reason
-            created_at:
-              type: string
-            updated_at:
-              type: string
-            deleted_at:
-              type: string
-              nullable: true
-          required:
-            - sid
-            - team_sid
-            - antidetect_browser_sid
-            - status
-            - account_share_sid
-            - share_role
-            - ln_id
-            - ln_member_id
-            - sn_id
-            - nickname
-            - full_name
-            - avatar_url
-            - display_name
-            - label
-            - has_premium
-            - has_sn
-            - has_recruiter
-            - inmail_credits
-            - last_premium_check_at
-            - last_connections_sync_at
-            - last_conversations_sync_at
-            - last_sales_navigator_conversations_sync_at
-            - last_connection_requests_sync_at
-            - last_connection_invitations_sync_at
-            - last_followers_sync_at
-            - last_snapshot_at
-            - initial_sync_completed_at
-            - last_heartbeat_at
-            - sync_config
-            - webhook_config
-            - created_by
-            - created_at
-            - updated_at
-            - deleted_at
-        updated_fields:
-          type: array
-          items:
-            type: string
-        previous_values:
-          type: object
-          additionalProperties: {}
-        meta:
-          type: object
-          properties:
-            trace_id:
-              type: string
-              description: UUID v7; same 128-bit value as the X-Trace-Id header.
-            span_id:
-              type: string
-              pattern: ^[0-9a-f]{16}$
-              description: 16 hex chars, root span of this request.
-            timestamp:
-              type: string
-              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
-            duration_ms:
-              type: integer
-              minimum: 0
-              description: Server-side wall clock.
-            team_sid:
-              type: string
-              nullable: true
-              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
-            actor_type:
-              type: string
-              nullable: true
-              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
-          required:
-            - trace_id
-            - span_id
-            - timestamp
-            - duration_ms
-      required:
-        - success
-        - operation
-        - item
-        - updated_fields
-        - previous_values
         - meta
     UpdateLinkedinAccountSmartLimitRequest:
       type: object
@@ -48912,7 +49100,7 @@ components:
                   - day_of_week
                   - start_minute
                   - end_minute
-              description: Allowed sync hours per weekday; omit to sync around the clock.
+              description: Allowed sync hours per weekday. Omit it, or send an empty list, to sync around the clock; an empty window never means off.
             entries:
               type: object
               properties:
@@ -49039,9 +49227,6 @@ components:
               type: string
               nullable: true
             avatar_url:
-              type: string
-              nullable: true
-            display_name:
               type: string
               nullable: true
             label:
@@ -49333,7 +49518,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn
@@ -49722,9 +49906,6 @@ components:
             avatar_url:
               type: string
               nullable: true
-            display_name:
-              type: string
-              nullable: true
             label:
               type: string
               nullable: true
@@ -50014,7 +50195,6 @@ components:
             - nickname
             - full_name
             - avatar_url
-            - display_name
             - label
             - has_premium
             - has_sn

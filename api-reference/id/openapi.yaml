@@ -276,7 +276,7 @@ paths:
       operationId: create_api_key
       summary: Create API key
       description: |-
-        Issue a new API key and return the full secret in the create envelope's plaintext_token EXACTLY ONCE. It is unrecoverable, so hand it to the user immediately and never log or echo it; if lost, rotate. Callable by a human (api_keys.manage) or by a parent api_key, in which case the issued permissions MUST be a subset of the parent's (downscoping only; escalation → 403). Default expires_at = now + 3 years; pass null for a perpetual key. Natural key (team_sid, name) among non-revoked keys → a duplicate returns already_exists with the existing key (and NO secret).
+        Issue a new API key and return the full secret in the create envelope's plaintext_token EXACTLY ONCE. It is unrecoverable, so hand it to the user immediately and never log or echo it; if lost, rotate. BOTH grant axes are clamped to the ISSUER's own current authority (403, reason grant_exceeds_ceiling): permissions must sit inside the caller's token set ('*' only for an unrestricted issuer; on delegation, inside the parent key's set), and account_sids inside the caller's account slice - a sliced caller cannot pass null ("all accounts") and must send an explicit list within their slice. Verify re-intersects both axes with the issuer's CURRENT authority, so narrowing the issuer narrows every key they minted. Default expires_at = now + 3 years; pass null for a perpetual key. Natural key (team_sid, name) among non-revoked keys → a duplicate returns already_exists with the existing key (and NO secret).
 
         Contract:
         - MCP tool `create_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
@@ -455,7 +455,7 @@ paths:
       operationId: update_api_key
       summary: Update API key
       description: |-
-        Partial update of name / permissions only (the key's identity and secret are untouched; use rotate_api_key to change the secret). permissions is a FULL replacement. When the caller is a parent api_key, the new permissions must still be a subset of the parent's (→ 403). At least one field is required.
+        Partial update of name / permissions / account_sids (the key's identity and secret are untouched; use rotate_api_key to change the secret). Each list is a FULL replacement, clamped to the STORED issuer's current authority on its axis (403, reason grant_exceeds_ceiling): permissions inside their token set, account_sids inside their slice (null = all accounts, grantable only under an unrestricted issuer slice). At least one field is required.
 
         Contract:
         - MCP tool `update_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
@@ -3287,7 +3287,7 @@ paths:
       operationId: get_current_user
       summary: Get current user
       description: |-
-        Return the authenticated user's own profile: the JWT subject, self only (no {sid} form). include[]=default_team hydrates the working team; include[]=accessible_teams returns the owner + active-membership union (workspace switcher / OAuth consent multiselect). Reads email, name, timezone, default_team_sid.
+        Return the authenticated user's own profile: the JWT subject, self only (no {sid} form). include[]=default_team hydrates the working team; include[]=accessible_teams returns the owner + active-membership union (workspace switcher / OAuth consent multiselect). Reads email, name, timezone, default_team_sid. Needs a credential with a person behind it (an app session or an OAuth connector). An API key authenticates as itself, not as a user, so on a key this answers 403 with context.reason=not_a_user_actor and no permission changes that.
 
         Contract:
         - MCP tool `get_current_user`, registry package `mcp.id/users`, mount `id.identity`.
@@ -3336,7 +3336,7 @@ paths:
       operationId: update_current_user
       summary: Update current user
       description: |-
-        Patch the authenticated user's own profile: first_name / last_name / avatar_url / phone / timezone / country / config only. email (change-email flow), password (change-password flow), auth_provider, email_status and all sids are rejected if sent. At least one field required. config merges key-by-key.
+        Patch the authenticated user's own profile: first_name / last_name / avatar_url / phone / timezone / country / config only. email (change-email flow), password (change-password flow), auth_provider, email_status and all sids are rejected if sent. At least one field required. config merges key-by-key. Same subject as get_current_user: an API key has no user to patch and answers 403 with context.reason=not_a_user_actor.
 
         Contract:
         - MCP tool `update_current_user`, registry package `mcp.id/users`, mount `id.identity`.
@@ -4710,6 +4710,16 @@ components:
             type: string
             maxLength: 128
           description: Unified permission list; must be ⊆ the parent key on delegation.
+        account_sids:
+          type: array
+          nullable: true
+          items:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^(ln_ac_|em_ac_)
+          minItems: 1
+          description: Channel-account slice the key reaches (ln_ac_*/em_ac_*); null/omitted = all team accounts, grantable only by an issuer whose own slice is unrestricted. An empty list is refused (422).
         expires_at:
           type: string
           nullable: true
@@ -4743,6 +4753,11 @@ components:
               type: string
             permissions:
               type: array
+              items:
+                type: string
+            account_sids:
+              type: array
+              nullable: true
               items:
                 type: string
             status:
@@ -4804,6 +4819,7 @@ components:
             - token_prefix
             - token_last4
             - permissions
+            - account_sids
             - status
             - expires_at
             - last_used_at
@@ -5507,6 +5523,18 @@ components:
               - can_manage_mass_actions
               - can_view_webhooks
               - can_manage_webhooks
+              - can_view_email_accounts
+              - can_update_email_accounts
+              - can_manage_email_accounts
+              - can_view_email_messages
+              - can_act_email_messages
+              - can_view_email_engagements
+              - can_view_email_suppressions
+              - can_manage_email_suppressions
+              - can_view_email_tracking_domains
+              - can_manage_email_tracking_domains
+              - can_view_email_sending_domains
+              - can_manage_email_sending_domains
               - "*"
           description: Unified catalog tokens; the can_view_teams floor is always unioned in.
         account_sids:
@@ -6452,6 +6480,11 @@ components:
               type: array
               items:
                 type: string
+            account_sids:
+              type: array
+              nullable: true
+              items:
+                type: string
             status:
               type: string
               enum:
@@ -6511,6 +6544,7 @@ components:
             - token_prefix
             - token_last4
             - permissions
+            - account_sids
             - status
             - expires_at
             - last_used_at
@@ -12514,6 +12548,11 @@ components:
               type: array
               items:
                 type: string
+            account_sids:
+              type: array
+              nullable: true
+              items:
+                type: string
             status:
               type: string
               enum:
@@ -12573,6 +12612,7 @@ components:
             - token_prefix
             - token_last4
             - permissions
+            - account_sids
             - status
             - expires_at
             - last_used_at
@@ -13364,6 +13404,11 @@ components:
                     type: array
                     items:
                       type: string
+                  account_sids:
+                    type: array
+                    nullable: true
+                    items:
+                      type: string
                   status:
                     type: string
                     enum:
@@ -13423,6 +13468,7 @@ components:
                   - token_prefix
                   - token_last4
                   - permissions
+                  - account_sids
                   - status
                   - expires_at
                   - last_used_at
@@ -17794,6 +17840,16 @@ components:
             type: string
             maxLength: 128
           description: FULL replacement of the key's permission list.
+        account_sids:
+          type: array
+          nullable: true
+          items:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^(ln_ac_|em_ac_)
+          minItems: 1
+          description: FULL replacement of the key's account slice; null = all team accounts. An empty list is refused (422).
     UpdateApiKeyResponse:
       type: object
       properties:
@@ -17820,6 +17876,11 @@ components:
               type: string
             permissions:
               type: array
+              items:
+                type: string
+            account_sids:
+              type: array
+              nullable: true
               items:
                 type: string
             status:
@@ -17881,6 +17942,7 @@ components:
             - token_prefix
             - token_last4
             - permissions
+            - account_sids
             - status
             - expires_at
             - last_used_at
@@ -18682,6 +18744,18 @@ components:
               - can_manage_mass_actions
               - can_view_webhooks
               - can_manage_webhooks
+              - can_view_email_accounts
+              - can_update_email_accounts
+              - can_manage_email_accounts
+              - can_view_email_messages
+              - can_act_email_messages
+              - can_view_email_engagements
+              - can_view_email_suppressions
+              - can_manage_email_suppressions
+              - can_view_email_tracking_domains
+              - can_manage_email_tracking_domains
+              - can_view_email_sending_domains
+              - can_manage_email_sending_domains
               - "*"
           description: Full replacement; the can_view_teams floor is always unioned in.
         account_sids:
