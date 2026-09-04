@@ -6389,7 +6389,7 @@ paths:
       operationId: send_linkedin_recruiter_message
       summary: Send Recruiter InMail
       description: |-
-        Send one LinkedIn Recruiter InMail (outward action): open a NEW recruiter thread to a member via talent_id (the AEMAA… id a recruiter thread's participants carry; ln_id / sn_id work too), or reply INTO an existing thread via linkedin_conversation_sid (messenger_type='recruiter'). subject is required on both (≤ 200), text ≤ 1900. Rich-text runs (attributes) work on a NEW thread only: the reply wire takes a plain body and refuses them. Guards: Recruiter seat (422 recruiter_required), the stamped seat number on a reply (422 recruiter_seat_unresolvable), recruiter surface guard on an explicit thread. Spends send_inmails and a Recruiter InMail credit. Fire-on-success: the stored outbox row carries a synthetic rc_ message_hash until the next thread refresh adopts LinkedIn's id. When NOT: basic threads → send_linkedin_message; SN threads → send_linkedin_sales_nav_message; check linkedin-accounts.has_recruiter first.
+        Send one LinkedIn Recruiter InMail (outward action): open a NEW recruiter thread via talent_id (AEMAA… id; ln_id / sn_id work too), or reply INTO an existing thread via linkedin_conversation_sid (messenger_type='recruiter'). subject required (≤ 200), text ≤ 1900; rich-text attributes on a NEW thread only. Guards, in order: Recruiter seat (422 recruiter_required); live Recruiter session (409 recruiter_reauth_required: Recruiter has its own 30-day session that only the seat holder renews by signing in to Recruiter again in the account's browser, so tell the user, do not retry); stamped seat on a reply (422 recruiter_seat_unresolvable); LinkedIn's one-InMail-per-candidate-per-24h rule (429 recruiter_inmail_cooldown with cooldown_ends_at: refresh the thread with get_my_latest_linkedin_recruiter_messages if a reply may have landed, else wait and explain the rule). Spends send_inmails and an InMail credit. When NOT: basic threads → send_linkedin_message; SN → send_linkedin_sales_nav_message.
 
         Contract:
         - MCP tool `send_linkedin_recruiter_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.recruiter`.
@@ -8729,6 +8729,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -9044,6 +9052,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -9191,6 +9201,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -9506,6 +9524,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -11766,6 +11786,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -12081,6 +12109,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -12243,6 +12273,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -12558,6 +12596,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -12732,6 +12772,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -13047,6 +13095,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -16777,6 +16827,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -17092,6 +17150,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -18893,6 +18953,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -19208,6 +19276,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -19397,6 +19467,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -19712,6 +19790,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -19923,6 +20003,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -20238,6 +20326,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -20374,6 +20464,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -20689,6 +20787,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -20814,6 +20914,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -21129,6 +21237,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -21271,6 +21381,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -21586,6 +21704,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -21761,6 +21881,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -22076,6 +22204,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -22214,6 +22344,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -22529,6 +22667,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -22741,6 +22881,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -23056,6 +23204,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -23296,6 +23446,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -23611,6 +23769,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -23899,6 +24059,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -24214,6 +24382,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -24339,6 +24509,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -24654,6 +24832,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -24838,6 +25018,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -25153,6 +25341,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -32121,6 +32311,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -32436,6 +32634,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -43007,6 +43207,40 @@ components:
                   type: boolean
               additionalProperties: false
               description: is_null:false = the Recruiter seat number is stamped, so the recruiter sync and thread tools can run on this account.
+            recruiter_contract_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: Exact match on the Recruiter contract number the stamped seat belongs to.
+            recruiter_session_expires_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: lt:<now> = seat holders whose Recruiter session has run out and who must sign in to Recruiter again; is_null:false = the clock was read.
             nickname:
               type: object
               properties:
@@ -43303,6 +43537,7 @@ components:
                 - last_conversations_sync_at
                 - last_sales_navigator_conversations_sync_at
                 - last_recruiter_conversations_sync_at
+                - recruiter_session_expires_at
                 - last_connection_requests_sync_at
                 - last_connection_invitations_sync_at
                 - initial_sync_completed_at
@@ -43387,6 +43622,14 @@ components:
                     type: string
                     nullable: true
                     description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+                  recruiter_contract_id:
+                    type: string
+                    nullable: true
+                    description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+                  recruiter_session_expires_at:
+                    type: string
+                    nullable: true
+                    description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
                   full_name:
                     type: string
                     nullable: true
@@ -43702,6 +43945,8 @@ components:
                   - sn_id
                   - nickname
                   - recruiter_seat_id
+                  - recruiter_contract_id
+                  - recruiter_session_expires_at
                   - full_name
                   - avatar_url
                   - label
@@ -49307,6 +49552,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -49622,6 +49875,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -51687,6 +51942,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -52002,6 +52265,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -52184,6 +52449,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -52499,6 +52772,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -53618,6 +53893,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -53933,6 +54216,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
@@ -54322,6 +54607,14 @@ components:
               type: string
               nullable: true
               description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
             full_name:
               type: string
               nullable: true
@@ -54637,6 +54930,8 @@ components:
             - sn_id
             - nickname
             - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
             - full_name
             - avatar_url
             - label
