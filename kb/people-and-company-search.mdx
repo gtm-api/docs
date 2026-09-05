@@ -1,6 +1,6 @@
 ---
 title: "People and company search"
-description: "Run one live page of a LinkedIn or Sales Navigator people or company search: the pasted-URL and structured-filter input styles, how ids are resolved, what a row contains, and what a page costs."
+description: "Run one live page of a LinkedIn, Sales Navigator or Recruiter people or company search: the pasted-URL and structured-filter input styles, how ids are resolved, what a row contains, and what a page costs."
 ---
 
 A search runs now, returns one live page of results inside the HTTP response, and stores nothing.
@@ -10,11 +10,14 @@ A search runs now, returns one live page of results inside the HTTP response, an
 - A connected LinkedIn account to run on, or the managed path to run on our infrastructure.
 - The `can_act_linkedin_searches` permission on your API key, agent or user.
 - A Sales Navigator seat on the executing account for the Sales Navigator methods.
+- A Recruiter seat, with a live Recruiter session, on the executing account for the Recruiter methods.
 
 <Note>
 A search is a discovery list, not an enriched one. Rows carry an identity (member id, vanity slug, name, avatar) and
 nothing else: no headline, no title, no company, no location, no connection degree. Feed the ids into
-[enrichment](/kb/enrichment) for those, a separate surface.
+[enrichment](/kb/enrichment) for those, a separate surface. The one exception is the Recruiter people search, whose
+rows come back with the headline, current position, location and connection degree filled, because LinkedIn Recruiter
+resolves the profile inline.
 </Note>
 
 A search is never cached: every call re-runs. The only durable traces are one row in the **Data
@@ -40,6 +43,8 @@ Every method is a `POST` under `https://app.gtm-api.com/linkedin/v4/api/linkedin
 | `company-decision-makers` | people | none, `limit` 1 to 50, default 25 | yes |
 | `param-id-lookup` | typeahead options | none | no |
 | `sales-nav-param-id-lookup` | typeahead options | none, `limit` 1 to 25, default 10 | yes |
+| `search-recruiter-people` | people | `page` 1 to 40, 25 rows a page | Recruiter seat |
+| `recruiter-param-id-lookup` | typeahead options | none, a fixed ten | Recruiter seat |
 
 The same surface also searches posts, jobs, events, groups, courses, products and schools, and reads a post's commenters,
 reactors and resharers. Same rules, and their filter vocabularies are in the [API reference](/api-reference/overview).
@@ -111,9 +116,40 @@ one wrong costs a run rather than an error.
 | `company_headquarters` (Sales Navigator people search) | Filters where the person's **company** is headquartered, not where the person is. For the person, use the location members |
 | `account_activities` | `SLC` is a senior-leadership change in the **last 3 months**, `RFE` is a funding event in the **past 12 months**. The windows are fixed and not yours to set |
 
+## The Recruiter search
+
+`search-recruiter-people` runs the LinkedIn Recruiter people search on an account that holds a Recruiter seat. It takes
+`filters` only: the Recruiter search has no URL you could paste, so `url` is refused. The filter object mirrors the
+Recruiter search panel. Chip facets (`job_titles`, `occupations`, `skills`, `companies`, `current_companies`,
+`locations`, `postal_codes`, `industries`, `schools`, `fields_of_study`, `degrees`, `spoken_languages`) take arrays of
+`{id, text, exclude, required, scope}`: `id` comes from `recruiter-param-id-lookup`, `exclude` negates the chip,
+`required` makes it a must-have, and `scope` is the facet's own axis (where in the career for titles and companies,
+lives-there or would-move-there for locations, minimum proficiency for spoken languages). Job titles, skills,
+companies and postal codes also accept a chip with only `text`. The closed sets (`network`, `seniority_levels`,
+`functions`, `company_sizes`, `company_types`, `profile_languages`, `recently_joined`, `workplace_preferences`,
+`employment_types`) take code arrays, listed in the [API reference](/api-reference/overview); note the Recruiter
+seniority codes run `1` to `10` and are not the Sales Navigator ones. The three year sliders take `{min, max}` in 1 to
+30, where 30 means 30 and more.
+
+A page holds 25 rows and the ceiling is page 40. Unlike the other engines, `paging.total` is LinkedIn's real count.
+
+<Warning>
+LinkedIn Recruiter throttles searches per seat. When a seat searches too fast, the call answers `429` with reason
+`recruiter_search_usage_limit` and LinkedIn's own sentence: "You've reached a temporary usage limit. Wait a minute,
+then retry your search." Wait the minute, then re-run the same page. This is LinkedIn's throttle, not your daily budget.
+</Warning>
+
+An executing account without a Recruiter seat answers `422 recruiter_required`. One whose Recruiter session has expired
+answers `409 recruiter_reauth_required` until the seat holder signs in to Recruiter again in the account's browser, the
+same rule as the [Recruiter inbox](/kb/inbox-and-message-sync).
+
 ## Resolving the ids that filters need
 
-Two typeahead endpoints turn a human term into an id, over separate id spaces: an id from one never works on the other.
+Three typeahead endpoints turn a human term into an id, over separate id spaces: an id from one never works on the
+others. `recruiter-param-id-lookup` feeds the Recruiter search only: one `type` out of `occupation`, `skill`, `company`,
+`geo`, `zip`, `industry`, `school`, `fieldOfStudy`, `degree`, `language` and `group`, a required `query`, a fixed ten
+rows in the Sales Navigator row shape. Its ids are `urn:li:ts_*` urns, except `language`, whose id is the lowercase
+language name the spoken-language facet wants.
 
 | | `param-id-lookup` | `sales-nav-param-id-lookup` |
 |---|---|---|
@@ -140,15 +176,18 @@ cached. Empty `rows` means the dropdown offered nothing for that term: an answer
 
 Rows sit at `result.rows`, paging at `result.paging`, and the ledger row at `result.data_request`.
 
-| Person field | People search | Sales Navigator people search |
-|---|---|---|
-| `ln_member_id`, `full_name`, `avatar_url` | filled | filled |
-| `ln_id` | filled | `null` |
-| `sn_id` | `null` | filled |
-| `nickname` (vanity slug) | filled | `null` |
-| `headline`, `position`, `company_name`, `location`, `connection_degree` | always `null` | always `null` |
+| Person field | People search | Sales Navigator people search | Recruiter people search |
+|---|---|---|---|
+| `ln_member_id`, `full_name`, `avatar_url` | filled | filled | filled |
+| `ln_id` | filled | `null` | `null` |
+| `sn_id` | `null` | filled | `null` |
+| `nickname` (vanity slug) | filled | `null` | filled |
+| `headline`, `position`, `company_name`, `location`, `connection_degree` | always `null` | always `null` | filled where LinkedIn shows them |
 
-Those last five are `null` by construction: the result page does not carry them on either engine. Service-provider rows
+The Recruiter rows add `talent_id` (what `send-recruiter` addresses as `recipient_profile_id`), `industry`,
+`can_send_inmail`, `open_to_work`, `connections_count` and `anonymized`.
+
+Those last five are `null` by construction on the first two engines: the result page does not carry them. Service-provider rows
 use the same shape, with no ratings, review counts or service labels. When you need more, take `ln_id` or `nickname`
 from a people-search row, or `sn_id` from a Sales Navigator row, into enrichment (as `profile_id` / `public_identifier`)
 or into `check-degree`. `ln_member_id` is a join key only: it cannot be turned back into a signed URN, so no method
@@ -181,7 +220,7 @@ paywall fired and rows may be truncated. The field is absent on the company engi
 | Field | Rule | Effect |
 |---|---|---|
 | `linkedin_account_sid` | `ln_ac_` plus 12 characters | runs on that account only, `executed_on: "own_account"`, spends that account's daily `scraping` budget |
-| omitted | | the service picks one of your connected accounts with remaining budget (Sales Navigator methods pick only accounts with a seat) |
+| omitted | | the service picks one of your connected accounts with remaining budget (Sales Navigator methods pick only accounts with a seat, Recruiter methods only seat holders with a live Recruiter session) |
 | `idempotency_key` | string, max 128 characters | replay guard on (team, key) |
 
 There is no silent fallback for a pinned account: out of budget it returns `429` rather than quietly moving to

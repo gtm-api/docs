@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 177 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 179 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -7220,6 +7220,47 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+  /api/linkedin-scraping/recruiter-param-id-lookup:
+    post:
+      operationId: scrape_linkedin_recruiter_param_id_lookup
+      summary: Look up LinkedIn Recruiter facet id
+      description: |-
+        LinkedIn Recruiter facet-id typeahead: resolve one Recruiter search facet (type) for a typed query into the ids the scrape_linkedin_search_recruiter_people filters take (urn:li:ts_*:N; the lowercase language name for spoken_languages). A THIRD id space: neither the flagship nor the Sales Navigator lookup ids fit here. Eleven kinds, all text facets (query required); LinkedIn answers a fixed 10. Needs a Recruiter-seat executor. Costs a scraping-bucket slot per call.
+
+        Contract:
+        - MCP tool `scrape_linkedin_recruiter_param_id_lookup`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - linkedin_scraping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeLinkedinRecruiterParamIdLookupRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeLinkedinRecruiterParamIdLookupResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: scrape_linkedin_recruiter_param_id_lookup
+      x-gtm-mcp-mount: linkedin.scraping
+      x-gtm-entity: linkedin_scraping
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: trivial
   /api/linkedin-scraping/sales-nav-param-id-lookup:
     post:
       operationId: scrape_linkedin_sales_nav_param_id_lookup
@@ -7579,6 +7620,47 @@ paths:
         5XX:
           $ref: "#/components/responses/McpServerError"
       x-gtm-mcp-tool: scrape_linkedin_search_products
+      x-gtm-mcp-mount: linkedin.scraping
+      x-gtm-entity: linkedin_scraping
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/linkedin-scraping/search-recruiter-people:
+    post:
+      operationId: scrape_linkedin_search_recruiter_people
+      summary: Scrape LinkedIn Recruiter people search
+      description: |-
+        One page of a LinkedIn Recruiter (talent) people search from a structured filters object: the Recruiter facet vocabulary (job titles, skills, companies, locations and postal codes, industries, schools, fields of study, degrees, spoken languages, seniority, function, company size and type, the three year sliders, network, open-to-work signals). 25 hits a page, page 1..40 (LinkedIn's ceiling), a real total; every row carries talent_id (what send_linkedin_recruiter_message addresses), headline, location, current position and can_send_inmail. Needs an executor with a Recruiter seat whose Recruiter session is alive: 422 recruiter_required otherwise, 409 recruiter_reauth_required past the session clock. LinkedIn throttles the search per seat: a 429 recruiter_search_usage_limit means "wait a minute, then retry" (LinkedIn's own words are in the message). Pair with scrape_linkedin_recruiter_param_id_lookup for the chip ids. Costs a scraping-bucket slot per page.
+
+        Contract:
+        - MCP tool `scrape_linkedin_search_recruiter_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - linkedin_scraping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeLinkedinSearchRecruiterPeopleRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeLinkedinSearchRecruiterPeopleResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: scrape_linkedin_search_recruiter_people
       x-gtm-mcp-mount: linkedin.scraping
       x-gtm-entity: linkedin_scraping
       x-gtm-operation: action
@@ -8667,7 +8749,7 @@ components:
               - inmail_credits
           minItems: 1
           maxItems: 4
-          description: Which steps to run. OMIT for all four, which is the normal call. `premium` reads the profile flag and, on a full run, settles both seats when it comes back false. `sales_nav` and `recruiter` probe one seat each and are the cheap ones. `inmail_credits` reads the balance and is never gated on Premium. Asking for a subset skips the rest entirely, so nothing you did not ask for is re-read or re-written.
+          description: "Which steps to run. OMIT for all four, which is the normal call. `premium` reads the profile flag and, on a full run, settles both seats when it comes back false. `sales_nav` and `recruiter` probe one seat each and are the cheap ones. `inmail_credits` reads the Sales Navigator balance (the LSS_INMAIL grant) and needs a Sales Navigator SEAT: on a full run it is skipped for a seatless account (the last known balance is kept), and naming it in `checks` for one is refused with 422 `sales_nav_required`. Asking for a subset skips the rest entirely, so nothing you did not ask for is re-read or re-written."
     CheckLinkedinAccountPremiumSubscriptionResponse:
       type: object
       properties:
@@ -18541,6 +18623,8 @@ components:
                 - get_post_resharers
                 - search_param_id_lookup
                 - search_sales_nav_param_id_lookup
+                - search_recruiter_people_by_params
+                - search_recruiter_param_id_lookup
             status:
               type: string
               enum:
@@ -35036,9 +35120,9 @@ components:
         - item
         - result
         - meta
-    ScrapeLinkedinSalesNavParamIdLookupRequest:
+    ScrapeLinkedinRecruiterParamIdLookupRequest:
       type: object
-      description: Request body of `scrape_linkedin_sales_nav_param_id_lookup`.
+      description: Request body of `scrape_linkedin_recruiter_param_id_lookup`.
       properties:
         linkedin_account_sid:
           type: string
@@ -35055,40 +35139,27 @@ components:
         type:
           type: string
           enum:
-            - COMPANY_WITH_LIST
-            - BING_GEO
-            - INDUSTRY
-            - TITLE
-            - GROUP
-            - SCHOOL
-            - CONNECTION_OF
-            - COMPANY_SIZE
-            - FUNCTION
-            - SENIORITY_V2
-            - RELATIONSHIP
-            - COMPANY_TYPE
-            - TENURE
-            - PROFILE_LANGUAGE
-            - PERSONA
-            - ACCOUNT_LIST
-            - LEAD_LIST
-            - LEAD_INTERACTIONS
-            - SAVED_LEADS_AND_ACCOUNTS
-          description: The Sales Navigator facet kind to resolve (node salesApiFacetTypeahead `type`, passed through verbatim). The first seven are text facets that resolve `query`; the rest return their fixed / account-scoped list and ignore it.
+            - occupation
+            - skill
+            - company
+            - geo
+            - zip
+            - industry
+            - school
+            - fieldOfStudy
+            - degree
+            - language
+            - group
+          description: "The Recruiter search-filter typeahead kind (node talentTypeaheads `q`, passed through verbatim). Every kind is a text facet, so `query` is required. Where each id lands in the search_recruiter_people filters: occupation → job_titles / occupations, skill → skills, company → companies / current_companies, geo → locations, zip → postal_codes, industry → industries, school → schools, fieldOfStudy → fields_of_study, degree → degrees, language → spoken_languages (the id is the lowercase language name), group → no search member yet. The closed enums of the search (seniority, function, company size, …) have no typeahead: their code sets are inline in the filters."
         query:
           type: string
-          nullable: true
           minLength: 1
           maxLength: 100
-          description: The typed term (text facets); ignored by static-enum / list facets.
-        limit:
-          type: integer
-          minimum: 1
-          maximum: 25
-          description: Default 10.
+          description: The typed term - required, every kind is a text facet.
       required:
         - type
-    ScrapeLinkedinSalesNavParamIdLookupResponse:
+        - query
+    ScrapeLinkedinRecruiterParamIdLookupResponse:
       type: object
       properties:
         success:
@@ -35135,6 +35206,7 @@ components:
                   - headline
                   - entity_urn
                   - image_url
+                description: "Same shape as the Sales Navigator lookup rows: id is what the Recruiter filter takes; entity_urn the typeahead entity urn; headline the ISO country code for geo / zip, the organization urn for school; image_url the company logo."
               description: The transient result list, in LinkedIn’s order; NOTHING persisted.
             paging: {}
             data_request:
@@ -36862,6 +36934,799 @@ components:
                 - has_more
                 - total
               description: "Page-numbered paging: re-call with page + 1 while has_more. total carries LinkedIn's own result count when the page printed one, best effort and null otherwise, so drive the loop from has_more."
+            data_request:
+              type: object
+              properties: {}
+              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+          required:
+            - rows
+            - paging
+            - data_request
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    ScrapeLinkedinSearchRecruiterPeopleRequest:
+      type: object
+      description: Request body of `scrape_linkedin_search_recruiter_people`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "Executor account (ln_ac_...). OPTIONAL everywhere on this surface. Given: the call runs on that account ONLY; a saturated or held scraping bucket refuses 429 bucket_saturated (with retry_after). Omitted: the service auto-picks one of your connected accounts with remaining capacity (SN verbs pick only Sales-Navigator seats; 422 no_connected_accounts when none is ready, 429 when all are at capacity)."
+        idempotency_key:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: "Ledger replay guard: a repeat call with the same (team, key) returns the stored outcome; no re-execution. Recommended on every search run. The KEY ALONE decides: the probe does not compare arguments, so reusing one key after changing the arguments hands back the FIRST result. On the twelve search verbs that matters twice over, because switching a call from filters to url (or back) under one key replays instead of running the new search. New search, new key."
+        filters:
+          type: object
+          properties:
+            keywords:
+              type: string
+              nullable: true
+              maxLength: 256
+            first_name:
+              type: string
+              nullable: true
+              maxLength: 100
+            last_name:
+              type: string
+              nullable: true
+              maxLength: 100
+            job_titles:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                  scope:
+                    type: string
+                    nullable: true
+                    enum:
+                      - CURRENT
+                      - PAST
+                      - CURRENT_OR_PAST
+                      - PAST_NOT_CURRENT
+                    description: Where in the career the chip must sit; omitted = CURRENT_OR_PAST.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: "Job titles. Ids via lookup(type: \"occupation\") (urn:li:ts_title:N) or free text: [{text: \"Head of Growth\"}]. scope: 'CURRENT' | 'PAST' | 'CURRENT_OR_PAST' (default) | 'PAST_NOT_CURRENT'."
+            occupations:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                  scope:
+                    type: string
+                    nullable: true
+                    enum:
+                      - CURRENT
+                      - PAST
+                      - CURRENT_OR_PAST
+                      - PAST_NOT_CURRENT
+                    description: Where in the career the chip must sit; omitted = CURRENT_OR_PAST.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: "Standardized titles (LinkedIn's title taxonomy), id REQUIRED via lookup(type: \"occupation\"). scope: 'CURRENT' | 'PAST' | 'CURRENT_OR_PAST' (default) | 'PAST_NOT_CURRENT'."
+            skills:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: 'Skills. Ids via lookup(type: "skill") (urn:li:ts_skill:N) or free text.'
+            companies:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                  scope:
+                    type: string
+                    nullable: true
+                    enum:
+                      - CURRENT
+                      - PAST
+                      - CURRENT_OR_PAST
+                      - PAST_NOT_CURRENT
+                    description: Where in the career the chip must sit; omitted = CURRENT_OR_PAST.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: "Employers, current or past. Ids via lookup(type: \"company\") (urn:li:ts_company:N) or free text; exclude: true is the classic \"not my own company\". scope: 'CURRENT' | 'PAST' | 'CURRENT_OR_PAST' (default) | 'PAST_NOT_CURRENT'."
+            current_companies:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: 'The employer right now (the CURRENT_COMPANY facet). Ids via lookup(type: "company").'
+            locations:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                  scope:
+                    type: string
+                    nullable: true
+                    enum:
+                      - CURRENT
+                      - PREFERRED_NOT_CURRENT
+                      - CURRENT_OR_PREFERRED
+                    description: "'CURRENT' lives there, 'PREFERRED_NOT_CURRENT' would move there, 'CURRENT_OR_PREFERRED' either."
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: "Geography. Ids via lookup(type: \"geo\") (urn:li:ts_geo:N). scope: 'CURRENT' (lives there) | 'PREFERRED_NOT_CURRENT' (would move there) | 'CURRENT_OR_PREFERRED'."
+            postal_codes:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: 'Postal codes. Ids via lookup(type: "zip") (urn:li:ts_geo:N) or free text; pair with postal_code_distance.'
+            postal_code_distance:
+              type: integer
+              nullable: true
+              minimum: 1
+              maximum: 500
+              description: Radius around every postal code, miles. Default 50.
+            industries:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: 'Industries. Ids via lookup(type: "industry") (urn:li:ts_industry:N).'
+            schools:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: 'Schools attended. Ids via lookup(type: "school") (urn:li:ts_school:N).'
+            fields_of_study:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: 'Fields of study. Ids via lookup(type: "fieldOfStudy") (urn:li:ts_field_of_study:N).'
+            degrees:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: 'Degrees. Ids via lookup(type: "degree") (urn:li:ts_degree:N).'
+            spoken_languages:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  id:
+                    type: string
+                    nullable: true
+                    maxLength: 128
+                    description: The typeahead row id VERBATIM (urn:li:ts_*:N; the lowercase language name for spoken_languages). A bare numeric id is accepted for the urn kinds.
+                  text:
+                    type: string
+                    nullable: true
+                    maxLength: 256
+                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                  exclude:
+                    type: boolean
+                    nullable: true
+                    description: true → the chip is a negative filter.
+                  required:
+                    type: boolean
+                    nullable: true
+                    description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
+                  scope:
+                    type: string
+                    nullable: true
+                    enum:
+                      - ELEMENTARY
+                      - LIMITED_WORKING
+                      - PROFESSIONAL_WORKING
+                      - FULL_PROFESSIONAL
+                      - NATIVE_OR_BILINGUAL
+                    description: Minimum proficiency of the spoken language.
+                description: "One Recruiter facet chip: at least one of id / text."
+              maxItems: 20
+              description: "Languages the member speaks. Ids via lookup(type: \"language\") - the lowercase language name, e.g. \"danish\". scope = minimum proficiency: 'ELEMENTARY' | 'LIMITED_WORKING' | 'PROFESSIONAL_WORKING' | 'FULL_PROFESSIONAL' | 'NATIVE_OR_BILINGUAL'."
+            network:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - F
+                  - S
+                  - A
+                  - O
+              maxItems: 4
+              description: "Relationship: 'F' 1st, 'S' 2nd, 'A' group members, 'O' 3rd+ and everyone else."
+            seniority_levels:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+                  - "6"
+                  - "7"
+                  - "8"
+                  - "9"
+                  - "10"
+              maxItems: 10
+              description: "Seniority: '1' Unpaid, '2' Training, '3' Entry, '4' Senior, '5' Manager, '6' Director, '7' VP, '8' CXO, '9' Partner, '10' Owner. NOT the Sales Navigator codes."
+            functions:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+                  - "6"
+                  - "7"
+                  - "8"
+                  - "9"
+                  - "10"
+                  - "11"
+                  - "12"
+                  - "13"
+                  - "14"
+                  - "15"
+                  - "16"
+                  - "17"
+                  - "18"
+                  - "19"
+                  - "20"
+                  - "21"
+                  - "22"
+                  - "23"
+                  - "24"
+                  - "25"
+                  - "26"
+              maxItems: 26
+              description: "Job function: '1' Accounting, '2' Administrative, '3' Arts and Design, '4' Business Development, '5' Community and Social Services, '6' Consulting, '7' Education, '8' Engineering, '9' Entrepreneurship, '10' Finance, '11' Healthcare Services, '12' Human Resources, '13' Information Technology, '14' Legal, '15' Marketing, '16' Media and Communication, '17' Military and Protective Services, '18' Operations, '19' Product Management, '20' Program and Project Management, '21' Purchasing, '22' Quality Assurance, '23' Real Estate, '24' Research, '25' Sales, '26' Customer Success and Support."
+            company_sizes:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - A
+                  - B
+                  - C
+                  - D
+                  - E
+                  - F
+                  - G
+                  - H
+                  - I
+              maxItems: 9
+              description: "Company size: 'A' Self-employed, 'B' 1-10, 'C' 11-50, 'D' 51-200, 'E' 201-500, 'F' 501-1000, 'G' 1001-5000, 'H' 5001-10000, 'I' 10001+."
+            company_types:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - P
+                  - C
+                  - D
+                  - N
+                  - G
+                  - S
+                  - O
+                  - E
+                  - A
+              maxItems: 9
+              description: "Company type: 'P' Privately Held, 'C' Public Company, 'D' Educational Institution, 'N' Non Profit, 'G' Government Agency, 'S' Partnership, 'O' Self Owned, 'E' Self Employed, 'A' College Page."
+            profile_languages:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - en
+                  - es
+                  - fr
+                  - pt
+                  - zh
+                  - de
+                  - it
+                  - in
+                  - tr
+                  - pl
+                  - nl
+                  - ru
+                  - ar
+                  - cs
+                  - sv
+                  - ro
+                  - ko
+                  - da
+                  - no
+                  - uk
+                  - ms
+                  - ja
+                  - _o
+              maxItems: 23
+              description: Profile language, ISO 639-1 ('_o' = others).
+            recently_joined:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - "1"
+                  - "2"
+                  - "3"
+                  - "4"
+                  - "5"
+              maxItems: 5
+              description: "Joined LinkedIn: '1' 1 day ago, '2' 2-7 days, '3' 8-14 days, '4' 15-30 days, '5' 1-3 months ago."
+            workplace_preferences:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - O
+                  - R
+                  - H
+              maxItems: 3
+              description: "Workplace: 'O' on-site, 'R' remote, 'H' hybrid."
+            employment_types:
+              type: array
+              nullable: true
+              items:
+                type: string
+                enum:
+                  - F
+                  - P
+                  - C
+                  - T
+                  - I
+                  - V
+                  - O
+              maxItems: 7
+              description: "Employment type: 'F' full-time, 'P' part-time, 'C' contract, 'T' temporary, 'I' internship, 'V' volunteer, 'O' other."
+            us_military_background:
+              type: boolean
+              nullable: true
+              description: true → members with a US military background (IS_VETERAN); false dispatches nothing.
+            years_in_current_position:
+              type: object
+              nullable: true
+              properties:
+                min:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+                max:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+              required:
+                - min
+                - max
+              description: Years in the current position, {min, max} in 1..30 (30 = 30+).
+            years_in_current_company:
+              type: object
+              nullable: true
+              properties:
+                min:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+                max:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+              required:
+                - min
+                - max
+              description: Years at the current company, {min, max} in 1..30.
+            years_of_experience:
+              type: object
+              nullable: true
+              properties:
+                min:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+                max:
+                  type: integer
+                  minimum: 1
+                  maximum: 30
+              required:
+                - min
+                - max
+              description: Total years of experience, {min, max} in 1..30.
+          description: "LinkedIn Recruiter people-search filters, the COMPLETE Recruiter facet vocabulary (the ONLY addressing: the Recruiter search has no URL form). At least one member must be non-empty. lookup = scrape_linkedin_recruiter_param_id_lookup; chip facets take [{id, text, exclude, required, scope}], closed enums take flat code arrays (their full sets are inline), the three year sliders take {min, max}."
+        page:
+          type: integer
+          minimum: 1
+          maximum: 40
+          description: LinkedIn Recruiter page number, default 1; 25 hits a page, 40 pages at most (1000 hits per search). Re-call with page + 1 while paging.has_more.
+      required:
+        - filters
+    ScrapeLinkedinSearchRecruiterPeopleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  ln_member_id:
+                    type: string
+                    nullable: true
+                    description: Canonical member id (decoded in-process).
+                  ln_id:
+                    type: string
+                    nullable: true
+                  sn_id:
+                    type: string
+                    nullable: true
+                  nickname:
+                    type: string
+                    nullable: true
+                  full_name:
+                    type: string
+                    nullable: true
+                  headline:
+                    type: string
+                    nullable: true
+                  position:
+                    type: string
+                    nullable: true
+                  company_name:
+                    type: string
+                    nullable: true
+                  location:
+                    type: string
+                    nullable: true
+                  avatar_url:
+                    type: string
+                    nullable: true
+                  connection_degree:
+                    type: string
+                    nullable: true
+                  talent_id:
+                    type: string
+                    description: "The Recruiter (talent) profile id, AEMAA…: what send_linkedin_recruiter_message addresses as recipient_profile_id. Same member as ln_member_id."
+                  industry:
+                    type: string
+                    nullable: true
+                  can_send_inmail:
+                    type: boolean
+                    nullable: true
+                    description: LinkedIn says this seat may InMail the member right now.
+                  open_to_work:
+                    type: boolean
+                    nullable: true
+                    description: The member signalled openness to new opportunities.
+                  connections_count:
+                    type: integer
+                    nullable: true
+                  anonymized:
+                    type: boolean
+                    description: LinkedIn hid the name (out-of-network privacy); the names are what it showed.
+                required:
+                  - ln_member_id
+                  - ln_id
+                  - sn_id
+                  - nickname
+                  - full_name
+                  - headline
+                  - position
+                  - company_name
+                  - location
+                  - avatar_url
+                  - connection_degree
+                  - talent_id
+                  - industry
+                  - can_send_inmail
+                  - open_to_work
+                  - connections_count
+                  - anonymized
+              description: The transient result list, in LinkedIn’s order; NOTHING persisted.
+            paging:
+              type: object
+              properties:
+                page:
+                  type: integer
+                page_size:
+                  type: integer
+                has_more:
+                  type: boolean
+                total:
+                  type: integer
+                  nullable: true
+              required:
+                - page
+                - page_size
+                - has_more
+                - total
+              description: Page-numbered paging with LinkedIn Recruiter's own total; has_more is false at the 40-page ceiling even when total says more.
             data_request:
               type: object
               properties: {}
@@ -40345,6 +41210,8 @@ components:
                     - get_post_resharers
                     - search_param_id_lookup
                     - search_sales_nav_param_id_lookup
+                    - search_recruiter_people_by_params
+                    - search_recruiter_param_id_lookup
                 in:
                   type: array
                   items:
@@ -40405,6 +41272,8 @@ components:
                       - get_post_resharers
                       - search_param_id_lookup
                       - search_sales_nav_param_id_lookup
+                      - search_recruiter_people_by_params
+                      - search_recruiter_param_id_lookup
                 nin:
                   type: array
                   items:
@@ -40465,6 +41334,8 @@ components:
                       - get_post_resharers
                       - search_param_id_lookup
                       - search_sales_nav_param_id_lookup
+                      - search_recruiter_people_by_params
+                      - search_recruiter_param_id_lookup
               additionalProperties: false
             status:
               type: object
@@ -40685,6 +41556,8 @@ components:
                       - get_post_resharers
                       - search_param_id_lookup
                       - search_sales_nav_param_id_lookup
+                      - search_recruiter_people_by_params
+                      - search_recruiter_param_id_lookup
                   status:
                     type: string
                     enum:

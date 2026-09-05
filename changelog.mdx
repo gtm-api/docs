@@ -4,7 +4,7 @@ description: "What's new in the GTM API platform and this documentation."
 ---
 
 <Update label="2026-09-05" description="The LinkedIn Recruiter inbox is the third messenger, with its seat, its session clock and the 24-hour rule">
-  **271 operations**: LinkedIn 177, ID and Teams 72, Orchestration 22.
+  **273 operations**: LinkedIn 179, ID and Teams 72, Orchestration 22.
 
   **Recruiter conversations are their own surface.** Threads and messages carry
   `messenger_type: "recruiter"` and the candidate's `talent_id`; `sync-my-recruiter-conversations`
@@ -22,6 +22,15 @@ description: "What's new in the GTM API platform and this documentation."
   `409 recruiter_reauth_required` until the seat holder signs in to Recruiter in the account's
   browser. No Recruiter password is ever stored. `get-my-recruiter-seat` and
   `get-my-hiring-projects` read the seat's own entitlements and hiring projects.
+
+  **The Recruiter people search and its typeahead.** `search-recruiter-people` runs the LinkedIn
+  Recruiter search from a `filters` object (chips with `exclude`, `required` and a per-facet `scope`,
+  the closed code sets, the three year sliders), 25 rows a page, 40 pages at most, LinkedIn's real
+  `total`, and rows that carry the headline, current position, location, connection degree,
+  `talent_id`, `can_send_inmail` and `open_to_work`. `recruiter-param-id-lookup` resolves the eleven
+  chip kinds into their ids. LinkedIn's per-seat search throttle answers `429
+  recruiter_search_usage_limit` with LinkedIn's own sentence and a one-minute `retry_after`. On MCP
+  both ride on `/mcp/linkedin/recruiter`.
 
   **Sending is `send-recruiter`.** One verb over two LinkedIn wires: a new thread by `talent_id`,
   `ln_id` or `sn_id`, or a reply by thread sid. LinkedIn's one InMail per candidate per 24 hours
