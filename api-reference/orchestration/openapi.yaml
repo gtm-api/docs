@@ -1856,6 +1856,7 @@ components:
               - linkedin-accounts.deleted
               - linkedin-accounts.initial-sync-started
               - linkedin-accounts.initial-sync-done
+              - linkedin-accounts.initial-sync-held
               - linkedin-accounts.sync-reset
               - linkedin-accounts.sync-config-updated
               - linkedin-accounts.premium-changed
@@ -6774,6 +6775,7 @@ components:
               - linkedin-accounts.deleted
               - linkedin-accounts.initial-sync-started
               - linkedin-accounts.initial-sync-done
+              - linkedin-accounts.initial-sync-held
               - linkedin-accounts.sync-reset
               - linkedin-accounts.sync-config-updated
               - linkedin-accounts.premium-changed

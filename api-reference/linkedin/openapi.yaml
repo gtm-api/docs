@@ -8785,6 +8785,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -9071,6 +9079,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -9257,6 +9267,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -9543,6 +9561,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -11842,6 +11862,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -12128,6 +12156,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -12329,6 +12359,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -12615,6 +12653,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -12828,6 +12868,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -13114,6 +13162,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -16883,6 +16933,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -17169,6 +17227,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -19009,6 +19069,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -19295,6 +19363,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -19523,6 +19593,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -19809,6 +19887,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -20059,6 +20139,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -20345,6 +20433,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -20520,6 +20610,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -20806,6 +20904,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -20970,6 +21070,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -21256,6 +21364,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -21437,6 +21547,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -21723,6 +21841,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -21937,6 +22057,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -22223,6 +22351,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -22400,6 +22530,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -22686,6 +22824,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -22937,6 +23077,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -23223,6 +23371,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -23502,6 +23652,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -23788,6 +23946,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -24115,6 +24275,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -24401,6 +24569,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -24565,6 +24735,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -24851,6 +25029,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -25074,6 +25254,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -25360,6 +25548,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -32367,6 +32557,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -32653,6 +32851,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -43454,6 +43654,39 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            initial_sync_held_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: is_null:false = onboardings that parked on the daily budget part-way
+            initial_sync_hold_reason:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
               description: Onboarding gate; is_null:true = still onboarding, is_null:false = ready.
             last_heartbeat_at:
               type: object
@@ -43678,6 +43911,14 @@ components:
                   initial_sync_completed_at:
                     type: string
                     nullable: true
+                  initial_sync_held_at:
+                    type: string
+                    nullable: true
+                    description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+                  initial_sync_hold_reason:
+                    type: string
+                    nullable: true
+                    description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
                   last_heartbeat_at:
                     type: string
                     nullable: true
@@ -43964,6 +44205,8 @@ components:
                   - last_followers_sync_at
                   - last_snapshot_at
                   - initial_sync_completed_at
+                  - initial_sync_held_at
+                  - initial_sync_hold_reason
                   - last_heartbeat_at
                   - sync_config
                   - webhook_config
@@ -49608,6 +49851,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -49894,6 +50145,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -51998,6 +52251,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -52284,6 +52545,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -52505,6 +52768,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -52791,6 +53062,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -53949,6 +54222,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -54235,6 +54516,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config
@@ -54663,6 +54946,14 @@ components:
             initial_sync_completed_at:
               type: string
               nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
             last_heartbeat_at:
               type: string
               nullable: true
@@ -54949,6 +55240,8 @@ components:
             - last_followers_sync_at
             - last_snapshot_at
             - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
             - last_heartbeat_at
             - sync_config
             - webhook_config

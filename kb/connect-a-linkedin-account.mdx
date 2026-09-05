@@ -96,7 +96,11 @@ The `status` field is the account lifecycle:
 | `subscription_required` | The plan lapsed; renew to reactivate |
 
 Until the account reaches `active`, outbound endpoints (connection requests, messages)
-answer with a `conflict` error. Read endpoints work as soon as data lands.
+answer with a `conflict` error. Read endpoints work as soon as data lands. When the first
+sync finishes, the person who connected the account gets an email saying it is ready, with
+what the sync brought in; a large account can run out of its first-day read budget part-way,
+in which case the account carries `initial_sync_held_at`, the sync resumes on its own after
+the daily reset, and the email arrives a day later and says so.
 
 ## 3. Check capabilities and limits
 

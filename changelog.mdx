@@ -29,6 +29,13 @@ description: "What's new in the GTM API platform and this documentation."
   `reason: "recruiter_inmail_cooldown"` and a `retry_after`, on a fresh InMail and on a reply the
   candidate has not answered yet.
 
+  **The first sync now tells you when it is done.** The person who connected a LinkedIn account gets
+  `Your LinkedIn account is ready to use` when its onboarding sync latches, with the connections and
+  conversations it brought in and how long it took. A large account can spend its first-day read
+  budget part-way: it then carries `initial_sync_held_at` and `initial_sync_hold_reason` (filterable),
+  emits `linkedin-accounts.initial-sync-held`, resumes on its own after the daily reset, and the mail
+  arrives a day later saying so. Sent once per account; a reset-sync re-latch sends nothing.
+
   **In the app**, the **Recruiter Conversations** row appears on the Account Sync tab once a seat is
   detected, with its own interval, Sync now and Reset sync; the initial-sync gate lists the
   surface; the Premium block shows the seat and the session's expiry, and says so once it has
