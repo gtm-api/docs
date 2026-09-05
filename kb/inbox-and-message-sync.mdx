@@ -6,28 +6,59 @@ description: "How conversations and messages reach the platform: what the initia
 Your LinkedIn inbox is not read live. The platform keeps its own copy of every thread and
 message, built by a sync through the account's own browser and topped up by a realtime signal.
 
-## Two inboxes, synced separately
+## Three inboxes, synced separately
 
-The regular messenger and the Sales Navigator inbox are separate surfaces with their own
-threads and their own clocks. Every thread carries a `messenger_type`.
+The regular messenger, the Sales Navigator inbox and the LinkedIn Recruiter inbox are separate
+surfaces with their own threads and their own clocks. Every thread carries a `messenger_type`.
 
-| | Regular inbox | Sales Navigator |
-|---|---|---|
-| `messenger_type` | `linkedin` | `sales_navigator` |
-| Row on the **Account Sync** tab | **Conversations** | **Sales Nav Conversations** |
-| Available when | always | only if the account has Sales Navigator |
-| Muting and marking read | supported | not supported, `is_muted` is always `null` |
-| Verbs | `get-my-latest`, `sync-my-linkedin-conversations` | `get-my-latest-sales-nav`, `sync-my-sales-navigator-conversations` |
+| | Regular inbox | Sales Navigator | Recruiter |
+|---|---|---|---|
+| `messenger_type` | `linkedin` | `sales_navigator` | `recruiter` |
+| Row on the **Account Sync** tab | **Conversations** | **Sales Nav Conversations** | **Recruiter Conversations** |
+| Available when | always | only if the account has Sales Navigator | only if the account holds a Recruiter seat |
+| Muting and marking read | supported | not supported, `is_muted` is always `null` | not supported |
+| Verbs | `get-my-latest`, `sync-my-linkedin-conversations` | `get-my-latest-sales-nav`, `sync-my-sales-navigator-conversations` | `get-my-latest-recruiter`, `sync-my-recruiter-conversations` |
 
-SN threads sync only once the platform detects the subscription (`premium_check`, its own
-surface, every 360 minutes), which has to run before the **Sales Nav Conversations** row
-appears. A basic-messenger verb on an SN thread answers `422 messenger_type_mismatch`.
+SN and Recruiter threads sync only once the platform detects the subscription (`premium_check`,
+its own surface, every 360 minutes), which has to run before the **Sales Nav Conversations** or
+**Recruiter Conversations** row appears. A basic-messenger verb on an SN or Recruiter thread
+answers `422 messenger_type_mismatch`.
+
+### The Recruiter inbox
+
+The Recruiter inbox belongs to a seat, not to the profile. The premium check stamps the seat
+number and its contract on the account (`recruiter_seat_id`, `recruiter_contract_id`), and every
+Recruiter call needs them: without a seat the verbs answer `422 recruiter_required`, without the
+number `422 recruiter_seat_unresolvable`. A candidate is identified by `talent_id` (the `AEMAA…`
+id the Recruiter UI shows), which the platform decodes to the same `ln_member_id` as the
+profile's `ln_id` and `sn_id`, so one candidate is one thread whichever id you send.
+
+One sync run walks the INBOX tab and then UNRESOLVED: a thread you opened with an InMail sits
+under UNRESOLVED until the candidate replies, and INBOX alone would never show it. ARCHIVED and
+SCHEDULED are not walked. Pages carry 15 threads, the Recruiter client's own size, and there is
+no realtime push for this inbox: a reply lands on the next sweep (120 minutes by default) or on a
+head refresh.
+
+LinkedIn keeps a separate Recruiter session of about 30 days, and the platform records its
+expiry as `recruiter_session_expires_at`. Past that clock every Recruiter call answers
+`409 recruiter_reauth_required` and the recurring run is cancelled with the same reason; the
+**Recruiter Conversations** row and the Premium block on the account say so. The fix is a
+sign-in to Recruiter in the account's own browser. The platform never stores the Recruiter
+password.
+
+Sending goes through `POST /api/linkedin-messages/send-recruiter`: a new thread by `talent_id`,
+`ln_id` or `sn_id`, or a reply into an existing thread by its sid. LinkedIn allows **one InMail
+per candidate per 24 hours** unless they reply sooner, so a second message inside that window
+answers `429 rate_limited` with `reason: "recruiter_inmail_cooldown"` and a `retry_after`; a
+reply the candidate has not answered yet is refused by LinkedIn under the same rule and surfaces
+the same way. `get-my-recruiter-seat` and `get-my-hiring-projects` read the seat's own
+entitlements and hiring projects.
 
 ## What the initial backfill imports
 
 Onboarding walks a fixed ordered set of surfaces (connections, connection requests, connection
-invitations, the regular inbox, the premium check, the Sales Navigator inbox, then the profile
-snapshot) and the account unlocks when it finishes. Every thread is imported, since the run
+invitations, the regular inbox, the premium check, the Sales Navigator and Recruiter inboxes when
+the account holds those seats, then the profile snapshot) and the account unlocks when it finishes. Every thread is imported, since the run
 pages to an empty page. Not every message is.
 
 <Warning>
@@ -49,6 +80,7 @@ syncs wait for the window: an inbox sync spends that budget and nothing else.
 |---|---|---|
 | `conversations` | 180 minutes | yes |
 | `sales_navigator_conversations` | 120 minutes | yes |
+| `recruiter_conversations` | 120 minutes | yes |
 | `connections` | 180 minutes | yes |
 | `connection_requests` | 720 minutes | yes |
 | `connection_invitations` | 720 minutes | yes |
@@ -68,7 +100,7 @@ reply can sit for up to a day. Initial backfills are exempt from the floor.
 
 A recurring run is not a full re-read: it walks the directory newest first and stops once a page
 holds **10 threads it already knows**, and regular-inbox pages are capped at **25 threads** by
-the browser plugin (the Sales Navigator sweep pages at 100). Only threads whose event count or
+the browser plugin (the Sales Navigator sweep pages at 100, the Recruiter sweep at 15). Only threads whose event count or
 last activity moved ahead of the stored copy are read.
 
 ## Realtime push, and what it does not do
@@ -150,7 +182,7 @@ newer than stored means the thread is already flagged and the next run drains it
    call `get-my-latest` on that thread to pull the newest page of up to 100 messages.
 7. **It was a push drop and the sweep has not run.** Your own reply typed on LinkedIn, a
    duplicate signal, a burst above 10 refreshes a minute and free plan accounts all skip the fast
-   path: the wait is then up to 180 minutes (regular), 120 (Sales Navigator), 1440 (free plan).
+   path: the wait is then up to 180 minutes (regular), 120 (Sales Navigator and Recruiter), 1440 (free plan).
 8. **Still nothing?** Send support the account sid (`ln_ac_…`), the **Account Sync** row with
    its status and next due time, and the sync run sid (`ln_sy_…`) with its `wait_reason`.
 
@@ -193,7 +225,8 @@ attempt. A blind retry can double-send.
 </Note>
 
 <Warning>
-A sync reset with `conversations` or `sales_navigator_conversations` selected **soft-deletes
+A sync reset with `conversations`, `sales_navigator_conversations` or `recruiter_conversations`
+selected **soft-deletes
 every stored conversation for that account and surface, and all of their messages**, in one
 transaction. The next sync rebuilds the directory, resurrecting the same rows (same sid) as it
 re-observes them, so resurrected threads fire no `linkedin-conversations.created` and only

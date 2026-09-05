@@ -3,6 +3,38 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-05" description="The LinkedIn Recruiter inbox is the third messenger, with its seat, its session clock and the 24-hour rule">
+  **271 operations**: LinkedIn 177, ID and Teams 72, Orchestration 22.
+
+  **Recruiter conversations are their own surface.** Threads and messages carry
+  `messenger_type: "recruiter"` and the candidate's `talent_id`; `sync-my-recruiter-conversations`
+  runs the background sync (one run walks the INBOX tab and then UNRESOLVED, where a thread you
+  opened sits until the candidate replies), `get-my-latest-recruiter` on conversations and on
+  messages is the head refresh, and `recruiter_conversations` joins the sync, webhook and
+  reset-sync vocabularies with the same 120-minute default cadence as Sales Navigator. The account
+  carries `recruiter_seat_id`, `recruiter_contract_id`, `recruiter_session_expires_at` and
+  `last_recruiter_conversations_sync_at`, all filterable; the two clocks sort.
+
+  **The seat and the session are facts on the account, not inputs.** The premium check
+  (`checks: ["recruiter"]`) stamps the seat number and its contract and reads the expiry of
+  LinkedIn's 30-day Recruiter session. Recruiter calls without a seat answer
+  `422 recruiter_required` or `422 recruiter_seat_unresolvable`; past the session clock they answer
+  `409 recruiter_reauth_required` until the seat holder signs in to Recruiter in the account's
+  browser. No Recruiter password is ever stored. `get-my-recruiter-seat` and
+  `get-my-hiring-projects` read the seat's own entitlements and hiring projects.
+
+  **Sending is `send-recruiter`.** One verb over two LinkedIn wires: a new thread by `talent_id`,
+  `ln_id` or `sn_id`, or a reply by thread sid. LinkedIn's one InMail per candidate per 24 hours
+  is enforced before dispatch and read back from the wire: `429 rate_limited` with
+  `reason: "recruiter_inmail_cooldown"` and a `retry_after`, on a fresh InMail and on a reply the
+  candidate has not answered yet.
+
+  **In the app**, the **Recruiter Conversations** row appears on the Account Sync tab once a seat is
+  detected, with its own interval, Sync now and Reset sync; the initial-sync gate lists the
+  surface; the Premium block shows the seat and the session's expiry, and says so once it has
+  expired.
+</Update>
+
 <Update label="2026-08-30" description="Browser ownership is derived, deletes confirm the stop, and a key is not a person">
   **262 operations**: LinkedIn 168, ID and Teams 72, Orchestration 22.
 

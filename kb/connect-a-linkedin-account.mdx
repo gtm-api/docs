@@ -100,10 +100,11 @@ answer with a `conflict` error. Read endpoints work as soon as data lands.
 
 ## 3. Check capabilities and limits
 
-- `POST /api/linkedin-accounts/{sid}/check-sales-nav`, `/check-premium`,
-  `/check-recruiter` report what the account's LinkedIn subscription actually supports.
-  Sales Navigator endpoints on an account without Sales Navigator fail upfront with
-  `validation_failed` rather than mid-run.
+- `POST /api/linkedin-accounts/{sid}/check-premium-subscription` reports what the account's
+  LinkedIn subscription actually supports (`has_premium`, `has_sn`, `has_recruiter`, and for a
+  Recruiter seat its number and the session's expiry); `checks` narrows it to one step. Sales
+  Navigator endpoints on an account without Sales Navigator fail upfront with
+  `422 sales_nav_required`, Recruiter ones with `422 recruiter_required`, rather than mid-run.
 - `POST /api/linkedin-account-smart-limits/search` returns the account's current
   per-action daily budgets. A newly connected account starts well below platform
   maximums and warms up as it ages; read these limits instead of assuming a number.
