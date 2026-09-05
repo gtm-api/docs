@@ -15,7 +15,8 @@ four statuses below are exactly what the **Browser issue** filter chip on the li
 |---|---|---|---|
 | `start_issue` | amber | The launch was reported as failed. The browser is not running. | Run it again |
 | `running_issue` | amber | The session started, then hit a runtime or proxy error. Powered off. | Run it again, then check the proxy |
-| `error_investigation` | amber | Repeated failures crossed the escalation threshold. Powered off. | Manual inspection inside the browser |
+| `client_error_investigation` | amber | Repeated failures crossed the escalation threshold on a cause only you can fix: the vendor profile was deleted, the LinkedIn session or account is the problem, or the proxy you supplied is down. Powered off. | Fix what **Last error** names, then Restart |
+| `support_error_investigation` | amber | Repeated failures crossed the threshold on our side (a pool proxy, the node, the host) or on a cause we could not classify. Powered off. | Nothing on your side: our team is paged and restarts it once the cause is cleared |
 | `login_issue` | red | LinkedIn invalidated the session. Powered off, and sticky. | Re-login inside the browser, nothing else |
 | `shared_out` | grey | Not a fault. The browser is lent to another workspace. | The share ending |
 | `subscription_required` | amber | Not a fault. The browser does not fit the team's subscription. | Upgrading, or freeing a slot |
@@ -32,7 +33,7 @@ with HTTP 409 and `error.context.reason = "invalid_status_transition"`.
 |---|---|
 | Auto-suspend | A `running` browser with no activity for 15 minutes is powered off and committed as `idle`. The reaper runs every 1 minute. |
 | Wake on demand | Only an `idle` browser wakes by itself. An action waits for it to come up; a due sync defers and resumes. See [sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend). |
-| Power-off on fault | Landing in `running_issue` or `error_investigation` triggers a best-effort stop of the session. The stored status stays at the fault value so you can still see it. |
+| Power-off on fault | Landing in `running_issue` or either `error_investigation` status triggers a best-effort stop of the session. The stored status stays at the fault value so you can still see it. |
 | Power-off on logout | The `login_issue` branch tears the session down immediately, and the row stays `login_issue`. |
 | Proxy fault | A proxy error marks the proxy as `no_connect` and migrates the browser onto a fresh proxy in the same country. The browser's fail count is not incremented, because the proxy was at fault. |
 | Sync backoff | A sync run that cannot reach the browser stays `in_progress` and re-checks. No data is lost and the cursor does not move. |
@@ -62,8 +63,10 @@ Stop as soon as one of these explains what you see.
    connectivity and location checks over the API
    (`antidetect-browser-proxies/check-proxy-connectivity` and `check-proxy-location`). See
    [proxy troubleshooting](/kb/proxy-troubleshooting).
-6. **Escalate.** `error_investigation` is the platform saying it has stopped guessing:
-   open the browser and look at it manually, or send us the artifacts listed below.
+6. **Escalate.** `client_error_investigation` is the platform saying it has stopped guessing
+   and the cause is on your side: fix what **Last error** names, then Restart.
+   `support_error_investigation` means the cause is ours (or unclassified): our team is
+   already paged, there is nothing to do on your side.
 
 ## `start_issue`: nothing came up
 
@@ -82,9 +85,10 @@ itself. If the browser keeps flapping, it escalates.
 
 <Warning>
 Escalation is exact: more than 10 recorded failures **and** more than 10 error log rows in
-the last 48 hours moves the browser to `error_investigation`. The bound LinkedIn account
-is cascaded to `sync_failed`, and the workspace owner gets one email (at most one per
-owner, per browser, per hour). Recovery is manual: open the browser and look at it.
+the last 48 hours moves the browser to `client_error_investigation` (the cause is yours to
+fix) or `support_error_investigation` (ours, or unclassified). The bound LinkedIn account
+is cascaded to `sync_failed`. A client parking emails the workspace owner (at most one per
+owner, per browser, per hour); a support parking pages our team instead. Recovery is manual: open the browser and look at it.
 </Warning>
 
 Identical log rows are collapsed: two events with the same browser and the same
@@ -170,7 +174,7 @@ matter:
 | `proxy_error` | `null` | The proxy did not answer; a replacement is being attached |
 | `runtime_error` | `null` | The session broke after starting |
 | `server_unreachable` | `777` | The automation server hosting the browser went unreachable |
-| `error_escalation` | none | The threshold tripped, status moved to `error_investigation` |
+| `error_escalation` | none | The threshold tripped, status moved to `client_` or `support_error_investigation` |
 
 Most rows carry no code at all, so filter on `event_type` and read the cause out of the
 message rather than the `code` column.
@@ -196,7 +200,8 @@ curl -X POST "https://app.gtm-api.com/linkedin/v4/api/antidetect-browser-logs/se
 
 `POST /linkedin/v4/api/antidetect-browsers/run` with `{"sid": "ab_br_..."}` is the same
 action as **Restart now**. It is accepted from `stopped`, `idle`, `start_issue`,
-`running_issue`, `login_issue`, `error_investigation` and `maintenance`. Every refusal
+`running_issue`, `login_issue`, `client_error_investigation`, `support_error_investigation`
+and `maintenance`. Every refusal
 returns HTTP 409 with `error.code = "conflict"`, so switch on `error.context.reason`,
 never on the code alone.
 

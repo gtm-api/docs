@@ -162,7 +162,7 @@ browser again. A running browser keeps egressing through the old proxy until it 
 | `queued_to_start`, `initializing`, `running` | Yes, stopped and started again |
 | `idle` | No. It is already powered off and wakes on demand on the new proxy |
 | `queued_to_stop` | No. A stop is already in flight |
-| `running_issue`, `start_issue`, `login_issue`, `error_investigation` | No. Their own handlers already powered the browser off, so start it yourself |
+| `running_issue`, `start_issue`, `login_issue`, `client_error_investigation`, `support_error_investigation` | No. Their own handlers already powered the browser off, so start it yourself |
 
 The response carries `restarted: true|false` and `restart_error`, the literal string
 `restart_failed` when the browser could not come back up. In the app that shows the toast *"The
@@ -199,7 +199,7 @@ only fix, in the app or through
 Meanwhile a sync run parked on a broken browser re-checks every **30 minutes** and holds its place
 in the queue, and a run waiting on an `idle` browser to cold-start re-checks every **60 seconds**.
 Only `running` and `idle` browsers are woken automatically: one in `running_issue`, `start_issue`,
-`login_issue`, `error_investigation` or `maintenance` waits for an explicit start, forever.
+`login_issue`, `client_error_investigation`, `support_error_investigation` or `maintenance` waits for an explicit start, forever.
 
 ## What the platform already does on its own
 
