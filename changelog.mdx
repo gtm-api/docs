@@ -25,9 +25,12 @@ description: "What's new in the GTM API platform and this documentation."
 
   **The Recruiter people search and its typeahead.** `search-recruiter-people` runs the LinkedIn
   Recruiter search from a `filters` object (chips with `exclude`, `required` and a per-facet `scope`,
-  the closed code sets, the three year sliders), 25 rows a page, 40 pages at most, LinkedIn's real
-  `total`, and rows that carry the headline, current position, location, connection degree,
-  `talent_id`, `can_send_inmail` and `open_to_work`. `recruiter-param-id-lookup` resolves the eleven
+  the closed code sets, the three year sliders) or from a pasted Recruiter `url`, 25 rows a page, 40
+  pages at most, LinkedIn's real `total`, and rows that carry the headline, current position, location,
+  connection degree, `talent_id`, `can_send_inmail` and `open_to_work`. A Recruiter URL carries no
+  filters, only the `searchHistoryId` of the search LinkedIn keeps on the seat, so the url half replays
+  that stored search; every answer returns `search_history_id` and `search_url`, the handle to page by
+  without re-sending the filters. `recruiter-param-id-lookup` resolves the eleven
   chip kinds into their ids. LinkedIn's per-seat search throttle answers `429
   recruiter_search_usage_limit` with LinkedIn's own sentence and a one-minute `retry_after`. On MCP
   both ride on `/mcp/linkedin/scraping` with every other live list.

@@ -7635,7 +7635,7 @@ paths:
       operationId: scrape_linkedin_search_recruiter_people
       summary: Scrape LinkedIn Recruiter people search
       description: |-
-        One page of a LinkedIn Recruiter (talent) people search from a structured filters object: the Recruiter facet vocabulary (job titles, skills, companies, locations and postal codes, industries, schools, fields of study, degrees, spoken languages, seniority, function, company size and type, the three year sliders, network, open-to-work signals). 25 hits a page, page 1..40 (LinkedIn's ceiling), a real total; every row carries talent_id (what send_linkedin_recruiter_message addresses), headline, location, current position and can_send_inmail. Needs an executor with a Recruiter seat whose Recruiter session is alive: 422 recruiter_required otherwise, 409 recruiter_reauth_required past the session clock. LinkedIn throttles the search per seat: a 429 recruiter_search_usage_limit means "wait a minute, then retry" (LinkedIn's own words are in the message). Pair with scrape_linkedin_recruiter_param_id_lookup for the chip ids. Costs a scraping-bucket slot per page.
+        One page of a LinkedIn Recruiter (talent) people search, by a structured filters object (the Recruiter facets: titles, skills, companies, locations, postal codes, industries, education, languages, seniority, function, company size and type, year sliders, network, open-to-work) OR by a pasted Recruiter search url. A Recruiter URL carries no filters, only the searchHistoryId of the search LinkedIn keeps on the seat, so the url half replays that stored search on your page; every answer returns search_history_id and search_url, so page 2 onwards is addressed by the URL alone. 25 hits a page, page 1..40, a real total; rows carry talent_id (for send_linkedin_recruiter_message), headline, location, current position, can_send_inmail. Needs a Recruiter-seat executor with a live session (422 recruiter_required, 409 recruiter_reauth_required); 429 recruiter_search_usage_limit is LinkedIn's per-seat throttle, wait a minute. Ids via scrape_linkedin_recruiter_param_id_lookup. One scraping-bucket slot per page.
 
         Contract:
         - MCP tool `scrape_linkedin_search_recruiter_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -7644,7 +7644,7 @@ paths:
       tags:
         - linkedin_scraping
       requestBody:
-        required: true
+        required: false
         content:
           application/json:
             schema:
@@ -9970,19 +9970,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -10160,7 +10155,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count
@@ -17498,19 +17492,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -17688,7 +17677,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count
@@ -17857,19 +17845,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -18047,7 +18030,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count
@@ -18645,6 +18627,7 @@ components:
                 - search_param_id_lookup
                 - search_sales_nav_param_id_lookup
                 - search_recruiter_people_by_params
+                - search_recruiter_people_by_url
                 - search_recruiter_param_id_lookup
             status:
               type: string
@@ -32125,19 +32108,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -32315,7 +32293,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count
@@ -33347,19 +33324,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -33537,7 +33509,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count
@@ -33676,19 +33647,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -33866,7 +33832,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count
@@ -35192,7 +35157,7 @@ components:
             - degree
             - language
             - group
-          description: "The Recruiter search-filter typeahead kind (node talentTypeaheads `q`, passed through verbatim). Every kind is a text facet, so `query` is required. Where each id lands in the search_recruiter_people filters: occupation → job_titles / occupations, skill → skills, company → companies / current_companies, geo → locations, zip → postal_codes, industry → industries, school → schools, fieldOfStudy → fields_of_study, degree → degrees, language → spoken_languages (the id is the lowercase language name), group → no search member yet. The closed enums of the search (seniority, function, company size, …) have no typeahead: their code sets are inline in the filters."
+          description: "The Recruiter search-filter typeahead kind (node talentTypeaheads `q`, passed through verbatim). Every kind is a text facet, so `query` is required. Where each id lands in the search_recruiter_people filters: occupation → job_titles / occupations, skill → skills, company → companies / current_companies, geo → locations, zip → postal_codes, industry → industries, school → schools (the row id is the school's organization urn, what the facet matches on), fieldOfStudy → fields_of_study, degree → degrees, language → spoken_languages (the id is the lowercase language name), group → no search member yet. Pass the row's display_name as the chip text on job_titles / occupations / skills / companies / postal_codes. The closed enums of the search (seniority, function, company size, …) have no typeahead: their code sets are inline in the filters."
         query:
           type: string
           minLength: 1
@@ -37183,8 +37148,15 @@ components:
           nullable: true
           maxLength: 128
           description: "Ledger replay guard: a repeat call with the same (team, key) returns the stored outcome; no re-execution. Recommended on every search run. The KEY ALONE decides: the probe does not compare arguments, so reusing one key after changing the arguments hands back the FIRST result. On the twelve search verbs that matters twice over, because switching a call from filters to url (or back) under one key replays instead of running the new search. New search, new key."
+        url:
+          type: string
+          nullable: true
+          maxLength: 2048
+          pattern: ^https:\/\/www\.linkedin\.com\/talent\/search
+          description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/talent/search : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. The URL LinkedIn Recruiter shows after a search (/talent/search?...searchHistoryId=N...): it names the search by its searchHistoryId only, so a URL without one is refused (422) rather than run as a keywords-only search. Use the search_url a previous answer returned to page on."
         filters:
           type: object
+          nullable: true
           properties:
             keywords:
               type: string
@@ -37213,7 +37185,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37249,7 +37221,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37285,7 +37257,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37312,7 +37284,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37348,7 +37320,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37375,7 +37347,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37410,7 +37382,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37421,7 +37393,7 @@ components:
                     description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
                 description: "One Recruiter facet chip: at least one of id / text."
               maxItems: 20
-              description: 'Postal codes. Ids via lookup(type: "zip") (urn:li:ts_geo:N) or free text; pair with postal_code_distance.'
+              description: 'Postal codes. id via lookup(type: "zip") (urn:li:ts_geo:N) REQUIRED, plus its text; a text-only postal code is refused. Pair with postal_code_distance.'
             postal_code_distance:
               type: integer
               nullable: true
@@ -37443,7 +37415,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37470,7 +37442,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37481,7 +37453,7 @@ components:
                     description: true → a must-have chip (the Recruiter UI "required" toggle); omitted → nice-to-have.
                 description: "One Recruiter facet chip: at least one of id / text."
               maxItems: 20
-              description: 'Schools attended. Ids via lookup(type: "school") (urn:li:ts_school:N).'
+              description: "Schools attended. Ids via lookup(type: \"school\"): the row id is the school's urn:li:ts_organization:N, which is what this facet matches on (a ts_school id answers zero)."
             fields_of_study:
               type: array
               nullable: true
@@ -37497,7 +37469,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37524,7 +37496,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37551,7 +37523,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: The chip label. On job_titles / skills / companies / postal_codes a text-only chip is a free-text search term.
+                    description: "The chip label (the typeahead row's display_name). REQUIRED on job_titles / occupations / skills / companies / postal_codes, id or no id: LinkedIn refuses an entity chip without its label. On job_titles / skills / companies a text-only chip is a free-text search term."
                   exclude:
                     type: boolean
                     nullable: true
@@ -37735,12 +37707,9 @@ components:
                   - F
                   - P
                   - C
-                  - T
                   - I
-                  - V
-                  - O
-              maxItems: 7
-              description: "Employment type: 'F' full-time, 'P' part-time, 'C' contract, 'T' temporary, 'I' internship, 'V' volunteer, 'O' other."
+              maxItems: 4
+              description: "Employment type: 'F' full-time, 'P' part-time, 'C' contract, 'I' internship (the only codes LinkedIn Recruiter accepts here)."
             us_military_background:
               type: boolean
               nullable: true
@@ -37793,14 +37762,12 @@ components:
                 - min
                 - max
               description: Total years of experience, {min, max} in 1..30.
-          description: "LinkedIn Recruiter people-search filters, the COMPLETE Recruiter facet vocabulary (the ONLY addressing: the Recruiter search has no URL form). At least one member must be non-empty. lookup = scrape_linkedin_recruiter_param_id_lookup; chip facets take [{id, text, exclude, required, scope}], closed enums take flat code arrays (their full sets are inline), the three year sliders take {min, max}."
+          description: "EXCLUSIVE with `url`: send filters OR url, never both (422) and never neither (422). LinkedIn Recruiter people-search filters, the COMPLETE Recruiter facet vocabulary. At least one member must be non-empty. lookup = scrape_linkedin_recruiter_param_id_lookup; chip facets take [{id, text, exclude, required, scope}], closed enums take flat code arrays (their full sets are inline), the three year sliders take {min, max}."
         page:
           type: integer
           minimum: 1
           maximum: 40
-          description: LinkedIn Recruiter page number, default 1; 25 hits a page, 40 pages at most (1000 hits per search). Re-call with page + 1 while paging.has_more.
-      required:
-        - filters
+          description: LinkedIn Recruiter page number, default 1; 25 hits a page, 40 pages at most (1000 hits per search). Re-call with page + 1 while paging.has_more. On the url half OUR number wins over the start= in the URL.
     ScrapeLinkedinSearchRecruiterPeopleResponse:
       type: object
       properties:
@@ -37919,10 +37886,20 @@ components:
               type: object
               properties: {}
               description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+            search_history_id:
+              type: string
+              nullable: true
+              description: The searchHistoryId LinkedIn Recruiter gave this search (the seat's "Recent searches" entry); null only when the wire returned none.
+            search_url:
+              type: string
+              nullable: true
+              description: "https://www.linkedin.com/talent/search?searchHistoryId=N&start=0: pass it as `url` (with page) to page on, or to re-run this exact search later, without re-sending the filters."
           required:
             - rows
             - paging
             - data_request
+            - search_history_id
+            - search_url
         meta:
           type: object
           properties:
@@ -40553,19 +40530,14 @@ components:
                       - start_issue
                       - running_issue
                       - login_issue
-                      - error_investigation
+                      - client_error_investigation
+                      - support_error_investigation
                       - maintenance
                       - shared_out
                       - subscription_required
                   error_reason:
                     type: string
                     nullable: true
-                  error_owner:
-                    type: string
-                    nullable: true
-                    enum:
-                      - customer
-                      - support
                   fail_count:
                     type: number
                   last_fail_at:
@@ -40743,7 +40715,6 @@ components:
                   - browser_owner
                   - status
                   - error_reason
-                  - error_owner
                   - fail_count
                   - last_fail_at
                   - logout_count
@@ -41406,6 +41377,7 @@ components:
                     - search_param_id_lookup
                     - search_sales_nav_param_id_lookup
                     - search_recruiter_people_by_params
+                    - search_recruiter_people_by_url
                     - search_recruiter_param_id_lookup
                 in:
                   type: array
@@ -41468,6 +41440,7 @@ components:
                       - search_param_id_lookup
                       - search_sales_nav_param_id_lookup
                       - search_recruiter_people_by_params
+                      - search_recruiter_people_by_url
                       - search_recruiter_param_id_lookup
                 nin:
                   type: array
@@ -41530,6 +41503,7 @@ components:
                       - search_param_id_lookup
                       - search_sales_nav_param_id_lookup
                       - search_recruiter_people_by_params
+                      - search_recruiter_people_by_url
                       - search_recruiter_param_id_lookup
               additionalProperties: false
             status:
@@ -41752,6 +41726,7 @@ components:
                       - search_param_id_lookup
                       - search_sales_nav_param_id_lookup
                       - search_recruiter_people_by_params
+                      - search_recruiter_people_by_url
                       - search_recruiter_param_id_lookup
                   status:
                     type: string
@@ -51873,19 +51848,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -52063,7 +52033,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count
@@ -54646,19 +54615,14 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
-                - error_investigation
+                - client_error_investigation
+                - support_error_investigation
                 - maintenance
                 - shared_out
                 - subscription_required
             error_reason:
               type: string
               nullable: true
-            error_owner:
-              type: string
-              nullable: true
-              enum:
-                - customer
-                - support
             fail_count:
               type: number
             last_fail_at:
@@ -54836,7 +54800,6 @@ components:
             - browser_owner
             - status
             - error_reason
-            - error_owner
             - fail_count
             - last_fail_at
             - logout_count

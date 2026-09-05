@@ -43,7 +43,7 @@ Every method is a `POST` under `https://app.gtm-api.com/linkedin/v4/api/linkedin
 | `company-decision-makers` | people | none, `limit` 1 to 50, default 25 | yes |
 | `param-id-lookup` | typeahead options | none | no |
 | `sales-nav-param-id-lookup` | typeahead options | none, `limit` 1 to 25, default 10 | yes |
-| `search-recruiter-people` | people | `page` 1 to 40, 25 rows a page | Recruiter seat |
+| `search-recruiter-people` | people | `page` 1 to 40, 25 rows a page; `url` XOR `filters` | Recruiter seat |
 | `recruiter-param-id-lookup` | typeahead options | none, a fixed ten | Recruiter seat |
 
 The same surface also searches posts, jobs, events, groups, courses, products and schools, and reads a post's commenters,
@@ -118,20 +118,35 @@ one wrong costs a run rather than an error.
 
 ## The Recruiter search
 
-`search-recruiter-people` runs the LinkedIn Recruiter people search on an account that holds a Recruiter seat. It takes
-`filters` only: the Recruiter search has no URL you could paste, so `url` is refused. The filter object mirrors the
-Recruiter search panel. Chip facets (`job_titles`, `occupations`, `skills`, `companies`, `current_companies`,
+`search-recruiter-people` runs the LinkedIn Recruiter people search on an account that holds a Recruiter seat, addressed
+by `filters` or by a pasted Recruiter `url`, never both. The filter object mirrors the Recruiter search panel. Chip facets (`job_titles`, `occupations`, `skills`, `companies`, `current_companies`,
 `locations`, `postal_codes`, `industries`, `schools`, `fields_of_study`, `degrees`, `spoken_languages`) take arrays of
-`{id, text, exclude, required, scope}`: `id` comes from `recruiter-param-id-lookup`, `exclude` negates the chip,
-`required` makes it a must-have, and `scope` is the facet's own axis (where in the career for titles and companies,
-lives-there or would-move-there for locations, minimum proficiency for spoken languages). Job titles, skills,
-companies and postal codes also accept a chip with only `text`. The closed sets (`network`, `seniority_levels`,
+`{id, text, exclude, required, scope}`: `id` comes from `recruiter-param-id-lookup`, `text` is the row's
+`display_name`, `exclude` negates the chip, `required` makes it a must-have, and `scope` is the facet's own axis
+(where in the career for titles and companies, lives-there or would-move-there for locations, minimum proficiency for
+spoken languages). Job titles, occupations, skills, companies and postal codes need the `text` even when they carry
+an `id`, because LinkedIn refuses an entity chip without its label; job titles, skills and companies also accept a
+chip with only `text`. Postal codes need the `zip` lookup id. School ids are the school's organization urn, exactly
+as the `school` lookup returns them. The closed sets (`network`, `seniority_levels`,
 `functions`, `company_sizes`, `company_types`, `profile_languages`, `recently_joined`, `workplace_preferences`,
 `employment_types`) take code arrays, listed in the [API reference](/api-reference/overview); note the Recruiter
 seniority codes run `1` to `10` and are not the Sales Navigator ones. The three year sliders take `{min, max}` in 1 to
 30, where 30 means 30 and more.
 
 A page holds 25 rows and the ceiling is page 40. Unlike the other engines, `paging.total` is LinkedIn's real count.
+
+### The Recruiter URL is a handle, not a query
+
+A Recruiter URL carries no filters. After a search, Recruiter shows
+`https://www.linkedin.com/talent/search?searchContextId=...&searchHistoryId=21502096450&searchKeyword=&start=0&uiOrigin=FACET_SEARCH`:
+the facets live on LinkedIn's side under `searchHistoryId`, the seat's "Recent searches" entry. Passing such a URL
+replays that stored search on the page you ask for (the URL's own `start` is ignored). A URL without a
+`searchHistoryId` is refused with `422`, because it names no search; LinkedIn is never asked for a keywords-only
+search with your filters silently dropped.
+
+Every answer returns `search_history_id` and `search_url`. Run page 1 with `filters`, then page on with
+`url: search_url` and `page: 2, 3, ...`: no filter object and no typeahead round trips on the later pages, and the same
+handle re-runs the search later. Both halves count the same against the daily `scraping` budget.
 
 <Warning>
 LinkedIn Recruiter throttles searches per seat. When a seat searches too fast, the call answers `429` with reason
@@ -185,7 +200,8 @@ Rows sit at `result.rows`, paging at `result.paging`, and the ledger row at `res
 | `headline`, `position`, `company_name`, `location`, `connection_degree` | always `null` | always `null` | filled where LinkedIn shows them |
 
 The Recruiter rows add `talent_id` (what `send-recruiter` addresses as `recipient_profile_id`), `industry`,
-`can_send_inmail`, `open_to_work`, `connections_count` and `anonymized`.
+`can_send_inmail`, `open_to_work`, `connections_count` and `anonymized`, and the result block adds
+`search_history_id` and `search_url`, the handle to page by.
 
 Those last five are `null` by construction on the first two engines: the result page does not carry them. Service-provider rows
 use the same shape, with no ratings, review counts or service labels. When you need more, take `ln_id` or `nickname`
