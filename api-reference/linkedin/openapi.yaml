@@ -11283,6 +11283,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -11360,6 +11363,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -12751,22 +12755,22 @@ components:
             activity_log:
               type: object
               properties: {}
-              description: Full dispatch row (linkedin-account-activity-log) per §4.12a.
+              description: The dispatch row (linkedin-account-activity-log), action_type endorse_skills or unendorse_skills.
             skill_id:
               type: string
-              description: Echo of the skill_id you passed.
+              description: Echoes the caller's skill_id.
             endorsed_skill_urn:
               type: string
               nullable: true
-              description: urn:li:fsd_profileEndorsedSkill:(<profileId>,<skillId>), from value.entityUrn; null when absent from the wire body.
+              description: The echoed request skill urn urn:li:fsd_profileEndorsedSkill:(<profileId>,<skillId>), read from value.entityUrn; null when LinkedIn omitted it.
             endorsed_by_viewer:
               type: boolean
               nullable: true
-              description: "The authoritative post-action state of THIS account's endorsement: true after endorse, false after unendorse; null when absent."
+              description: "The authoritative post-action state of THIS viewer's endorsement: true after endorse, false after unendorse; null when absent. A stronger verification signal than the urn echo, needs no cache-busting read."
             endorsement_count:
               type: integer
               nullable: true
-              description: "The global endorser counter, which moves with everyone's endorsements: assert direction, never an absolute."
+              description: The global endorser counter for the skill. Moves with everyone's endorsements, so assert direction not an absolute; null when absent.
           required:
             - activity_log
             - skill_id
@@ -28034,6 +28038,9 @@ components:
                   note:
                     type: string
                     nullable: true
+                  client_reference:
+                    type: string
+                    nullable: true
                   sent_at:
                     type: string
                     nullable: true
@@ -28069,6 +28076,7 @@ components:
                   - sn_id
                   - nickname
                   - note
+                  - client_reference
                   - sent_at
                   - invitation_id
                   - resend_available_at
@@ -29301,6 +29309,9 @@ components:
                     nullable: true
                   text:
                     type: string
+                  client_reference:
+                    type: string
+                    nullable: true
                   attachments:
                     type: array
                     items:
@@ -29378,6 +29389,7 @@ components:
                   - nickname
                   - subject
                   - text
+                  - client_reference
                   - attachments
                   - reactions
                   - is_deleted
@@ -29599,6 +29611,9 @@ components:
                     nullable: true
                   text:
                     type: string
+                  client_reference:
+                    type: string
+                    nullable: true
                   attachments:
                     type: array
                     items:
@@ -29676,6 +29691,7 @@ components:
                   - nickname
                   - subject
                   - text
+                  - client_reference
                   - attachments
                   - reactions
                   - is_deleted
@@ -29897,6 +29913,9 @@ components:
                     nullable: true
                   text:
                     type: string
+                  client_reference:
+                    type: string
+                    nullable: true
                   attachments:
                     type: array
                     items:
@@ -29974,6 +29993,7 @@ components:
                   - nickname
                   - subject
                   - text
+                  - client_reference
                   - attachments
                   - reactions
                   - is_deleted
@@ -31312,6 +31332,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -31389,6 +31412,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -47228,6 +47252,25 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            client_reference:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The key the caller gave at send time; exact match, is_null:true = sends made without one.
             removal_kind:
               type: object
               properties:
@@ -47399,6 +47442,9 @@ components:
                   note:
                     type: string
                     nullable: true
+                  client_reference:
+                    type: string
+                    nullable: true
                   sent_at:
                     type: string
                     nullable: true
@@ -47434,6 +47480,7 @@ components:
                   - sn_id
                   - nickname
                   - note
+                  - client_reference
                   - sent_at
                   - invitation_id
                   - resend_available_at
@@ -49167,6 +49214,9 @@ components:
                     nullable: true
                   text:
                     type: string
+                  client_reference:
+                    type: string
+                    nullable: true
                   attachments:
                     type: array
                     items:
@@ -49244,6 +49294,7 @@ components:
                   - nickname
                   - subject
                   - text
+                  - client_reference
                   - attachments
                   - reactions
                   - is_deleted
@@ -49343,6 +49394,11 @@ components:
         allow_no_note_fallback:
           type: boolean
           description: "Default false. When the note is longer than the sender's cap (200 free / 300 premium), send the invite WITHOUT it instead of refusing 422, for campaigns where reaching the person beats personalizing. The response says which happened in result.note_fallback_used, and the stored row carries note=null, so a follow-up does not assume a note the prospect never saw. Scope, stated plainly: this covers the length cap, which the server evaluates itself. LinkedIn's own monthly with-note quota is only visible at send time and arrives untyped, so a refusal there still fails the call rather than being retried blind (a retry after an ambiguous send can invite the person twice)."
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
       required:
         - linkedin_account_sid
         - profile_id
@@ -49384,6 +49440,9 @@ components:
             note:
               type: string
               nullable: true
+            client_reference:
+              type: string
+              nullable: true
             sent_at:
               type: string
               nullable: true
@@ -49419,6 +49478,7 @@ components:
             - sn_id
             - nickname
             - note
+            - client_reference
             - sent_at
             - invitation_id
             - resend_available_at
@@ -49527,6 +49587,11 @@ components:
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
           description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send. An item whose file_type is video/* is delivered as a playable video in the thread; any other type arrives as a generic file attachment.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
       required:
         - linkedin_account_sid
         - subject
@@ -49605,6 +49670,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -49682,6 +49750,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -49793,6 +49862,11 @@ components:
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
           description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send. An item whose file_type is video/* is delivered as a playable video in the thread; any other type arrives as a generic file attachment.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
       required:
         - linkedin_account_sid
         - text
@@ -49870,6 +49944,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -49947,6 +50024,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -50139,6 +50217,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -50216,6 +50297,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -50404,6 +50486,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -50481,6 +50566,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -50644,6 +50730,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -50721,6 +50810,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -51638,6 +51728,9 @@ components:
               nullable: true
             text:
               type: string
+            client_reference:
+              type: string
+              nullable: true
             attachments:
               type: array
               items:
@@ -51715,6 +51808,7 @@ components:
             - nickname
             - subject
             - text
+            - client_reference
             - attachments
             - reactions
             - is_deleted
@@ -52143,6 +52237,9 @@ components:
             note:
               type: string
               nullable: true
+            client_reference:
+              type: string
+              nullable: true
             sent_at:
               type: string
               nullable: true
@@ -52178,6 +52275,7 @@ components:
             - sn_id
             - nickname
             - note
+            - client_reference
             - sent_at
             - invitation_id
             - resend_available_at
@@ -53604,22 +53702,22 @@ components:
             activity_log:
               type: object
               properties: {}
-              description: Full dispatch row (linkedin-account-activity-log) per §4.12a.
+              description: The dispatch row (linkedin-account-activity-log), action_type endorse_skills or unendorse_skills.
             skill_id:
               type: string
-              description: Echo of the skill_id you passed.
+              description: Echoes the caller's skill_id.
             endorsed_skill_urn:
               type: string
               nullable: true
-              description: urn:li:fsd_profileEndorsedSkill:(<profileId>,<skillId>), from value.entityUrn; null when absent from the wire body.
+              description: The echoed request skill urn urn:li:fsd_profileEndorsedSkill:(<profileId>,<skillId>), read from value.entityUrn; null when LinkedIn omitted it.
             endorsed_by_viewer:
               type: boolean
               nullable: true
-              description: "The authoritative post-action state of THIS account's endorsement: true after endorse, false after unendorse; null when absent."
+              description: "The authoritative post-action state of THIS viewer's endorsement: true after endorse, false after unendorse; null when absent. A stronger verification signal than the urn echo, needs no cache-busting read."
             endorsement_count:
               type: integer
               nullable: true
-              description: "The global endorser counter, which moves with everyone's endorsements: assert direction, never an absolute."
+              description: The global endorser counter for the skill. Moves with everyone's endorsements, so assert direction not an absolute; null when absent.
           required:
             - activity_log
             - skill_id
@@ -56372,6 +56470,9 @@ components:
             note:
               type: string
               nullable: true
+            client_reference:
+              type: string
+              nullable: true
             sent_at:
               type: string
               nullable: true
@@ -56407,6 +56508,7 @@ components:
             - sn_id
             - nickname
             - note
+            - client_reference
             - sent_at
             - invitation_id
             - resend_available_at
