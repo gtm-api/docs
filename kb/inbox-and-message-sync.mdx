@@ -235,6 +235,14 @@ deeper stays soft-deleted and out of results. Nothing else removes a thread: one
 disappears on LinkedIn keeps its stored copy.
 </Warning>
 
+### What happens when a send fails
+
+A failed send is not retried automatically. Nothing picks it up on a timer, and the resend is something you or your team trigger.
+
+The failure never lands in the conversation: a message row is only written on terminal success, so a failed attempt leaves no half-sent message.
+
+If the failure was a timeout, the message may still have gone through on LinkedIn's side. Check the thread before resending, because a blind retry can double-send.
+
 ## Related
 
 - [Sync windows and auto-suspend](/kb/sync-windows-and-auto-suspend)

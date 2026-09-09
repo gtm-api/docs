@@ -93,7 +93,8 @@
             "group": "Troubleshooting",
             "pages": [
               "kb/proxy-troubleshooting",
-              "kb/browser-troubleshooting"
+              "kb/browser-troubleshooting",
+              "kb/email-is-not-supported-yet"
             ]
           }
         ]
