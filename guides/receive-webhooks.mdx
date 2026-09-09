@@ -141,14 +141,25 @@ A delivery is attempted up to **5 times**, with waits of 1 minute, 5 minutes, 30
 | Any other `4xx` | Terminal, no retry: the request was understood and refused |
 | `410 Gone` | Terminal, and it disables the subscription immediately |
 
-After **20 consecutive failed attempts**, or a single `410 Gone`, the subscription flips to `failed` and stops delivering. That transition itself emits `webhooks.failed`, so a second webhook can page you when the first one dies.
+After **20 consecutive failed attempts**, or a single `410 Gone`, the subscription flips to `failed` and stops delivering. Its deliveries still waiting for a retry are cancelled with `cancel_reason: "webhook_failed"`, and the failure counter stops moving from that point. That transition itself emits `webhooks.failed`, so a second webhook can page you when the first one dies; the failing endpoint also gets that one event, a single attempt with no retries.
+
+Bringing it back is three calls: fix the endpoint, `PATCH /api/webhooks/{sid}` with `{"status": "on"}` (this resets the counter), then replay what was lost:
+
+```json
+POST /api/webhooks/{sid}/replay
+{
+  "from": "2026-09-04T16:00:00Z"
+}
+```
+
+Replay puts every delivery of that webhook created since `from` whose status is `failed` or `cancelled` (by the platform, never by your own cancel) back into the queue, oldest first, one per second, so your endpoint is not hit by the whole backlog at once; the response says how many rows it re-armed and when the last one is due. `to` defaults to now, `statuses` to `["failed", "cancelled"]` (pass `["success"]` to re-fire delivered events into a rebuilt downstream), `event_types` to every type. The window spans at most 30 days and one call re-arms at most 5000 rows; beyond either cap the call is refused with the cap named, so narrow the window and call again. Replayed rows keep their `webhook_log_sid`, so a receiver that deduplicates on it sees the same delivery, not a new one.
 
 ## 5. Use the delivery log
 
 The log holds **one row per event per subscription**, not one per attempt: a retry updates that row in place, bumping `retry_count` and overwriting the response code. The row is the delivery, and its history is the counter.
 
 - `POST /api/webhook-logs/search` lists deliveries with status, response code and timing; filter by webhook or event type.
-- `POST /api/webhook-logs/{sid}/retry` re-sends. Allowed from `pending`, `retrying`, `failed` and `success` (a manual re-send of a delivered event is legitimate), and only while the parent subscription is still live: a deleted or `off` webhook rejects the retry.
+- `POST /api/webhook-logs/{sid}/retry` re-sends. Allowed from every state but `in_progress`: `pending`, `retrying`, `failed`, `success` (a manual re-send of a delivered event is legitimate) and `cancelled`, whatever cancelled it. It re-arms the row without counting as an attempt, so `retry_count` stays the number of attempts that actually went out (at most 5). Only while the parent subscription is still live: a deleted or `off` webhook rejects the retry.
 - `POST /api/webhook-logs/{sid}/cancel` stops a delivery that has not settled. Allowed from `pending`, `retrying` and `in_progress`.
 - `POST /api/webhook-logs/metrics` aggregates outcomes. `period` with `from` and `to` is required and may span at most 90 days.
 

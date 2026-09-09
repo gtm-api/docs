@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.orchestration`, 22 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.orchestration`, 23 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -738,7 +738,7 @@ paths:
       operationId: retry_webhook_log
       summary: Retry webhook delivery
       description: |-
-        Manually re-arm a webhook delivery row: flips status to pending, sets scheduled_at=now(), increments retry_count. error_message is preserved (cleared only on the next successful terminal outcome). Allowed from pending / retrying / failed / success; rejected on cancelled (422), on a soft-deleted / disabled parent webhook (422), and while the worker holds the row (409 lease_in_progress). Pass expected_status for a CAS write (409 on mismatch). Re-delivers to the integrator; state-changing.
+        Manually re-arm a webhook delivery row: flips status to pending, sets scheduled_at=now(), clears cancel_reason. retry_count stays (it counts executed attempts, a re-arm is not one). error_message is preserved (cleared only on the next successful terminal outcome). Allowed from every state but in_progress (409 lease_in_progress), cancelled included whatever the reason; rejected on a soft-deleted / disabled parent webhook (422). Many rows at once: replay_webhook on the parent, paced. Pass expected_status for a CAS write (409 on mismatch). Re-delivers to the integrator; state-changing.
 
         Contract:
         - MCP tool `retry_webhook_log`, registry package `mcp.orchestration/webhook_logs`, mount `orchestration.webhooks`.
@@ -929,7 +929,7 @@ paths:
       operationId: update_webhook
       summary: Update webhook
       description: |-
-        Patch a webhook. Editable fields: name, target_url, events, filters, status. status:'on' on a failed webhook resets the consecutive-failure counter and resumes deliveries; status:'failed' cannot be set manually. events and filters are FULL replacements, not merges. secret is NOT writable here (rotation is admin-internal). State-changing.
+        Patch a webhook. Editable fields: name, target_url, events, filters, status. status:'on' on a failed webhook resets the consecutive-failure counter and resumes deliveries, but re-issues nothing: the rows the disable cancelled come back with replay_webhook. status:'failed' cannot be set manually. events and filters are FULL replacements, not merges. secret is NOT writable here (rotation is admin-internal). State-changing.
 
         Contract:
         - MCP tool `update_webhook`, registry package `mcp.orchestration/webhooks`, mount `orchestration.webhooks`.
@@ -1020,6 +1020,58 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+  /api/webhooks/{sid}/replay:
+    post:
+      operationId: replay_webhook
+      summary: Replay webhook deliveries
+      description: |-
+        Put the deliveries a broken endpoint left behind back on the wire: every webhook_logs row of this webhook created inside [from, to] whose status is in statuses (default failed + cancelled; success re-fires delivered events, opt-in) goes back to pending, oldest first, one row per second, and the normal scheduler delivers it under the same webhook_log_sid. Cancelled rows come back only when the platform cancelled them (webhook_failed / webhook_disabled / webhook_deleted), never an operator's manual cancel; rows in flight are never touched. from is required; the window spans at most 30 days and one call re-arms at most 5000 rows, refused with the cap named beyond either (narrow the window or statuses). Requires status=on: re-enable a failed webhook first (update_webhook status:'on'). Rate-limited to 10 calls/min per webhook. Re-delivers real events; state-changing.
+
+        Contract:
+        - MCP tool `replay_webhook`, registry package `mcp.orchestration/webhooks`, mount `orchestration.webhooks`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+      tags:
+        - webhooks
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: Webhook sid (wh_hk_…).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^wh_hk_
+            description: Webhook sid (wh_hk_…).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReplayWebhookRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReplayWebhookResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: replay_webhook
+      x-gtm-mcp-mount: orchestration.webhooks
+      x-gtm-entity: webhooks
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: complex
   /api/webhooks/{sid}/test:
     post:
       operationId: test_webhook
@@ -1415,6 +1467,7 @@ components:
                 - manual
                 - webhook_deleted
                 - webhook_disabled
+                - webhook_failed
             request_method:
               type: string
             request_url:
@@ -1484,6 +1537,7 @@ components:
                 - manual
                 - webhook_deleted
                 - webhook_disabled
+                - webhook_failed
             cancelled_at:
               type: string
             in_flight_attempt_pending:
@@ -3058,6 +3112,7 @@ components:
                     - manual
                     - webhook_deleted
                     - webhook_disabled
+                    - webhook_failed
                 in:
                   type: array
                   items:
@@ -3066,6 +3121,7 @@ components:
                       - manual
                       - webhook_deleted
                       - webhook_disabled
+                      - webhook_failed
                 is_null:
                   type: boolean
               additionalProperties: false
@@ -4376,6 +4432,361 @@ components:
         - item
         - result
         - meta
+    ReplayWebhookRequest:
+      type: object
+      description: Request body of `replay_webhook`.
+      properties:
+        from:
+          type: string
+          description: "ISO 8601: the oldest created_at to re-arm. Required, a replay re-fires real deliveries."
+        to:
+          type: string
+          description: ISO 8601; default now.
+        statuses:
+          type: array
+          items:
+            type: string
+            enum:
+              - failed
+              - cancelled
+              - success
+          minItems: 1
+          description: Default ['failed', 'cancelled']. success is opt-in.
+        event_types:
+          type: array
+          items:
+            type: string
+            enum:
+              - linkedin-accounts.created
+              - linkedin-accounts.restored
+              - linkedin-accounts.deleted
+              - linkedin-accounts.initial-sync-started
+              - linkedin-accounts.initial-sync-done
+              - linkedin-accounts.initial-sync-held
+              - linkedin-accounts.sync-reset
+              - linkedin-accounts.sync-config-updated
+              - linkedin-accounts.premium-changed
+              - linkedin-accounts.login-succeeded
+              - linkedin-accounts.login-failed
+              - linkedin-accounts.logged-out
+              - linkedin-accounts.heartbeat-stale
+              - linkedin-accounts.subscription-hold-applied
+              - linkedin-accounts.subscription-hold-released
+              - linkedin-account-block-log.recorded
+              - linkedin-account-snapshot.captured
+              - linkedin-account-quota-hits.recorded
+              - linkedin-account-smart-limits.limit-reached
+              - linkedin-account-smart-limits.limit-released
+              - linkedin-account-smart-limits.smart-limit-recomputed
+              - linkedin-account-smart-limits.ceiling-learned
+              - linkedin-connection-requests.sent
+              - linkedin-connection-requests.accepted
+              - linkedin-connection-requests.withdrawn
+              - linkedin-connection-requests.expired-detected
+              - linkedin-connection-requests.resend-available
+              - linkedin-connection-requests.sync-completed
+              - linkedin-connection-invitations.received
+              - linkedin-connection-invitations.accepted
+              - linkedin-connection-invitations.ignored
+              - linkedin-connection-invitations.expired-detected
+              - linkedin-connection-invitations.sync-completed
+              - linkedin-connections.added
+              - linkedin-connections.removed
+              - linkedin-connections.sync-completed
+              - linkedin-followers.added
+              - linkedin-messages.received
+              - linkedin-messages.sent
+              - linkedin-messages.send-failed
+              - linkedin-conversations.created
+              - linkedin-conversations.sync-completed
+              - data-requests.completed
+              - data-requests.failed
+              - linkedin-auto-scrape-runs.completed
+              - linkedin-auto-scrape-runs.failed
+              - linkedin-auto-scrapes.paused
+              - antidetect-browsers.logged-in
+              - antidetect-browsers.login-failed
+              - antidetect-browsers.logged-out
+              - antidetect-browsers.started
+              - antidetect-browsers.stopped
+              - antidetect-browsers.start-failed
+              - antidetect-browsers.running-issue
+              - antidetect-browsers.error-investigation
+              - antidetect-browsers.maintenance
+              - antidetect-browsers.proxy-issue
+              - antidetect-browsers.proxy-back-alive
+              - antidetect-browsers.idle
+              - account-shares.created
+              - account-shares.returned
+              - account-shares.recalled
+              - account-shares.failed
+              - account-transfers.completed
+              - account-transfers.failed
+              - webhooks.failed
+              - email-accounts.connected
+              - email-accounts.reconnect-required
+              - email-accounts.sending-paused
+              - email-accounts.sending-resumed
+              - email-accounts.disconnected
+              - email-accounts.deleted
+              - email-accounts.sync-completed
+              - email-accounts.subscription-hold-applied
+              - email-accounts.subscription-hold-released
+              - email-messages.received
+              - email-messages.sent
+              - email-messages.bounced
+              - email-messages.complained
+              - email-messages.failed
+              - email-messages.deleted
+              - email-threads.updated
+              - email-engagements.opened
+              - email-engagements.clicked
+              - email-engagements.unsubscribed
+              - email-account-health.snapshot-captured
+              - email-account-health.score-critical
+              - email-suppressions.created
+              - email-suppressions.deleted
+              - email-tracking-domains.verified
+              - email-tracking-domains.failed
+              - email-sending-domains.verified
+              - email-sending-domains.failed
+              - mass-actions.created
+              - mass-actions.paused
+              - mass-actions.resumed
+              - mass-actions.settled
+          minItems: 1
+          description: "Default: every type."
+      required:
+        - from
+    ReplayWebhookResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            name:
+              type: string
+            target_url:
+              type: string
+            events:
+              type: array
+              items:
+                type: string
+            filters:
+              type: object
+              additionalProperties: {}
+            secret:
+              type: string
+              nullable: true
+            status:
+              type: string
+              enum:
+                - on
+                - off
+                - failed
+            consecutive_failed_attempts:
+              type: number
+            last_failure_at:
+              type: string
+              nullable: true
+            created_by:
+              type: object
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                actor_name:
+                  type: string
+                  nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
+                reason:
+                  type: string
+                  nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+            deleted_by:
+              type: object
+              nullable: true
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                actor_name:
+                  type: string
+                  nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
+                reason:
+                  type: string
+                  nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - name
+            - target_url
+            - events
+            - filters
+            - status
+            - consecutive_failed_attempts
+            - last_failure_at
+            - created_by
+            - deleted_by
+            - created_at
+            - updated_at
+            - deleted_at
+        result:
+          type: object
+          properties:
+            rows:
+              type: integer
+              description: Deliveries re-armed by this call.
+            from:
+              type: string
+            to:
+              type: string
+            statuses:
+              type: array
+              items:
+                type: string
+                enum:
+                  - failed
+                  - cancelled
+                  - success
+            first_scheduled_at:
+              type: string
+              nullable: true
+            last_scheduled_at:
+              type: string
+              nullable: true
+              description: "The backlog is fully dispatched by then: rows - 1 seconds after first_scheduled_at."
+          required:
+            - rows
+            - from
+            - to
+            - statuses
+            - first_scheduled_at
+            - last_scheduled_at
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     ResumeMassActionResponse:
       type: object
       properties:
@@ -4963,6 +5374,7 @@ components:
                 - manual
                 - webhook_deleted
                 - webhook_disabled
+                - webhook_failed
             request_method:
               type: string
             request_url:
@@ -5030,6 +5442,7 @@ components:
               type: string
             retry_count:
               type: number
+              description: Attempts executed so far; the re-arm does not move it.
           required:
             - previous_status
             - scheduled_at
@@ -6136,6 +6549,7 @@ components:
                     - manual
                     - webhook_deleted
                     - webhook_disabled
+                    - webhook_failed
                 in:
                   type: array
                   items:
@@ -6144,6 +6558,7 @@ components:
                       - manual
                       - webhook_deleted
                       - webhook_disabled
+                      - webhook_failed
                 is_null:
                   type: boolean
               additionalProperties: false
@@ -6326,6 +6741,7 @@ components:
                       - manual
                       - webhook_deleted
                       - webhook_disabled
+                      - webhook_failed
                   request_method:
                     type: string
                   request_url:
