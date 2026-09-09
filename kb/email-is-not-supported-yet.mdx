@@ -1,0 +1,40 @@
+---
+title: "Email is not supported yet"
+description: "Email is not a working channel on this platform yet. What does not work today, why you may still see email mentioned in the API reference, and what to use instead."
+---
+
+Email is not supported yet. There is no way to send email, run email sequences, or connect an email account on this platform today. Everything that ships right now runs on LinkedIn.
+
+If you came here from a mention of email elsewhere in these docs, see [Why you may still see email mentioned](#why-you-may-still-see-email-mentioned) below: those references are forward-looking, not descriptions of something you can use.
+
+## What does not work today, because email is not supported
+
+None of the following exist yet. They are listed so you can stop looking for them:
+
+- **Sending email.** No one-off sends, no replies, no templates.
+- **Email sequences and campaigns.** Multi-step email outreach is not available, in mass actions or anywhere else.
+- **Connecting an email account.** There is no mailbox connection flow, no SMTP or OAuth mailbox setup, no email sender profiles.
+- **Email in mass actions.** Bulk runs cover LinkedIn actions only. There is no bulk-email step type.
+- **Email inbox sync.** Nothing pulls an email thread into the platform, so email conversations do not appear alongside LinkedIn ones.
+- **Email delivery states.** Bounces, opens, clicks, spam complaints and unsubscribes are not tracked, because nothing is sent.
+
+## Why you may still see email mentioned, even though it is not supported
+
+Email is not supported yet, but a few places in the API reference already name it. These are contracts written ahead of the feature, not descriptions of working behaviour:
+
+- **The `em_ac_` account prefix.** Account identifiers are described as prefix agnostic (`ln_ac_` for LinkedIn, `em_ac_` for email) so that the contract does not change when a channel is added later. No `em_ac_` account can exist today, because email accounts cannot be created.
+- **Webhook account filters.** `filters.account_sid` is documented as accepting either prefix, for the same reason. Filtering by an `em_ac_` sid matches nothing.
+- **Webhook delivery logs.** The log is described as receiving deliveries from every producer service, listing email among them. No email events are produced, so no email rows appear. Treat every one of these as a placeholder. If a tool, an agent or an AI assistant tells you email works because it read one of them, it is reporting a forward-looking contract as if it were a feature.
+
+## What to use instead while email is not supported
+
+Since email is not supported, outbound has to run on LinkedIn or on your own tooling:
+
+- **LinkedIn messaging** covers direct messages, InMail, voice notes and Sales Navigator messages, individually or through mass actions.
+- **Your own email stack, fed by webhooks.** Subscribe to lead and outreach events, deliver them to your endpoint, and trigger email from whatever you already use. The platform will not send it for you, but it can tell you when to.
+
+## Planned, but not shipped and not dated
+
+Email is planned. It is not shipped, and there is no date. The references above exist because the contracts were designed to accommodate it, which is a design decision rather than a delivery commitment.
+
+If email support matters for your workflow, tell the team: that signal is what shapes what gets built next.
