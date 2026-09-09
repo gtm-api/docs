@@ -1196,15 +1196,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -1227,15 +1242,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -1724,15 +1754,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -1755,15 +1800,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -2028,15 +2088,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -2059,15 +2134,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -2356,15 +2446,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -2387,15 +2492,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -3272,15 +3392,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -3303,15 +3438,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -3597,15 +3747,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -3628,15 +3793,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -4046,15 +4226,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -4077,15 +4272,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -4250,15 +4460,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -4281,15 +4506,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -5594,15 +5834,30 @@ components:
                         nullable: true
                       team_sid:
                         type: string
-                      permissions:
-                        type: object
-                        additionalProperties: {}
-                      request_sid:
+                      actor_name:
                         type: string
                         nullable: true
+                        description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                      oauth_client_sid:
+                        type: string
+                        nullable: true
+                        description: The acting OAuth client (id_oc_*); null off the OAuth path.
                       reason:
                         type: string
                         nullable: true
+                        description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                      permissions:
+                        type: object
+                        additionalProperties: {}
+                        description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                      cluster_id:
+                        type: integer
+                        nullable: true
+                        description: "Internal audit context: the cluster that served the write."
+                      trace_id:
+                        type: string
+                        nullable: true
+                        description: "Internal audit context: the trace id of the request that wrote the row."
                     required:
                       - actor_type
                       - actor_sid
@@ -5625,15 +5880,30 @@ components:
                         nullable: true
                       team_sid:
                         type: string
-                      permissions:
-                        type: object
-                        additionalProperties: {}
-                      request_sid:
+                      actor_name:
                         type: string
                         nullable: true
+                        description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                      oauth_client_sid:
+                        type: string
+                        nullable: true
+                        description: The acting OAuth client (id_oc_*); null off the OAuth path.
                       reason:
                         type: string
                         nullable: true
+                        description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                      permissions:
+                        type: object
+                        additionalProperties: {}
+                        description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                      cluster_id:
+                        type: integer
+                        nullable: true
+                        description: "Internal audit context: the cluster that served the write."
+                      trace_id:
+                        type: string
+                        nullable: true
+                        description: "Internal audit context: the trace id of the request that wrote the row."
                     required:
                       - actor_type
                       - actor_sid
@@ -6415,15 +6685,30 @@ components:
                         nullable: true
                       team_sid:
                         type: string
-                      permissions:
-                        type: object
-                        additionalProperties: {}
-                      request_sid:
+                      actor_name:
                         type: string
                         nullable: true
+                        description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                      oauth_client_sid:
+                        type: string
+                        nullable: true
+                        description: The acting OAuth client (id_oc_*); null off the OAuth path.
                       reason:
                         type: string
                         nullable: true
+                        description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                      permissions:
+                        type: object
+                        additionalProperties: {}
+                        description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                      cluster_id:
+                        type: integer
+                        nullable: true
+                        description: "Internal audit context: the cluster that served the write."
+                      trace_id:
+                        type: string
+                        nullable: true
+                        description: "Internal audit context: the trace id of the request that wrote the row."
                     required:
                       - actor_type
                       - actor_sid
@@ -6446,15 +6731,30 @@ components:
                         nullable: true
                       team_sid:
                         type: string
-                      permissions:
-                        type: object
-                        additionalProperties: {}
-                      request_sid:
+                      actor_name:
                         type: string
                         nullable: true
+                        description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                      oauth_client_sid:
+                        type: string
+                        nullable: true
+                        description: The acting OAuth client (id_oc_*); null off the OAuth path.
                       reason:
                         type: string
                         nullable: true
+                        description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                      permissions:
+                        type: object
+                        additionalProperties: {}
+                        description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                      cluster_id:
+                        type: integer
+                        nullable: true
+                        description: "Internal audit context: the cluster that served the write."
+                      trace_id:
+                        type: string
+                        nullable: true
+                        description: "Internal audit context: the trace id of the request that wrote the row."
                     required:
                       - actor_type
                       - actor_sid
@@ -6621,15 +6921,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -6652,15 +6967,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -6949,15 +7279,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
@@ -6980,15 +7325,30 @@ components:
                   nullable: true
                 team_sid:
                   type: string
-                permissions:
-                  type: object
-                  additionalProperties: {}
-                request_sid:
+                actor_name:
                   type: string
                   nullable: true
+                  description: The OAuth client that acted ("Claude", "n8n"); null for a user, an API key or a system job.
+                oauth_client_sid:
+                  type: string
+                  nullable: true
+                  description: The acting OAuth client (id_oc_*); null off the OAuth path.
                 reason:
                   type: string
                   nullable: true
+                  description: Why a system actor wrote the row (snapshot_capture_job, ...); null otherwise.
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                  description: "Internal audit context: the grant set the actor held at write time. Not a contract."
+                cluster_id:
+                  type: integer
+                  nullable: true
+                  description: "Internal audit context: the cluster that served the write."
+                trace_id:
+                  type: string
+                  nullable: true
+                  description: "Internal audit context: the trace id of the request that wrote the row."
               required:
                 - actor_type
                 - actor_sid
