@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 179 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 180 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -1192,7 +1192,7 @@ paths:
       operationId: search_linkedin_account_smart_limits
       summary: Search LinkedIn account smart limits
       description: |-
-        List per-limit_type policy rows (one account owns 15 public buckets: send_connection_requests, send_messages, send_inmails, scraping, enrichment, custom_request, …) with filters, sorting, cursor pagination and a counts block (status / limit_type / smart_limits_enabled breakdowns). Use for: "which limits are at their daily cap / held / blocked by LinkedIn" (status filter; held means the daily budget is spent), "can account X still send InMails today" (filter linkedin_account_sid + limit_type, read status + daily_limit − done_today_count), fleet capacity, smart-limit adoption rate. Every row also carries recommended_daily_limit / recommended_delay_in_seconds (what the platform would run this bucket at for THIS account) and risk_level (none | elevated | ban_likely) for the values currently set. Single-row case = search(filter:{linkedin_account_sid, limit_type}, page_size:1). No q. include[]: linkedin_account, linkedin_account_quota_hits.
+        List per-limit_type policy rows (one account owns 15 public buckets: send_connection_requests, send_messages, send_inmails, scraping, enrichment, custom_request, …) with filters, sorting, cursor pagination and a counts block (status / limit_type breakdowns). Whether the warmup governs a row is the ACCOUNT's smart_limits_enabled, not a row field. Use for: "which limits are at their daily cap / held / blocked by LinkedIn" (status filter; held means the daily budget is spent), "can account X still send InMails today" (filter linkedin_account_sid + limit_type, read status + daily_limit − done_today_count), fleet capacity, smart-limit adoption rate. Every row also carries recommended_daily_limit / recommended_delay_in_seconds (what the platform would run this bucket at for THIS account) and risk_level (none | elevated | ban_likely) for the values currently set. Single-row case = search(filter:{linkedin_account_sid, limit_type}, page_size:1). No q. include[]: linkedin_account, linkedin_account_quota_hits.
 
         Contract:
         - MCP tool `search_linkedin_account_smart_limits`, registry package `mcp.linkedin/linkedin_account_smart_limits`, mount `linkedin.accounts`.
@@ -1233,7 +1233,7 @@ paths:
       operationId: update_linkedin_account_smart_limit
       summary: Update LinkedIn account smart limit
       description: |-
-        Patch the operator-tunable policy of one limit row (daily_limit / target_limit / delay_in_seconds / smart_limits_enabled / learning_enabled; at least one field OR reset_hold:true). status recomputes atomically. RISK RULE: read the row's recommended_daily_limit and recommended_delay_in_seconds first. Up to twice the recommendation (or a delay down to half) is dangerous and answers risk_level "elevated"; more than twice (or under half) gets the account restricted by LinkedIn and answers "ban_likely". Nothing is refused: warn the user in those words before committing, and flag turning smart_limits_enabled off. A spent daily budget is status "held"; raising daily_limit alone does not clear it, pass reset_hold:true in the same call (clears only when the new cap exceeds done_today_count). On a smart-managed row the persistent lever is target_limit. System-managed fields (counters, smart_limit, clocks, status, recommended_* / risk_level) are rejected as inputs; a LinkedIn-side lock is never resettable.
+        Patch one limit row's operator-tunable policy (daily_limit / target_limit / delay_in_seconds / batch_size / learning_enabled; at least one field OR reset_hold:true); status recomputes atomically. GATE: while the ACCOUNT's smart_limits_enabled is true, daily_limit / delay_in_seconds / batch_size are the warmup's and this call answers 409 smart_limits_governed (context.refused_fields). Then bound the cap with target_limit (the cap follows min(smart, target) at once), or call set_linkedin_account_smart_limits({enabled:false}) first and say that this removes the ban protection. With the switch off nothing is refused: read recommended_daily_limit / recommended_delay_in_seconds first; up to twice the recommendation (or a delay down to half) is "elevated", beyond that "ban_likely"; warn in those words before committing. A spent budget is "held"; raising daily_limit alone does not clear it, pass reset_hold:true in the same call. System-managed fields are rejected; a LinkedIn-side lock cannot be reset.
 
         Contract:
         - MCP tool `update_linkedin_account_smart_limit`, registry package `mcp.linkedin/linkedin_account_smart_limits`, mount `linkedin.accounts`.
@@ -2568,6 +2568,58 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+  /api/linkedin-accounts/{sid}/set-smart-limits:
+    post:
+      operationId: set_linkedin_account_smart_limits
+      summary: Set account smart limits
+      description: |-
+        Switch smart-limit governance on or off for the WHOLE account, every bucket at once (there is no per-bucket toggle). ON: the warmup sets every limit row's daily_limit / delay_in_seconds / batch_size, and update_linkedin_account_smart_limit refuses those fields with 409 smart_limits_governed; target_limit and learning_enabled stay yours. Turning on re-derives every cap from the latest snapshot on this call. OFF: every cap runs exactly as typed and the account loses the warmup ban protection: say so to the user before switching off, and read recommended_daily_limit / recommended_delay_in_seconds on the rows before typing caps. Idempotent. SINGLE account: for a fleet, author a mass action on /mcp/orchestration/mass-actions with the step `linkedin-accounts.set-smart-limits` (scope objects, args {enabled}); run it BEFORE a limit-row run over the same senders.
+
+        Contract:
+        - MCP tool `set_linkedin_account_smart_limits`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
+      tags:
+        - linkedin_accounts
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: LinkedIn account sid (ln_ac_…).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^ln_ac_
+            description: LinkedIn account sid (ln_ac_…).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SetLinkedinAccountSmartLimitsRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SetLinkedinAccountSmartLimitsResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: set_linkedin_account_smart_limits
+      x-gtm-mcp-mount: linkedin.accounts
+      x-gtm-entity: linkedin_accounts
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: true
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
   /api/linkedin-accounts/{sid}/unendorse-skill:
     post:
       operationId: unendorse_linkedin_account_skill
@@ -2911,7 +2963,7 @@ paths:
       operationId: search_linkedin_auto_scrapes
       summary: Search LinkedIn auto-scrapes
       description: |-
-        List the team's collectors: saved jobs that paginate one LinkedIn or Sales Navigator list surface on a cadence and file deduped leads. Use for: which collectors are live or paused and why (status, paused_reason), what a given account collects (linkedin_account_sid), which ones feed outreach (mass_action_sid, is_null:true = collect-only), what runs next (sort next_run_at asc), and which produce (total_new_results). NOT for the leads themselves (search_linkedin_auto_scrape_results) or for one execution (search_linkedin_auto_scrape_runs). No q. include: linkedin_account (the executor row) and last_run (the newest run, the only place an in-flight run shows up). Sort: created_at (default desc) | updated_at | next_run_at | last_run_at | total_new_results. page_size:0 returns the count alone.
+        List the team's collectors: saved jobs that paginate one LinkedIn or Sales Navigator list surface on a cadence and file deduped leads. Use for: which collectors are live or paused and why (status, paused_reason), what a given account collects (linkedin_account_sid), which ones feed outreach (mass_action_sid, is_null:true = collect-only), what runs next (sort next_run_at asc), and which produce (total_new_results). NOT for the leads themselves (search_linkedin_auto_scrape_results) or for one execution (search_linkedin_auto_scrape_runs). q: substring of the title, the ln_as_ sid or the pasted source URL (not the executor name or the mass-action title). include: linkedin_account (the executor row) and last_run (the newest run, the only place an in-flight run shows up). Sort: created_at (default desc) | updated_at | next_run_at | last_run_at | total_new_results. page_size:0 returns the count alone.
 
         Contract:
         - MCP tool `search_linkedin_auto_scrapes`, registry package `mcp.linkedin/linkedin_auto_scrapes`, mount `linkedin.auto-scrapes`.
@@ -8834,6 +8886,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -9150,6 +9204,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -9316,6 +9371,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -9632,6 +9689,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -11976,6 +12034,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -12292,6 +12352,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -12473,6 +12534,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -12789,6 +12852,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -12982,6 +13046,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -13298,6 +13364,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -17047,6 +17114,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -17363,6 +17432,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -19248,6 +19318,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -19564,6 +19636,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -19772,6 +19845,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -20088,6 +20163,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -20318,6 +20394,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -20634,6 +20712,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -20789,6 +20868,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -21105,6 +21186,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -21249,6 +21331,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -21565,6 +21649,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -21726,6 +21811,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -22042,6 +22129,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -22236,6 +22324,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -22552,6 +22642,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -22709,6 +22800,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -23025,6 +23118,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -23256,6 +23350,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -23572,6 +23668,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -23831,6 +23928,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -24147,6 +24246,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -24454,6 +24554,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -24770,6 +24872,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -24914,6 +25017,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -25230,6 +25335,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -25433,6 +25539,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -25749,6 +25857,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -32676,8 +32785,6 @@ components:
               nullable: true
             last_reset_at:
               type: string
-            smart_limits_enabled:
-              type: boolean
             status:
               type: string
               enum:
@@ -32709,7 +32816,6 @@ components:
             - batch_size
             - done_today_count
             - last_reset_at
-            - smart_limits_enabled
             - status
             - hold_till
             - linkedin_quota_hit_till
@@ -32861,6 +32967,8 @@ components:
             has_sn:
               type: boolean
             has_recruiter:
+              type: boolean
+            smart_limits_enabled:
               type: boolean
             inmail_credits:
               type: number
@@ -33178,6 +33286,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -43472,12 +43581,6 @@ components:
                 lt:
                   type: string
               additionalProperties: false
-            smart_limits_enabled:
-              type: object
-              properties:
-                eq:
-                  type: boolean
-              additionalProperties: false
             status:
               type: object
               properties:
@@ -43653,8 +43756,6 @@ components:
                     nullable: true
                   last_reset_at:
                     type: string
-                  smart_limits_enabled:
-                    type: boolean
                   status:
                     type: string
                     enum:
@@ -43686,7 +43787,6 @@ components:
                   - batch_size
                   - done_today_count
                   - last_reset_at
-                  - smart_limits_enabled
                   - status
                   - hold_till
                   - linkedin_quota_hit_till
@@ -45001,6 +45101,13 @@ components:
                 eq:
                   type: boolean
               additionalProperties: false
+            smart_limits_enabled:
+              type: object
+              properties:
+                eq:
+                  type: boolean
+              additionalProperties: false
+              description: The account-wide smart-limit switch. eq:false lists every hand-managed sender (caps typed by hand, no warmup protection).
             inmail_credits:
               type: object
               properties:
@@ -45370,6 +45477,8 @@ components:
                     type: boolean
                   has_recruiter:
                     type: boolean
+                  smart_limits_enabled:
+                    type: boolean
                   inmail_credits:
                     type: number
                     nullable: true
@@ -45686,6 +45795,7 @@ components:
                   - has_premium
                   - has_sn
                   - has_recruiter
+                  - smart_limits_enabled
                   - inmail_credits
                   - last_premium_check_at
                   - last_connections_sync_at
@@ -46612,6 +46722,9 @@ components:
         filter:
           type: object
           properties:
+            q:
+              type: string
+              description: "Free-text LIKE over title + sid + source_input.url (the pasted list URL of the url-family sources; params, anchor and post sources have no url and match on title + sid only). The executor name and the mass-action title are not searched: slice by linkedin_account_sid / mass_action_sid."
             sid:
               type: object
               properties:
@@ -51406,6 +51519,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -51722,6 +51837,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -51785,6 +51901,478 @@ components:
         - item
         - updated_fields
         - previous_values
+        - meta
+    SetLinkedinAccountSmartLimitsRequest:
+      type: object
+      description: Request body of `set_linkedin_account_smart_limits`.
+      properties:
+        enabled:
+          type: boolean
+          description: true = the warmup governs every bucket (protection on); false = the caps run as typed (protection off).
+      required:
+        - enabled
+    SetLinkedinAccountSmartLimitsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            antidetect_browser_sid:
+              type: string
+            status:
+              type: string
+              enum:
+                - new
+                - initial_syncing
+                - active
+                - sync_failed
+                - shared_out
+                - subscription_required
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+            account_share_sid:
+              type: string
+              nullable: true
+            share_role:
+              type: string
+              nullable: true
+              enum:
+                - owner
+                - holder
+                - giver
+                - receiver
+            ln_id:
+              type: string
+              nullable: true
+            ln_member_id:
+              type: string
+              nullable: true
+            sn_id:
+              type: string
+              nullable: true
+            nickname:
+              type: string
+              nullable: true
+            recruiter_seat_id:
+              type: string
+              nullable: true
+              description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+            full_name:
+              type: string
+              nullable: true
+            avatar_url:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
+            has_premium:
+              type: boolean
+            has_sn:
+              type: boolean
+            has_recruiter:
+              type: boolean
+            smart_limits_enabled:
+              type: boolean
+            inmail_credits:
+              type: number
+              nullable: true
+            last_premium_check_at:
+              type: string
+              nullable: true
+            last_connections_sync_at:
+              type: string
+              nullable: true
+            last_conversations_sync_at:
+              type: string
+              nullable: true
+            last_sales_navigator_conversations_sync_at:
+              type: string
+              nullable: true
+            last_recruiter_conversations_sync_at:
+              type: string
+              nullable: true
+            last_connection_requests_sync_at:
+              type: string
+              nullable: true
+            last_connection_invitations_sync_at:
+              type: string
+              nullable: true
+            last_followers_sync_at:
+              type: string
+              nullable: true
+            last_snapshot_at:
+              type: string
+              nullable: true
+            initial_sync_completed_at:
+              type: string
+              nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
+            last_heartbeat_at:
+              type: string
+              nullable: true
+            sync_config:
+              type: object
+              nullable: true
+              properties:
+                entries:
+                  type: object
+                  properties:
+                    connections:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    sales_navigator_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    recruiter_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_requests:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_invitations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    premium_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    snapshot_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: Per-track sync-interval overrides, keyed by sync track.
+                timezone:
+                  type: string
+                  description: IANA timezone the window is evaluated in.
+                window:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day_of_week:
+                        type: integer
+                        minimum: 1
+                        maximum: 7
+                      start_minute:
+                        type: integer
+                        minimum: 0
+                        maximum: 1439
+                      end_minute:
+                        type: integer
+                        minimum: 1
+                        maximum: 1440
+                    required:
+                      - day_of_week
+                      - start_minute
+                      - end_minute
+                  description: Weekly sync-activity window blocks; empty = always open.
+            webhook_config:
+              type: object
+              nullable: true
+              properties:
+                connections:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_requests:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_invitations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                sales_navigator_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                recruiter_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                messages:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                followers:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                snapshot:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                strike_log:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                limits:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+            created_by:
+              type: object
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+                - reason
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - antidetect_browser_sid
+            - status
+            - account_share_sid
+            - share_role
+            - ln_id
+            - ln_member_id
+            - sn_id
+            - nickname
+            - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
+            - full_name
+            - avatar_url
+            - label
+            - has_premium
+            - has_sn
+            - has_recruiter
+            - smart_limits_enabled
+            - inmail_credits
+            - last_premium_check_at
+            - last_connections_sync_at
+            - last_conversations_sync_at
+            - last_sales_navigator_conversations_sync_at
+            - last_recruiter_conversations_sync_at
+            - last_connection_requests_sync_at
+            - last_connection_invitations_sync_at
+            - last_followers_sync_at
+            - last_snapshot_at
+            - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
+            - last_heartbeat_at
+            - sync_config
+            - webhook_config
+            - created_by
+            - created_at
+            - updated_at
+            - deleted_at
+        result:
+          type: object
+          additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
         - meta
     SetLinkedinAutoScrapeMassActionRequest:
       type: object
@@ -53875,6 +54463,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -54191,6 +54781,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -54392,6 +54983,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -54708,6 +55301,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -55567,9 +56161,12 @@ components:
           type: integer
           minimum: 1
           maximum: 3600
-          description: Batch-boundary cooldown (1..3600).
-        smart_limits_enabled:
-          type: boolean
+          description: "The hold: seconds between one burst and the next (1..3600)."
+        batch_size:
+          type: integer
+          minimum: 1
+          maximum: 10
+          description: "The burst: calls that fire back-to-back before the hold (1..10; a longer burst only trips the ten-starts-a-minute account guard)."
         reset_hold:
           type: boolean
           description: Clear the daily-saturation hold in the same call (the atomic "raise the limit AND resume now"). Only resumes if the new daily_limit > done_today_count; otherwise the row re-holds. Never touches a LinkedIn-side lock.
@@ -55631,8 +56228,6 @@ components:
               nullable: true
             last_reset_at:
               type: string
-            smart_limits_enabled:
-              type: boolean
             status:
               type: string
               enum:
@@ -55664,7 +56259,6 @@ components:
             - batch_size
             - done_today_count
             - last_reset_at
-            - smart_limits_enabled
             - status
             - hold_till
             - linkedin_quota_hit_till
@@ -55906,6 +56500,8 @@ components:
             has_sn:
               type: boolean
             has_recruiter:
+              type: boolean
+            smart_limits_enabled:
               type: boolean
             inmail_credits:
               type: number
@@ -56223,6 +56819,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
@@ -56661,6 +57258,8 @@ components:
               type: boolean
             has_recruiter:
               type: boolean
+            smart_limits_enabled:
+              type: boolean
             inmail_credits:
               type: number
               nullable: true
@@ -56977,6 +57576,7 @@ components:
             - has_premium
             - has_sn
             - has_recruiter
+            - smart_limits_enabled
             - inmail_credits
             - last_premium_check_at
             - last_connections_sync_at

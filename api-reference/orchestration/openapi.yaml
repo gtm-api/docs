@@ -1680,6 +1680,7 @@ components:
                           - antidetect-browsers.generate-cloud-browser-access-key
                           - antidetect-browsers.revoke-cloud-browser-access-key
                           - linkedin-accounts.update-sync-config
+                          - linkedin-accounts.set-smart-limits
                           - linkedin-account-smart-limits.update
                           - linkedin-account-smart-limits.reset-hold
                       - type: string
@@ -1973,6 +1974,7 @@ components:
               - linkedin-accounts.initial-sync-held
               - linkedin-accounts.sync-reset
               - linkedin-accounts.sync-config-updated
+              - linkedin-accounts.smart-limits-changed
               - linkedin-accounts.premium-changed
               - linkedin-accounts.login-succeeded
               - linkedin-accounts.login-failed
@@ -4051,6 +4053,7 @@ components:
                           - antidetect-browsers.generate-cloud-browser-access-key
                           - antidetect-browsers.revoke-cloud-browser-access-key
                           - linkedin-accounts.update-sync-config
+                          - linkedin-accounts.set-smart-limits
                           - linkedin-account-smart-limits.update
                           - linkedin-account-smart-limits.reset-hold
                       - type: string
@@ -4465,6 +4468,7 @@ components:
               - linkedin-accounts.initial-sync-held
               - linkedin-accounts.sync-reset
               - linkedin-accounts.sync-config-updated
+              - linkedin-accounts.smart-limits-changed
               - linkedin-accounts.premium-changed
               - linkedin-accounts.login-succeeded
               - linkedin-accounts.login-failed
@@ -5144,10 +5148,11 @@ components:
                   enum:
                     - task_pending
                     - maintenance
+                    - rate_limited
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window.
+              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window; eq:'rate_limited' the ones parked by the owning service's rate limit (a smart-limit hold or spent budget, a LinkedIn lock, the per-minute guard), due again at scheduled_at.
             retry_count:
               type: object
               properties:
@@ -5601,10 +5606,11 @@ components:
                   enum:
                     - task_pending
                     - maintenance
+                    - rate_limited
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window.
+              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window; eq:'rate_limited' the ones parked by the owning service's rate limit (a smart-limit hold or spent budget, a LinkedIn lock, the per-minute guard), due again at scheduled_at.
             retry_count:
               type: object
               properties:
@@ -5853,6 +5859,7 @@ components:
                     enum:
                       - task_pending
                       - maintenance
+                      - rate_limited
                     description: Why the item is deferred mid-cascade. Null when it is not waiting; a parent-level pause leaves this null.
                   error_message:
                     type: string
@@ -7524,6 +7531,7 @@ components:
               - linkedin-accounts.initial-sync-held
               - linkedin-accounts.sync-reset
               - linkedin-accounts.sync-config-updated
+              - linkedin-accounts.smart-limits-changed
               - linkedin-accounts.premium-changed
               - linkedin-accounts.login-succeeded
               - linkedin-accounts.login-failed

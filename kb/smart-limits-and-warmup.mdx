@@ -65,11 +65,33 @@ working.
 | `held` | The current budget is spent; outbound actions are parked until the refresh. The normal daily-cap state, not an error |
 | `linkedin_blocked` | LinkedIn itself restricted the account; actions stay parked until the restriction clears |
 
+## Smart limits on or off: one switch per account
+
+Smart limits are a single switch on the account, not a setting per bucket. While they are
+on, the warmup owns every daily cap, hold and burst: a request that types one of them by hand
+is refused with `409` and `context.reason` `smart_limits_governed`, and the answer names the
+fields it refused and the two ways forward. Inside the protected mode you can still bound a
+bucket with `target_limit` (the cap follows `min(smart, target)` at once) and pin the learner
+with `learning_enabled`.
+
+Turning the switch off hands every number to you: the caps run exactly as typed and the warmup
+never touches the account again. That is where accounts get lost, so the drawer asks in words
+before switching off, and the MCP tool previews before it commits. Turning it back on
+re-derives every cap from the latest snapshot on the spot.
+
+```bash set-smart-limits
+# Take an account off the warmup (or put it back with "enabled": true)
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/ln_ac_YOUR_ACCOUNT/set-smart-limits" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"enabled": false}'
+```
+
 ## Raise a limit, release a hold
 
-Limits are editable per account in the drawer. Raising a limit offers **reset hold**,
-which atomically raises the budget and resumes everything parked on it in one step.
-Without reset hold, the raised budget takes effect on the next refresh cycle.
+With smart limits off, limits are editable per account in the drawer. Raising a limit offers
+**reset hold**, which atomically raises the budget and resumes everything parked on it in one
+step. Without reset hold, the raised budget takes effect on the next refresh cycle.
 
 <CodeGroup>
 
