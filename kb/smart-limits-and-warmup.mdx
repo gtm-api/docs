@@ -14,6 +14,32 @@ on) has its own daily bucket. When a bucket is spent, further actions of that ki
 until the budget refreshes. Parked work resumes automatically as soon as the limit
 releases; nothing needs re-queuing.
 
+## Pacing: bursts and holds
+
+Inside the day, every bucket paces as "N at once, then hold X seconds": a burst of `batch_size`
+calls fires back-to-back, then `delay_in_seconds` passes before the next burst. Reads are paced in
+single seconds, actions in tens of seconds; connection requests and posts are deliberately slower.
+Both numbers are per account and editable (burst 1..10, hold 1..3600 s), and the platform's own
+values for the account come back on every row as `recommended_delay_in_seconds`.
+
+| Action type | Per day | Burst | Hold |
+|---|---|---|---|
+| Connection requests | 25 | 2 | 60 s |
+| Accept / ignore / withdraw / follow | 40 | 3 | 10 s |
+| Messages, voice notes | 50 | 3 | 30 s |
+| InMails, Sales Navigator and Recruiter messages | 30 | 2 | 45 s |
+| Inbox housekeeping (read / unread, mute, attachments) | 100 | 3 | 10 s |
+| Comments | 30 | 2 | 60 s |
+| Reactions, endorsements | 30 | 3 | 20 s |
+| Profile visits | 50 | 3 | 30 s |
+| Profile edits | 10 | 1 | 30 s |
+| Searches, typeaheads, engagement lists | 100 | 2 | 10 s |
+| Profile, company and post reads | 80 | 2 | 10 s |
+| Posts | 20 | 3 | 120 s |
+| Own-account sync reads | 200 | 5 | 6 s |
+
+On top of every bucket, one account starts at most 10 calls a minute.
+
 <Frame caption="The Smart Limits tab of the account drawer: the warmup score with its six signals, incident logs, and the per-action caps below.">
   <img src="/images/kb/account-drawer-smart-limits.png" alt="Smart Limits tab showing the warmup percentage, six health signals and per-action daily caps" />
 </Frame>
@@ -66,8 +92,10 @@ curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-account-smart-lim
 </CodeGroup>
 
 <Warning>
-Hitting a budget over the API answers `limit_exceeded`. The action can resume the next
-day or after the limit is raised; the account is not penalized for your retry logic.
+Hitting a budget or a hold over the API answers `429 rate_limited` with `context.reason`
+`bucket_saturated` and a `retry_after` timestamp. Inside a mass action the item is parked on
+that clock and resumes on its own; a direct call simply retries after it. The account is not
+penalized for your retry logic.
 </Warning>
 
 ## Related
