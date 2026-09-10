@@ -1,0 +1,48 @@
+---
+title: "LinkedIn Recruiter"
+sidebarTitle: "Recruiter"
+keywords:
+  - "Recruiter"
+description: "Recruiter is supported on accounts that hold a Recruiter seat: candidate search, the talent inbox, hiring projects and Recruiter InMail. What the seat gives you, and why the session expires every 30 days."
+---
+
+Recruiter is supported. An account that holds a LinkedIn Recruiter seat can run candidate searches, sync the talent inbox, read its hiring projects and send Recruiter InMail.
+
+Everything on this page needs that seat. Without one, every Recruiter call answers `422 recruiter_required`.
+
+## What the seat gives you
+
+| Surface | Where it is documented |
+| --- | --- |
+| Candidate search, with the full Recruiter facet panel | [People and company search](/kb/people-and-company-search) |
+| The talent inbox, on its own sync cadence | [Inbox and message sync](/kb/inbox-and-message-sync) |
+| Hiring projects | API reference |
+| Recruiter InMail | API reference |
+
+Recruiter is a **third surface**, separate from the basic LinkedIn engine and from Sales Navigator. Its threads carry `messenger_type: "recruiter"`, its candidates are addressed by `talent_id`, and its search facet ids come from a lookup of their own: none of the three id spaces are interchangeable.
+
+## How the seat is detected
+
+The premium check stamps the seat onto the account (`recruiter_seat_id`). Run it with `checks: ['recruiter']` to refresh just that one.
+
+Some calls need the stamped seat number, not only the seat itself. If it is missing they answer `422 recruiter_seat_unresolvable`, and the premium check resolves it.
+
+## The Recruiter session expires every 30 days
+
+**This is the failure everyone hits, and the one support cannot fix.**
+
+Recruiter keeps its own session, roughly 30 days long, separate from the account's normal LinkedIn session. The account can be perfectly healthy and still have a dead Recruiter session.
+
+When it expires, every Recruiter call answers `409 recruiter_reauth_required` and recurring syncs stop.
+
+**Only the seat holder can renew it**, by signing in to Recruiter again in the account's browser. Nobody else can do it for them: not another teammate, not support, not the platform. Retrying the call does not help and never will.
+
+`recruiter_session_expires_at` on the account tells you when it runs out, so you can renew before it does rather than after.
+
+## Limits that come from LinkedIn, not from us
+
+**One InMail per candidate per 24 hours.** Sending a second one answers `429 recruiter_inmail_cooldown` with `cooldown_ends_at`. If a reply may have landed in between, refresh the thread before assuming the send failed.
+
+**A per-seat search throttle.** Heavy searching answers `429 recruiter_search_usage_limit`. Waiting a minute clears it.
+
+Neither is a platform limit and neither is configurable here. They are LinkedIn's, applied to the seat.
