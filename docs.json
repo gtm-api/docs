@@ -79,7 +79,8 @@
           {
             "group": "Conversations",
             "pages": [
-              "kb/inbox-and-message-sync"
+              "kb/inbox-and-message-sync",
+              "kb/recruiter"
             ]
           },
           {
@@ -93,7 +94,8 @@
             "group": "Troubleshooting",
             "pages": [
               "kb/proxy-troubleshooting",
-              "kb/browser-troubleshooting"
+              "kb/browser-troubleshooting",
+              "kb/email-is-not-supported-yet"
             ]
           }
         ]
