@@ -605,7 +605,7 @@ paths:
       operationId: get_api_request_metrics
       summary: API request metrics
       description: |-
-        Period-bound totals of the team's external API requests, merged across the answering services: total_count, error_count and the 2xx/3xx/4xx/5xx split in aggregated.counts; error_rate, avg_duration_ms, first/last_occurred_at in aggregated.metrics. Requires period {from, to} (ISO 8601 UTC, half-open, at most 92 days). Optional group_by splits the same numbers per key: occurred_hour / occurred_day for a chart (empty buckets are absent; occurred_hour needs a period under 21 days), client_sid ("how much does each agent call"), route or entity ("which tools"), status_family, service, surface. Use to answer "how many calls this week and how many failed" in one round-trip instead of paging the log. aggregated.counts.sources says which services answered.
+        Period-bound totals of the team's external API requests, merged across the answering services: total_count, error_count and the 2xx/3xx/4xx/5xx split in aggregated.counts; error_rate, avg_duration_ms, first/last_occurred_at in aggregated.metrics. Requires period {from, to} (ISO 8601 UTC, half-open, at most 92 days). Optional group_by splits the same numbers per key: client_sid ("how much does each agent call"), route or entity ("which tools"), status_family, service, surface (occurred_hour / occurred_day exist too but bucket is the better time axis). Optional bucket (hour | day) cuts the window into consecutive UTC buckets, series.points[] one per bucket over the whole window with zeros filled, each carrying its own counts and its own group_by split: "requests per day by type" is group_by entity + bucket day in one call. Use to answer "how many calls this week and how many failed" in one round-trip instead of paging the log. aggregated.counts.sources says which services answered.
 
         Contract:
         - MCP tool `get_api_request_metrics`, registry package `mcp.id/api_requests`, mount `id.platform`.
@@ -7396,7 +7396,14 @@ components:
             - status_family
             - occurred_day
             - occurred_hour
-          description: "Split the aggregate per key: occurred_hour / occurred_day = chart buckets (UTC bucket start as the key), client_sid / route / entity / status_family / service / surface = breakdowns. Cap 500 groups."
+          description: "Split the aggregate per key: client_sid / route / entity / status_family / service / surface = breakdowns (occurred_hour / occurred_day = a legacy time split; prefer bucket). Cap 500 groups."
+        bucket:
+          type: string
+          nullable: true
+          enum:
+            - hour
+            - day
+          description: "The time axis, independent of group_by: hour or day (UTC). Answers series.points[], one per bucket over the whole window, zeros filled, each with its own counts and group_by split."
       required:
         - period
     GetApiRequestMetricsResponse:
@@ -7413,9 +7420,6 @@ components:
         metrics:
           type: object
           properties:
-            filter:
-              type: object
-              additionalProperties: {}
             period:
               type: object
               properties:
@@ -7456,30 +7460,101 @@ components:
                     - avg_duration_ms
                     - first_occurred_at
                     - last_occurred_at
-            metrics:
+            groups:
+              type: array
+              items:
+                type: object
+                properties:
+                  key:
+                    type: string
+                  counts:
+                    type: object
+                    additionalProperties: {}
+                  metrics:
+                    type: object
+                    properties:
+                      error_rate:
+                        type: number
+                        nullable: true
+                        description: (4xx + 5xx) / total over the merged sources, 0..1; null when total is 0.
+                      avg_duration_ms:
+                        type: integer
+                        nullable: true
+                        description: Mean wall time of the rows that carry a duration; null when none.
+                      first_occurred_at:
+                        type: string
+                        nullable: true
+                        description: Earliest request in the window, ISO 8601 UTC.
+                      last_occurred_at:
+                        type: string
+                        nullable: true
+                        description: 'Latest request in the window: "when did my agent last call".'
+                    required:
+                      - error_rate
+                      - avg_duration_ms
+                      - first_occurred_at
+                      - last_occurred_at
+                required:
+                  - key
+                  - counts
+                  - metrics
+            series:
               type: object
               properties:
-                error_rate:
-                  type: number
-                  nullable: true
-                  description: (4xx + 5xx) / total over the merged sources, 0..1; null when total is 0.
-                avg_duration_ms:
-                  type: integer
-                  nullable: true
-                  description: Mean wall time of the rows that carry a duration; null when none.
-                first_occurred_at:
+                bucket:
                   type: string
-                  nullable: true
-                  description: Earliest request in the window, ISO 8601 UTC.
-                last_occurred_at:
-                  type: string
-                  nullable: true
-                  description: 'Latest request in the window: "when did my agent last call".'
+                  enum:
+                    - hour
+                    - day
+                points:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      start:
+                        type: string
+                        description: The bucket start, ISO 8601 UTC.
+                      counts:
+                        type: object
+                        properties:
+                          total_count:
+                            type: integer
+                          error_count:
+                            type: integer
+                          groups:
+                            type: object
+                            properties:
+                              status_family:
+                                type: object
+                                additionalProperties:
+                                  type: integer
+                            required:
+                              - status_family
+                        required:
+                          - total_count
+                          - error_count
+                          - groups
+                      groups:
+                        type: object
+                        additionalProperties:
+                          type: object
+                          properties:
+                            total_count:
+                              type: integer
+                            error_count:
+                              type: integer
+                          required:
+                            - total_count
+                            - error_count
+                        description: Per group_by key, this bucket only; empty when no group_by was passed.
+                    required:
+                      - start
+                      - counts
+                      - groups
               required:
-                - error_rate
-                - avg_duration_ms
-                - first_occurred_at
-                - last_occurred_at
+                - bucket
+                - points
+              description: Present only when bucket was passed.
         applied_filters:
           type: object
           additionalProperties: {}
