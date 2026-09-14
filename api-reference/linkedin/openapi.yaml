@@ -4233,7 +4233,7 @@ paths:
       operationId: get_my_latest_linkedin_conversations_recruiter
       summary: Get my latest Recruiter conversations
       description: |-
-        LinkedIn Recruiter variant of get_my_latest_linkedin_conversations: always-fresh head read of the recruiter inbox for one account (§5.8 refresh-then-return over the talent wire, page size fixed at 15 by that wire). Same hard-429 guards; returns messenger_type='recruiter' rows whose talent_id is the candidate. Needs a Recruiter seat and its stamped seat number (422 recruiter_required / recruiter_seat_unresolvable).
+        LinkedIn Recruiter variant of get_my_latest_linkedin_conversations: always-fresh head read of the recruiter inbox for one account (§5.8 refresh-then-return over the talent wire, page size fixed at 15 by that wire). Same hard-429 guards; returns messenger_type='recruiter' rows whose recruiter_id is the candidate. Needs a Recruiter seat and its stamped seat number (422 recruiter_required / recruiter_seat_unresolvable).
 
         Contract:
         - MCP tool `get_my_latest_linkedin_conversations_recruiter`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.recruiter`.
@@ -4438,7 +4438,7 @@ paths:
       operationId: sync_my_recruiter_conversations
       summary: Sync my Recruiter conversations
       description: |-
-        Start a background sync run that reconciles the LinkedIn Recruiter inbox (the talent mailbox a recruiter seat owns) for one account: messenger_type='recruiter' threads with the candidate's talent_id, their messages drained inline. ASYNC: returns a pending ref to poll. Needs a Recruiter seat on the account AND its stamped seat number (422 recruiter_required / recruiter_seat_unresolvable otherwise; check_linkedin_account_premium_subscription with checks: ['recruiter'] refreshes both). Walks the INBOX tab and then UNRESOLVED (a thread this seat opened sits there until the candidate replies), never ARCHIVED or SCHEDULED. Separate sync_type and cadence from the two other messengers.
+        Start a background sync run that reconciles the LinkedIn Recruiter inbox (the talent mailbox a recruiter seat owns) for one account: messenger_type='recruiter' threads with the candidate's recruiter_id, their messages drained inline. ASYNC: returns a pending ref to poll. Needs a Recruiter seat on the account AND its stamped seat number (422 recruiter_required / recruiter_seat_unresolvable otherwise; check_linkedin_account_premium_subscription with checks: ['recruiter'] refreshes both). Walks the INBOX tab and then UNRESOLVED (a thread this seat opened sits there until the candidate replies), never ARCHIVED or SCHEDULED. Separate sync_type and cadence from the two other messengers.
 
         Contract:
         - MCP tool `sync_my_recruiter_conversations`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.recruiter`.
@@ -6441,7 +6441,7 @@ paths:
       operationId: send_linkedin_recruiter_message
       summary: Send Recruiter InMail
       description: |-
-        Send one LinkedIn Recruiter InMail (outward action): open a NEW recruiter thread via talent_id (AEMAA… id; ln_id / sn_id work too), or reply INTO an existing thread via linkedin_conversation_sid (messenger_type='recruiter'). subject required (≤ 200), text ≤ 1900; rich-text attributes on a NEW thread only. Guards, in order: Recruiter seat (422 recruiter_required); live Recruiter session (409 recruiter_reauth_required: Recruiter has its own 30-day session that only the seat holder renews by signing in to Recruiter again in the account's browser, so tell the user, do not retry); stamped seat on a reply (422 recruiter_seat_unresolvable); LinkedIn's one-InMail-per-candidate-per-24h rule (429 recruiter_inmail_cooldown with cooldown_ends_at: refresh the thread with get_my_latest_linkedin_recruiter_messages if a reply may have landed, else wait and explain the rule). Spends send_inmails and an InMail credit. When NOT: basic threads → send_linkedin_message; SN → send_linkedin_sales_nav_message.
+        Send one LinkedIn Recruiter InMail (outward action): open a NEW recruiter thread via recruiter_id (AEMAA… id; ln_id / sn_id work too), or reply INTO an existing thread via linkedin_conversation_sid (messenger_type='recruiter'). subject required (≤ 200), text ≤ 1900; rich-text attributes on a NEW thread only. Guards, in order: Recruiter seat (422 recruiter_required); live Recruiter session (409 recruiter_reauth_required: Recruiter has its own 30-day session that only the seat holder renews by signing in to Recruiter again in the account's browser, so tell the user, do not retry); stamped seat on a reply (422 recruiter_seat_unresolvable); LinkedIn's one-InMail-per-candidate-per-24h rule (429 recruiter_inmail_cooldown with cooldown_ends_at: refresh the thread with get_my_latest_linkedin_recruiter_messages if a reply may have landed, else wait and explain the rule). Spends send_inmails and an InMail credit. When NOT: basic threads → send_linkedin_message; SN → send_linkedin_sales_nav_message.
 
         Contract:
         - MCP tool `send_linkedin_recruiter_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.recruiter`.
@@ -7687,7 +7687,7 @@ paths:
       operationId: scrape_linkedin_search_recruiter_people
       summary: Scrape LinkedIn Recruiter people search
       description: |-
-        One page of a LinkedIn Recruiter (talent) people search, by a structured filters object (the Recruiter facets: titles, skills, companies, locations, postal codes, industries, education, languages, seniority, function, company size and type, year sliders, network, open-to-work) OR by a pasted Recruiter search url. A Recruiter URL carries no filters, only the searchHistoryId of the search LinkedIn keeps on the seat, so the url half replays that stored search on your page; every answer returns search_history_id and search_url, so page 2 onwards is addressed by the URL alone. 25 hits a page, page 1..40, a real total; rows carry talent_id (for send_linkedin_recruiter_message), headline, location, current position, can_send_inmail. Needs a Recruiter-seat executor with a live session (422 recruiter_required, 409 recruiter_reauth_required); 429 recruiter_search_usage_limit is LinkedIn's per-seat throttle, wait a minute. Ids via scrape_linkedin_recruiter_param_id_lookup. One scraping-bucket slot per page.
+        One page of a LinkedIn Recruiter (talent) people search, by a structured filters object (the Recruiter facets: titles, skills, companies, locations, postal codes, industries, education, languages, seniority, function, company size and type, year sliders, network, open-to-work) OR by a pasted Recruiter search url. A Recruiter URL carries no filters, only the searchHistoryId of the search LinkedIn keeps on the seat, so the url half replays that stored search on your page; every answer returns search_history_id and search_url, so page 2 onwards is addressed by the URL alone. 25 hits a page, page 1..40, a real total; rows carry recruiter_id (for send_linkedin_recruiter_message), headline, location, current position, can_send_inmail. Needs a Recruiter-seat executor with a live session (422 recruiter_required, 409 recruiter_reauth_required); 429 recruiter_search_usage_limit is LinkedIn's per-seat throttle, wait a minute. Ids via scrape_linkedin_recruiter_param_id_lookup. One scraping-bucket slot per page.
 
         Contract:
         - MCP tool `scrape_linkedin_search_recruiter_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -8163,7 +8163,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -8173,7 +8173,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -8195,7 +8195,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -8244,7 +8244,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -11189,7 +11189,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -11199,7 +11199,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -11221,7 +11221,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -11270,7 +11270,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -11389,7 +11389,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -11477,7 +11477,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -27254,7 +27254,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -27264,7 +27264,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -27286,7 +27286,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -27335,7 +27335,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -28706,7 +28706,7 @@ components:
                       - linkedin
                       - sales_navigator
                       - recruiter
-                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -28716,7 +28716,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -28738,7 +28738,7 @@ components:
                         sn_id:
                           type: string
                           nullable: true
-                        talent_id:
+                        recruiter_id:
                           type: string
                           nullable: true
                         nickname:
@@ -28787,7 +28787,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - participants
                   - is_muted
@@ -28923,7 +28923,7 @@ components:
                       - linkedin
                       - sales_navigator
                       - recruiter
-                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -28933,7 +28933,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -28955,7 +28955,7 @@ components:
                         sn_id:
                           type: string
                           nullable: true
-                        talent_id:
+                        recruiter_id:
                           type: string
                           nullable: true
                         nickname:
@@ -29004,7 +29004,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - participants
                   - is_muted
@@ -29140,7 +29140,7 @@ components:
                       - linkedin
                       - sales_navigator
                       - recruiter
-                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -29150,7 +29150,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -29172,7 +29172,7 @@ components:
                         sn_id:
                           type: string
                           nullable: true
-                        talent_id:
+                        recruiter_id:
                           type: string
                           nullable: true
                         nickname:
@@ -29221,7 +29221,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - participants
                   - is_muted
@@ -29571,7 +29571,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -29659,7 +29659,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - subject
                   - text
@@ -29873,7 +29873,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -29961,7 +29961,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - subject
                   - text
@@ -30175,7 +30175,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -30263,7 +30263,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - subject
                   - text
@@ -30695,7 +30695,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -30705,7 +30705,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -30727,7 +30727,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -30776,7 +30776,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -30861,7 +30861,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -30871,7 +30871,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -30893,7 +30893,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -30942,7 +30942,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -31156,7 +31156,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -31166,7 +31166,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -31188,7 +31188,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -31237,7 +31237,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -31624,7 +31624,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -31712,7 +31712,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -32038,7 +32038,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -32048,7 +32048,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -32070,7 +32070,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -32119,7 +32119,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -32215,7 +32215,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -32225,7 +32225,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -32247,7 +32247,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -32296,7 +32296,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -38303,7 +38303,7 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     description: "The Recruiter (talent) profile id, AEMAA…: what send_linkedin_recruiter_message addresses as recipient_profile_id. Same member as ln_member_id."
                   industry:
@@ -38335,7 +38335,7 @@ components:
                   - location
                   - avatar_url
                   - connection_degree
-                  - talent_id
+                  - recruiter_id
                   - industry
                   - can_send_inmail
                   - open_to_work
@@ -48594,14 +48594,14 @@ components:
                     - linkedin
                     - sales_navigator
                     - recruiter
-                  description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                  description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
                 ne:
                   type: string
                   enum:
                     - linkedin
                     - sales_navigator
                     - recruiter
-                  description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                  description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
                 in:
                   type: array
                   items:
@@ -48610,7 +48610,7 @@ components:
                       - linkedin
                       - sales_navigator
                       - recruiter
-                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
                 nin:
                   type: array
                   items:
@@ -48619,7 +48619,7 @@ components:
                       - linkedin
                       - sales_navigator
                       - recruiter
-                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
               additionalProperties: false
             conversation_hash:
               type: object
@@ -48686,7 +48686,7 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
-            talent_id:
+            recruiter_id:
               type: object
               properties:
                 eq:
@@ -48905,7 +48905,7 @@ components:
                       - linkedin
                       - sales_navigator
                       - recruiter
-                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+                    description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -48915,7 +48915,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -48937,7 +48937,7 @@ components:
                         sn_id:
                           type: string
                           nullable: true
-                        talent_id:
+                        recruiter_id:
                           type: string
                           nullable: true
                         nickname:
@@ -48986,7 +48986,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - participants
                   - is_muted
@@ -49583,7 +49583,7 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
-            talent_id:
+            recruiter_id:
               type: object
               properties:
                 eq:
@@ -49770,7 +49770,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                     description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -49858,7 +49858,7 @@ components:
                   - ln_member_id
                   - ln_id
                   - sn_id
-                  - talent_id
+                  - recruiter_id
                   - nickname
                   - subject
                   - text
@@ -50226,7 +50226,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -50314,7 +50314,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -50500,7 +50500,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -50588,7 +50588,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -50659,11 +50659,11 @@ components:
           maxLength: 18
           pattern: ^ln_cv_
           description: Existing recruiter thread (messenger_type='recruiter'); provide this OR a recipient. A reply dispatches with the thread's own counterpart as the recipient.
-        talent_id:
+        recruiter_id:
           type: string
           nullable: true
           maxLength: 64
-          description: The recipient's Recruiter (talent) profile id (AEMAA…), from a recruiter thread's talent_id or participants[].talent_id. New-thread mode.
+          description: The recipient's Recruiter (talent) profile id (AEMAA…), from a recruiter thread's recruiter_id or participants[].recruiter_id. New-thread mode.
         ln_id:
           type: string
           nullable: true
@@ -50773,7 +50773,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -50861,7 +50861,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -51042,7 +51042,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -51130,7 +51130,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -51286,7 +51286,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -51374,7 +51374,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -52789,7 +52789,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: The counterpart's LinkedIn Recruiter (talent) profile id, denormalized from the parent recruiter thread. Null off the recruiter surface.
@@ -52877,7 +52877,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - subject
             - text
@@ -53802,7 +53802,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -53812,7 +53812,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -53834,7 +53834,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -53883,7 +53883,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -54002,7 +54002,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -54012,7 +54012,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -54034,7 +54034,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -54083,7 +54083,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted
@@ -54202,7 +54202,7 @@ components:
                 - linkedin
                 - sales_navigator
                 - recruiter
-              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a talent_id)."
+              description: "Messenger surface: the basic LinkedIn messenger, Sales Navigator, or the LinkedIn Recruiter inbox (the threads a recruiter seat owns; the counterpart is a recruiter_id)."
             ln_member_id:
               type: string
               nullable: true
@@ -54212,7 +54212,7 @@ components:
             sn_id:
               type: string
               nullable: true
-            talent_id:
+            recruiter_id:
               type: string
               nullable: true
               description: "The counterpart's LinkedIn Recruiter (talent) profile id (AEMAA…): the ONLY id a messenger_type='recruiter' thread carries, and what send_linkedin_recruiter_message dispatches as the reply recipient. It does not decode to ln_member_id. Null on the other two surfaces."
@@ -54234,7 +54234,7 @@ components:
                   sn_id:
                     type: string
                     nullable: true
-                  talent_id:
+                  recruiter_id:
                     type: string
                     nullable: true
                   nickname:
@@ -54283,7 +54283,7 @@ components:
             - ln_member_id
             - ln_id
             - sn_id
-            - talent_id
+            - recruiter_id
             - nickname
             - participants
             - is_muted

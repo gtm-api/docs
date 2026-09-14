@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.id`, 72 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.id`, 74 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -39,6 +39,8 @@ tags:
     description: Registry package `mcp.id/account_shares`, served on MCP mount `id.access`.
   - name: api_keys
     description: Registry package `mcp.id/api_keys`, served on MCP mount `id.access`.
+  - name: api_requests
+    description: Registry package `mcp.id/api_requests`, served on MCP mount `id.platform`.
   - name: billing_payment_methods
     description: Registry package `mcp.id/billing_payment_methods`, served on MCP mount `id.billing`.
   - name: billing_products
@@ -598,6 +600,88 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+  /api/api-requests/metrics:
+    post:
+      operationId: get_api_request_metrics
+      summary: API request metrics
+      description: |-
+        Period-bound totals of the team's external API requests, merged across the answering services: total_count, error_count and the 2xx/3xx/4xx/5xx split in aggregated.counts; error_rate, avg_duration_ms, first/last_occurred_at in aggregated.metrics. Requires period {from, to} (ISO 8601 UTC, half-open, at most 92 days). Optional group_by splits the same numbers per key: occurred_hour / occurred_day for a chart (empty buckets are absent; occurred_hour needs a period under 21 days), client_sid ("how much does each agent call"), route or entity ("which tools"), status_family, service, surface. Use to answer "how many calls this week and how many failed" in one round-trip instead of paging the log. aggregated.counts.sources says which services answered.
+
+        Contract:
+        - MCP tool `get_api_request_metrics`, registry package `mcp.id/api_requests`, mount `id.platform`.
+        - Operation `metrics`, response envelope `metrics`.
+        - Flags: read only.
+      tags:
+        - api_requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetApiRequestMetricsRequest"
+      responses:
+        "200":
+          description: "`metrics` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetApiRequestMetricsResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: get_api_request_metrics
+      x-gtm-mcp-mount: id.platform
+      x-gtm-entity: api_requests
+      x-gtm-operation: metrics
+      x-gtm-envelope: metrics
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/api-requests/search:
+    post:
+      operationId: search_api_requests
+      summary: Search API requests
+      description: |-
+        List the team's external API requests newest first: every call made with an api key or an OAuth client (your own calls included), as logged by the service that answered it, merged across id, linkedin and orchestration. One row per request: the client (key or OAuth client, with its name), the route and entity, the HTTP status and its family, the duration, the trace id. Use for "what did our agents do", "show the failing requests since noon" (filter status_family in [4xx,5xx]), "what did the n8n client call" (filter client_sid), or to reconstruct one MCP turn (filter trace_id). page_size 0 counts only; the cursor is a keyset merged across services. counts.sources says which services answered; a service marked error contributed nothing. Not LinkedIn activity (that is the account activity log) and not a quota: the log counts, it never limits.
+
+        Contract:
+        - MCP tool `search_api_requests`, registry package `mcp.id/api_requests`, mount `id.platform`.
+        - Operation `search`, response envelope `search`.
+        - Flags: read only.
+      tags:
+        - api_requests
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchApiRequestsRequest"
+      responses:
+        "200":
+          description: "`search` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchApiRequestsResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: search_api_requests
+      x-gtm-mcp-mount: id.platform
+      x-gtm-entity: api_requests
+      x-gtm-operation: search
+      x-gtm-envelope: search
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
   /api/billing-payment-methods:
     get:
       operationId: list_billing_payment_methods
@@ -6956,6 +7040,484 @@ components:
         - operation
         - metrics
         - meta
+    GetApiRequestMetricsRequest:
+      type: object
+      description: Request body of `get_api_request_metrics`.
+      properties:
+        filter:
+          type: object
+          properties:
+            sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+            service:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - id
+                    - linkedin
+                    - orchestration
+                ne:
+                  type: string
+                  enum:
+                    - id
+                    - linkedin
+                    - orchestration
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - id
+                      - linkedin
+                      - orchestration
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - id
+                      - linkedin
+                      - orchestration
+              additionalProperties: false
+              description: "Which answering service: id (keys, teams, billing), linkedin (the channel), orchestration (mass actions, webhooks). Excluded services are not asked."
+            surface:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - api_key
+                    - agent
+                    - oauth_other
+                ne:
+                  type: string
+                  enum:
+                    - api_key
+                    - agent
+                    - oauth_other
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - agent
+                      - oauth_other
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - agent
+                      - oauth_other
+              additionalProperties: false
+              description: api_key = bearer keys (scripts, n8n); agent = OAuth clients of kind agent (Claude, Cursor); oauth_other = other OAuth clients.
+            credential_kind:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - api_key
+                    - oauth
+                ne:
+                  type: string
+                  enum:
+                    - api_key
+                    - oauth
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - oauth
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - oauth
+              additionalProperties: false
+            client_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: "The credential: an api key sid (id_ak_*) or an OAuth client sid (id_oc_*). \"What did Claude do\" = that client's sid."
+            actor_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The member an OAuth client delegates for (us_mb_*); is_null:true = api-key traffic.
+            entity:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: "The entity the route names, snake singular: linkedin_conversation, linkedin_message, mass_action, api_key."
+            operation:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - get
+                    - search
+                    - metrics
+                    - group_by
+                    - create
+                    - update
+                    - delete
+                    - action
+                ne:
+                  type: string
+                  enum:
+                    - get
+                    - search
+                    - metrics
+                    - group_by
+                    - create
+                    - update
+                    - delete
+                    - action
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - get
+                      - search
+                      - metrics
+                      - group_by
+                      - create
+                      - update
+                      - delete
+                      - action
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - get
+                      - search
+                      - metrics
+                      - group_by
+                      - create
+                      - update
+                      - delete
+                      - action
+              additionalProperties: false
+            action_name:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The verb of an action route (send, run_now); is_null:true = the six canonical operations.
+            route:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: 'The route key, exact: "POST api/linkedin-conversations/search".'
+            status:
+              type: object
+              properties:
+                eq:
+                  type: integer
+                ne:
+                  type: integer
+                in:
+                  type: array
+                  items:
+                    type: integer
+                nin:
+                  type: array
+                  items:
+                    type: integer
+                gte:
+                  type: integer
+                lte:
+                  type: integer
+                gt:
+                  type: integer
+                lt:
+                  type: integer
+              additionalProperties: false
+            status_family:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - 2xx
+                    - 3xx
+                    - 4xx
+                    - 5xx
+                ne:
+                  type: string
+                  enum:
+                    - 2xx
+                    - 3xx
+                    - 4xx
+                    - 5xx
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - 2xx
+                      - 3xx
+                      - 4xx
+                      - 5xx
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - 2xx
+                      - 3xx
+                      - 4xx
+                      - 5xx
+              additionalProperties: false
+              description: 4xx and 5xx together are the errors every dashboard number counts.
+            occurred_at:
+              type: object
+              properties:
+                eq:
+                  type: string
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+              additionalProperties: false
+              description: ISO 8601 UTC. The only time axis on search; ignored on metrics, where period is the window.
+            trace_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: All the calls of one MCP turn share a trace id.
+        period:
+          type: object
+          properties:
+            from:
+              type: string
+              description: ISO 8601 UTC window start (inclusive).
+            to:
+              type: string
+              description: ISO 8601 UTC window end (exclusive); at most 92 days after from.
+          required:
+            - from
+            - to
+          description: Required metrics window [from, to). Operators on occurred_at inside filter are ignored.
+        group_by:
+          type: string
+          nullable: true
+          enum:
+            - service
+            - surface
+            - credential_kind
+            - client_sid
+            - entity
+            - operation
+            - route
+            - status_family
+            - occurred_day
+            - occurred_hour
+          description: "Split the aggregate per key: occurred_hour / occurred_day = chart buckets (UTC bucket start as the key), client_sid / route / entity / status_family / service / surface = breakdowns. Cap 500 groups."
+      required:
+        - period
+    GetApiRequestMetricsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - metrics
+        metrics:
+          type: object
+          properties:
+            filter:
+              type: object
+              additionalProperties: {}
+            period:
+              type: object
+              properties:
+                from:
+                  type: string
+                to:
+                  type: string
+              required:
+                - from
+                - to
+            aggregated:
+              type: object
+              properties:
+                counts:
+                  type: object
+                  additionalProperties: {}
+                metrics:
+                  type: object
+                  properties:
+                    error_rate:
+                      type: number
+                      nullable: true
+                      description: (4xx + 5xx) / total over the merged sources, 0..1; null when total is 0.
+                    avg_duration_ms:
+                      type: integer
+                      nullable: true
+                      description: Mean wall time of the rows that carry a duration; null when none.
+                    first_occurred_at:
+                      type: string
+                      nullable: true
+                      description: Earliest request in the window, ISO 8601 UTC.
+                    last_occurred_at:
+                      type: string
+                      nullable: true
+                      description: 'Latest request in the window: "when did my agent last call".'
+                  required:
+                    - error_rate
+                    - avg_duration_ms
+                    - first_occurred_at
+                    - last_occurred_at
+            metrics:
+              type: object
+              properties:
+                error_rate:
+                  type: number
+                  nullable: true
+                  description: (4xx + 5xx) / total over the merged sources, 0..1; null when total is 0.
+                avg_duration_ms:
+                  type: integer
+                  nullable: true
+                  description: Mean wall time of the rows that carry a duration; null when none.
+                first_occurred_at:
+                  type: string
+                  nullable: true
+                  description: Earliest request in the window, ISO 8601 UTC.
+                last_occurred_at:
+                  type: string
+                  nullable: true
+                  description: 'Latest request in the window: "when did my agent last call".'
+              required:
+                - error_rate
+                - avg_duration_ms
+                - first_occurred_at
+                - last_occurred_at
+        applied_filters:
+          type: object
+          additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - metrics
+        - meta
     GetBillingPaymentMethodAddLinkResponse:
       type: object
       properties:
@@ -8104,6 +8666,7 @@ components:
                     - verify
                     - questions
                     - workspace
+                    - linkedin
                     - call
                   description: Resume point inside the wizard; null = not started.
                 setup_call_step:
@@ -13868,6 +14431,546 @@ components:
         - applied_filters
         - includes
         - meta
+    SearchApiRequestsRequest:
+      type: object
+      description: Request body of `search_api_requests`.
+      properties:
+        filter:
+          type: object
+          properties:
+            sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+            service:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - id
+                    - linkedin
+                    - orchestration
+                ne:
+                  type: string
+                  enum:
+                    - id
+                    - linkedin
+                    - orchestration
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - id
+                      - linkedin
+                      - orchestration
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - id
+                      - linkedin
+                      - orchestration
+              additionalProperties: false
+              description: "Which answering service: id (keys, teams, billing), linkedin (the channel), orchestration (mass actions, webhooks). Excluded services are not asked."
+            surface:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - api_key
+                    - agent
+                    - oauth_other
+                ne:
+                  type: string
+                  enum:
+                    - api_key
+                    - agent
+                    - oauth_other
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - agent
+                      - oauth_other
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - agent
+                      - oauth_other
+              additionalProperties: false
+              description: api_key = bearer keys (scripts, n8n); agent = OAuth clients of kind agent (Claude, Cursor); oauth_other = other OAuth clients.
+            credential_kind:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - api_key
+                    - oauth
+                ne:
+                  type: string
+                  enum:
+                    - api_key
+                    - oauth
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - oauth
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - api_key
+                      - oauth
+              additionalProperties: false
+            client_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: "The credential: an api key sid (id_ak_*) or an OAuth client sid (id_oc_*). \"What did Claude do\" = that client's sid."
+            actor_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The member an OAuth client delegates for (us_mb_*); is_null:true = api-key traffic.
+            entity:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: "The entity the route names, snake singular: linkedin_conversation, linkedin_message, mass_action, api_key."
+            operation:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - get
+                    - search
+                    - metrics
+                    - group_by
+                    - create
+                    - update
+                    - delete
+                    - action
+                ne:
+                  type: string
+                  enum:
+                    - get
+                    - search
+                    - metrics
+                    - group_by
+                    - create
+                    - update
+                    - delete
+                    - action
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - get
+                      - search
+                      - metrics
+                      - group_by
+                      - create
+                      - update
+                      - delete
+                      - action
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - get
+                      - search
+                      - metrics
+                      - group_by
+                      - create
+                      - update
+                      - delete
+                      - action
+              additionalProperties: false
+            action_name:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The verb of an action route (send, run_now); is_null:true = the six canonical operations.
+            route:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: 'The route key, exact: "POST api/linkedin-conversations/search".'
+            status:
+              type: object
+              properties:
+                eq:
+                  type: integer
+                ne:
+                  type: integer
+                in:
+                  type: array
+                  items:
+                    type: integer
+                nin:
+                  type: array
+                  items:
+                    type: integer
+                gte:
+                  type: integer
+                lte:
+                  type: integer
+                gt:
+                  type: integer
+                lt:
+                  type: integer
+              additionalProperties: false
+            status_family:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - 2xx
+                    - 3xx
+                    - 4xx
+                    - 5xx
+                ne:
+                  type: string
+                  enum:
+                    - 2xx
+                    - 3xx
+                    - 4xx
+                    - 5xx
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - 2xx
+                      - 3xx
+                      - 4xx
+                      - 5xx
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - 2xx
+                      - 3xx
+                      - 4xx
+                      - 5xx
+              additionalProperties: false
+              description: 4xx and 5xx together are the errors every dashboard number counts.
+            occurred_at:
+              type: object
+              properties:
+                eq:
+                  type: string
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+              additionalProperties: false
+              description: ISO 8601 UTC. The only time axis on search; ignored on metrics, where period is the window.
+            trace_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: All the calls of one MCP turn share a trace id.
+        sort:
+          type: object
+          properties:
+            field:
+              type: string
+              enum:
+                - occurred_at
+            direction:
+              type: string
+              enum:
+                - asc
+                - desc
+              description: Default desc.
+          required:
+            - field
+        page_size:
+          type: integer
+          minimum: 0
+          maximum: 200
+          description: 0..200, default 50. page_size=0 = count-only, page_size=1 = getFirst.
+        cursor:
+          type: string
+          nullable: true
+          description: Opaque forward cursor from a previous response pagination.next_cursor.
+    SearchApiRequestsResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - search
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              item:
+                type: object
+                properties:
+                  sid:
+                    type: string
+                  team_sid:
+                    type: string
+                  service:
+                    type: string
+                    enum:
+                      - id
+                      - linkedin
+                      - orchestration
+                  occurred_at:
+                    type: string
+                  surface:
+                    type: string
+                    enum:
+                      - api_key
+                      - agent
+                      - oauth_other
+                  credential_kind:
+                    type: string
+                    enum:
+                      - api_key
+                      - oauth
+                  client_sid:
+                    type: string
+                  client_name:
+                    type: string
+                    nullable: true
+                  actor_sid:
+                    type: string
+                    nullable: true
+                  method:
+                    type: string
+                  route:
+                    type: string
+                  entity:
+                    type: string
+                  operation:
+                    type: string
+                    enum:
+                      - get
+                      - search
+                      - metrics
+                      - group_by
+                      - create
+                      - update
+                      - delete
+                      - action
+                  action_name:
+                    type: string
+                    nullable: true
+                  status:
+                    type: integer
+                  status_family:
+                    type: string
+                    enum:
+                      - 2xx
+                      - 3xx
+                      - 4xx
+                      - 5xx
+                  duration_ms:
+                    type: integer
+                    nullable: true
+                  trace_id:
+                    type: string
+                    nullable: true
+                required:
+                  - sid
+                  - team_sid
+                  - service
+                  - occurred_at
+                  - surface
+                  - credential_kind
+                  - client_sid
+                  - client_name
+                  - actor_sid
+                  - method
+                  - route
+                  - entity
+                  - operation
+                  - action_name
+                  - status
+                  - status_family
+                  - duration_ms
+                  - trace_id
+              included:
+                type: object
+                additionalProperties: {}
+            required:
+              - item
+              - included
+        pagination:
+          type: object
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+            has_more:
+              type: boolean
+            total_count:
+              type: integer
+              nullable: true
+          required:
+            - next_cursor
+            - has_more
+            - total_count
+        applied_filters:
+          type: object
+          additionalProperties: {}
+        includes:
+          type: array
+          items:
+            type: string
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        counts:
+          type: object
+          properties:
+            total_count:
+              type: integer
+            sources:
+              type: object
+              additionalProperties:
+                type: string
+                enum:
+                  - ok
+                  - error
+                  - unconfigured
+              description: "Which services this answer counts: ok / error (did not answer, contributes nothing) / unconfigured. A service the `service` filter excludes is absent."
+          required:
+            - total_count
+            - sources
+      required:
+        - success
+        - operation
+        - items
+        - pagination
+        - applied_filters
+        - includes
+        - meta
     SearchBillingProductsRequest:
       type: object
       description: Request body of `search_billing_products`.
@@ -18431,6 +19534,7 @@ components:
                 - verify
                 - questions
                 - workspace
+                - linkedin
                 - call
               description: Resume point inside the wizard; null = not started.
             onboarding_completed:
@@ -18509,6 +19613,7 @@ components:
                     - verify
                     - questions
                     - workspace
+                    - linkedin
                     - call
                   description: Resume point inside the wizard; null = not started.
                 setup_call_step:
