@@ -1,6 +1,6 @@
 ---
 title: "Connect a client"
-description: "Add the gtm-api MCP server to Claude, Cursor, VS Code, ChatGPT or any MCP-compatible runtime."
+description: "Add the gtm-api MCP server to Claude, ChatGPT, Cursor, VS Code, Claude Code, Codex or any MCP-compatible runtime."
 ---
 
 The server speaks streamable HTTP at `https://mcp.gtm-api.com/mcp` and authenticates with
@@ -36,6 +36,17 @@ claude mcp add --transport http gtm-api https://mcp.gtm-api.com/mcp
 
 Then run `/mcp` in any session and authenticate when prompted. `claude mcp list` shows
 `gtm-api` as connected once consent is done.
+
+### Codex
+
+```bash
+codex mcp add gtm-api --url https://mcp.gtm-api.com/mcp
+codex mcp login gtm-api
+```
+
+The first line registers the server in `~/.codex/config.toml`, the second runs the OAuth
+flow and opens the consent page. No client id to pass: the server registers the client on
+its own.
 
 ### Any other MCP client
 
