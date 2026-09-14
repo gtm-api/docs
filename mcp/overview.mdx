@@ -20,6 +20,23 @@ MCP and REST are the same contract. Every tool maps 1:1 to an endpoint in the [A
 | Account health | smart limits, health snapshots, quota, block and activity logs |
 | Infrastructure | anti-detect cloud browsers, dedicated proxies, webhooks |
 
+## What to ask
+
+Once a client is connected, the agent picks the tools itself from a plain request. A few that work on day one, each mapping onto the areas above:
+
+| Ask | What the agent does |
+|---|---|
+| "Show my latest LinkedIn conversations" | reads the synced inbox across your connected accounts, newest first |
+| "Find decision-makers at fintech companies in Berlin" | runs a people search with the title, industry and location filters, returns the profiles |
+| "Send connection requests to these 20 people, a few a day" | previews the batch, then dispatches it as a paced mass action under the account's daily budget |
+| "Reply to everyone who wrote back this week" | lists the threads with a new inbound message, drafts a reply per thread and sends after your confirmation |
+| "Who liked my last post? Enrich them and keep the founders" | pulls the post's engagers, enriches each profile, filters by title |
+| "Which of my connections changed jobs this month?" | compares the synced connections against fresh profile data and lists the movers |
+| "Draft a follow-up for everyone who did not answer in 5 days" | finds the outbound threads with no reply after five days and drafts the next message for each |
+| "How is my account health, am I close to any limit?" | reads the account's health snapshot and today's spend against every smart limit |
+
+Anything that sends (a message, an invitation, a bulk run) goes through the preview and confirm step below; reads run straight away. The wording does not matter, the tools do: every row here is one or two tools from the [API reference](/api-reference/overview), chosen by the agent.
+
 ## Guardrails that matter for agents
 
 - **Preview then confirm.** Outward actions (sends, bulk dispatches) return a preview and require an explicit confirmation step before anything reaches LinkedIn, so an over-eager agent cannot burn an account on its own.
