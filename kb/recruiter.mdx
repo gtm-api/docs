@@ -29,17 +29,20 @@ Some calls need the stamped seat number, not only the seat itself. If it is miss
 
 ## Several Recruiter contracts
 
-A member who holds seats on several Recruiter contracts is asked by LinkedIn to pick one before Recruiter opens, and holds no seat until they do. The premium check handles the common case on its own: when only one corporate contract is on offer (or the account is already bound to one of them) it binds the browser to that contract and stamps the seat. When several corporate contracts are on offer the check does not guess, because the wrong pick binds the browser to the wrong inbox: the seat stays unstamped and the seat holder picks the contract in the account's browser, after which the next check stamps it. `recruiter_contract_id` on the account names the contract the seat belongs to.
+A member who holds seats on several Recruiter contracts is asked by LinkedIn to pick one before Recruiter opens, and holds no seat until they do. The premium check handles the common case on its own: when only one corporate contract is on offer (or the account is already bound to one of them) it binds the browser to that contract and stamps the seat. When several corporate contracts are on offer the check does not guess, because the wrong pick binds the browser to the wrong inbox: the seat stays unstamped until someone picks. An agent lists the contracts with `get_linkedin_account_my_recruiter_contracts` (the corporate rows are Recruiter seats; the individual row is a Job Posting contract on the personal account) and binds one with `select_linkedin_account_recruiter_contract`, passing `contract_id` exactly as listed; the seat holder can pick it in the account's browser instead. Either way the seat is stamped on the spot or by the next check. `recruiter_contract_id` on the account names the contract the seat belongs to.
 
 ## The Recruiter session expires every 30 days
 
-**This is the failure everyone hits, and the one support cannot fix.**
+**This is the failure everyone hits.**
 
-Recruiter keeps its own session, roughly 30 days long, separate from the account's normal LinkedIn session. The account can be perfectly healthy and still have a dead Recruiter session.
+Recruiter keeps its own session, roughly 30 days long, separate from the account's normal LinkedIn session. The account can be perfectly healthy and still have a dead Recruiter session. When it runs out, LinkedIn asks the seat holder for their password again before Recruiter opens.
 
-When it expires, every Recruiter call answers `409 recruiter_reauth_required` and recurring syncs stop.
+There are two ways to renew it, and the seat holder chooses:
 
-**Only the seat holder can renew it**, by signing in to Recruiter again in the account's browser. Nobody else can do it for them: not another teammate, not support, not the platform. Retrying the call does not help and never will.
+- **Store the Recruiter password on the account**, on the account's page in the app. From then on the platform signs the browser back in by itself the moment LinkedIn asks, whether that is a scheduled sync or a call in the middle of a task, and the call goes on as if nothing had happened. The password is encrypted at rest, no read of any kind returns it, the platform uses it in exactly one place (the sign-in itself), and it is forgotten the moment LinkedIn rejects it, so a changed LinkedIn password means storing it again. Only a person with update access to the account can store or forget it; no API call and no MCP tool takes or shows it. `recruiter_credentials_stored_at` on the account says whether one is stored.
+- **Sign in by hand** in the account's cloud browser. Nobody else can do that for the seat holder: not another teammate, not support, not an agent.
+
+Without a stored password, an expired session answers `409 recruiter_reauth_required` on every Recruiter call and recurring syncs stop. The error says why the platform could not renew the session on its own, in `context.sign_in_status`: `credentials_not_stored` (nothing to sign in with), `wrong_credentials` (LinkedIn rejected the stored password, which is now forgotten), `challenge` (LinkedIn asked for a verification or a captcha, which only a person can pass), `sign_in_throttled` (at most three sign-ins an hour per account) or `sign_in_failed`. `context.account_url` points at the account's page, and `suggestion` is written for an agent to relay. Retrying the call does not help until one of the two renewals has happened.
 
 `recruiter_session_expires_at` on the account tells you when it runs out, so you can renew before it does rather than after. It is null when the platform has not seen the session cookie, which is not a verdict: a browser that is still on LinkedIn's contract chooser has no session cookie at all, and the fix there is picking a contract, not a password.
 

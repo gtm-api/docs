@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 180 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 182 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -2274,6 +2274,52 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+  /api/linkedin-accounts/{sid}/get-my-recruiter-contracts:
+    post:
+      operationId: get_linkedin_account_my_recruiter_contracts
+      summary: Get my Recruiter contracts
+      description: |-
+        The Recruiter contracts this account's member can act under (LinkedIn's contract chooser, wire get-recruiter-contract-options), with current_contract_id = the contract the account's seat is stamped under. NEEDS A RECRUITER SEAT on the account (422 recruiter_required otherwise). Read it when has_recruiter is true but recruiter_seat_id is null: a member on several contracts holds no seat until the browser is bound to one, and the premium check binds one by itself only when the choice is unambiguous (the account's own contract, the only row, the only CORPORATE row). CORPORATE rows are Recruiter seats; the INDIVIDUAL row is a Job Posting contract on the personal account. Not gated on the Recruiter session clock: the chooser answers for a browser LinkedIn has not let into Recruiter yet, and a run-out session is renewed by the platform itself where a Recruiter password is stored.
+
+        Contract:
+        - MCP tool `get_linkedin_account_my_recruiter_contracts`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
+        - Operation `action`, response envelope `action`.
+        - Flags: read only.
+      tags:
+        - linkedin_accounts
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: LinkedIn account sid (ln_ac_…).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^ln_ac_
+            description: LinkedIn account sid (ln_ac_…).
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetLinkedinAccountMyRecruiterContractsResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: get_linkedin_account_my_recruiter_contracts
+      x-gtm-mcp-mount: linkedin.recruiter
+      x-gtm-entity: linkedin_accounts
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
   /api/linkedin-accounts/{sid}/get-my-recruiter-seat:
     post:
       operationId: get_linkedin_account_my_recruiter_seat
@@ -2564,6 +2610,58 @@ paths:
       x-gtm-envelope: action_async
       x-gtm-availability: ga
       x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/linkedin-accounts/{sid}/select-recruiter-contract:
+    post:
+      operationId: select_linkedin_account_recruiter_contract
+      summary: Select my Recruiter contract
+      description: |-
+        Bind the account's browser to ONE of the member's Recruiter contracts (the contract chooser's Select, wire select-recruiter-contract) and stamp the seat that comes with it. contract_id is the ts_contract NUMBER from get_linkedin_account_my_recruiter_contracts, never a urn. Pick a CORPORATE row: the wrong row binds the browser to the wrong inbox, and a member on several contracts is exactly who this is for (the premium check does not guess among several). 422 contract_not_offered lists the rows on offer in context.offered; 422 contract_not_selectable means the row lacks an urn the Select needs. On success recruiter_seat_id and recruiter_contract_id are stamped from LinkedIn's answer (seat_stamped true); when the answer carried no seat the browser is still bound and the next premium check with checks: ['recruiter'] stamps the pair. Switching contracts switches the Recruiter inbox the sync reads: a reset of recruiter_conversations after a switch is the operator's call.
+
+        Contract:
+        - MCP tool `select_linkedin_account_recruiter_contract`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - linkedin_accounts
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: LinkedIn account sid (ln_ac_…).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^ln_ac_
+            description: LinkedIn account sid (ln_ac_…).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SelectLinkedinAccountRecruiterContractRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SelectLinkedinAccountRecruiterContractResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: select_linkedin_account_recruiter_contract
+      x-gtm-mcp-mount: linkedin.recruiter
+      x-gtm-entity: linkedin_accounts
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -8870,7 +8968,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -9203,6 +9305,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -9361,7 +9464,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -9694,6 +9801,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -12030,7 +12138,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -12363,6 +12475,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -12536,7 +12649,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -12869,6 +12986,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -13054,7 +13172,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -13387,6 +13509,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -17128,7 +17251,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -17461,6 +17588,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -19338,7 +19466,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -19671,6 +19803,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -19871,7 +20004,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -20204,6 +20341,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -20426,7 +20564,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -20759,6 +20901,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -20906,7 +21049,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -21239,6 +21386,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -21375,7 +21523,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -21708,6 +21860,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -21861,7 +22014,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -22194,6 +22351,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -22380,7 +22538,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -22713,6 +22875,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -22862,7 +23025,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -23195,6 +23362,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -23350,7 +23518,7 @@ components:
         - item
         - result
         - meta
-    GetLinkedinAccountMyRecruiterSeatResponse:
+    GetLinkedinAccountMyRecruiterContractsResponse:
       type: object
       properties:
         success:
@@ -23418,7 +23586,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -23751,6 +23923,538 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
+            - full_name
+            - avatar_url
+            - label
+            - has_premium
+            - has_sn
+            - has_recruiter
+            - smart_limits_enabled
+            - inmail_credits
+            - premium_inmail_credits
+            - last_premium_check_at
+            - last_connections_sync_at
+            - last_conversations_sync_at
+            - last_sales_navigator_conversations_sync_at
+            - last_recruiter_conversations_sync_at
+            - last_connection_requests_sync_at
+            - last_connection_invitations_sync_at
+            - last_followers_sync_at
+            - last_snapshot_at
+            - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
+            - last_heartbeat_at
+            - sync_config
+            - webhook_config
+            - created_by
+            - created_at
+            - updated_at
+            - deleted_at
+        result:
+          type: object
+          properties:
+            recruiter_contracts:
+              type: array
+              items:
+                type: object
+                properties:
+                  contract_id:
+                    type: string
+                    description: "The ts_contract number: what select_linkedin_account_recruiter_contract takes. Never a urn."
+                  contract_urn:
+                    type: string
+                    nullable: true
+                    description: urn:li:ts_contract:N, verbatim.
+                  contract_name:
+                    type: string
+                    nullable: true
+                  category:
+                    type: string
+                    nullable: true
+                    description: CORPORATE = a Recruiter seat on a company contract; INDIVIDUAL = a LinkedIn Job Posting contract on the personal account, never a Recruiter seat. Open vocabulary.
+                  description:
+                    type: string
+                    nullable: true
+                  sso_enabled:
+                    type: boolean
+                    nullable: true
+                  application_instance_urn:
+                    type: string
+                    nullable: true
+                  enterprise_profile_urn:
+                    type: string
+                    nullable: true
+                  enterprise_account_id:
+                    type: string
+                    nullable: true
+                    description: Parsed from enterprise_profile_urn; null when its shape did not match.
+                  enterprise_profile_id:
+                    type: string
+                    nullable: true
+                required:
+                  - contract_id
+                  - contract_urn
+                  - contract_name
+                  - category
+                  - description
+                  - sso_enabled
+                  - application_instance_urn
+                  - enterprise_profile_urn
+                  - enterprise_account_id
+                  - enterprise_profile_id
+              description: The chooser rows, contract_id first. Empty when the chooser offers nothing selectable.
+            current_contract_id:
+              type: string
+              nullable: true
+              description: "The contract the account's seat is stamped under (recruiter_contract_id), null when no seat is stamped: on a member with several contracts that is the row to select."
+          required:
+            - recruiter_contracts
+            - current_contract_id
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    GetLinkedinAccountMyRecruiterSeatResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            antidetect_browser_sid:
+              type: string
+            status:
+              type: string
+              enum:
+                - new
+                - initial_syncing
+                - active
+                - sync_failed
+                - shared_out
+                - subscription_required
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+            account_share_sid:
+              type: string
+              nullable: true
+            share_role:
+              type: string
+              nullable: true
+              enum:
+                - owner
+                - holder
+                - giver
+                - receiver
+            ln_id:
+              type: string
+              nullable: true
+            ln_member_id:
+              type: string
+              nullable: true
+            sn_id:
+              type: string
+              nullable: true
+            nickname:
+              type: string
+              nullable: true
+            recruiter_seat_id:
+              type: string
+              nullable: true
+              description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
+            full_name:
+              type: string
+              nullable: true
+            avatar_url:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
+            has_premium:
+              type: boolean
+            has_sn:
+              type: boolean
+            has_recruiter:
+              type: boolean
+            smart_limits_enabled:
+              type: boolean
+            inmail_credits:
+              type: number
+              nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
+            last_premium_check_at:
+              type: string
+              nullable: true
+            last_connections_sync_at:
+              type: string
+              nullable: true
+            last_conversations_sync_at:
+              type: string
+              nullable: true
+            last_sales_navigator_conversations_sync_at:
+              type: string
+              nullable: true
+            last_recruiter_conversations_sync_at:
+              type: string
+              nullable: true
+            last_connection_requests_sync_at:
+              type: string
+              nullable: true
+            last_connection_invitations_sync_at:
+              type: string
+              nullable: true
+            last_followers_sync_at:
+              type: string
+              nullable: true
+            last_snapshot_at:
+              type: string
+              nullable: true
+            initial_sync_completed_at:
+              type: string
+              nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
+            last_heartbeat_at:
+              type: string
+              nullable: true
+            sync_config:
+              type: object
+              nullable: true
+              properties:
+                entries:
+                  type: object
+                  properties:
+                    connections:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    sales_navigator_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    recruiter_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_requests:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_invitations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    premium_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    snapshot_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: Per-track sync-interval overrides, keyed by sync track.
+                timezone:
+                  type: string
+                  description: IANA timezone the window is evaluated in.
+                window:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day_of_week:
+                        type: integer
+                        minimum: 1
+                        maximum: 7
+                      start_minute:
+                        type: integer
+                        minimum: 0
+                        maximum: 1439
+                      end_minute:
+                        type: integer
+                        minimum: 1
+                        maximum: 1440
+                    required:
+                      - day_of_week
+                      - start_minute
+                      - end_minute
+                  description: Weekly sync-activity window blocks; empty = always open.
+            webhook_config:
+              type: object
+              nullable: true
+              properties:
+                connections:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_requests:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_invitations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                sales_navigator_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                recruiter_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                messages:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                followers:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                snapshot:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                strike_log:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                limits:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+            created_by:
+              type: object
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+                - reason
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - antidetect_browser_sid
+            - status
+            - account_share_sid
+            - share_role
+            - ln_id
+            - ln_member_id
+            - sn_id
+            - nickname
+            - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -24002,7 +24706,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -24335,6 +25043,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -24634,7 +25343,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -24967,6 +25680,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -25103,7 +25817,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -25436,6 +26154,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -25631,7 +26350,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -25964,6 +26687,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -33066,7 +33790,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -33399,6 +34127,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -45152,7 +45881,22 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: lt:<now> = seat holders whose Recruiter session has run out and who must sign in to Recruiter again; is_null:false = the clock was read.
+              description: lt:<now> = seat holders whose Recruiter session has run out (the platform renews it by itself where a Recruiter password is stored, see recruiter_credentials_stored_at); is_null:false = the clock was read.
+            recruiter_credentials_stored_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: is_null:false = a Recruiter password is stored, so a run-out Recruiter session renews itself; is_null:true = the seat holder has to sign in by hand (or store the password) when it runs out.
             nickname:
               type: object
               properties:
@@ -45600,7 +46344,11 @@ components:
                   recruiter_session_expires_at:
                     type: string
                     nullable: true
-                    description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+                    description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+                  recruiter_credentials_stored_at:
+                    type: string
+                    nullable: true
+                    description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
                   full_name:
                     type: string
                     nullable: true
@@ -45933,6 +46681,7 @@ components:
                   - recruiter_seat_id
                   - recruiter_contract_id
                   - recruiter_session_expires_at
+                  - recruiter_credentials_stored_at
                   - full_name
                   - avatar_url
                   - label
@@ -50086,6 +50835,560 @@ components:
         - applied_filters
         - includes
         - meta
+    SelectLinkedinAccountRecruiterContractRequest:
+      type: object
+      description: Request body of `select_linkedin_account_recruiter_contract`.
+      properties:
+        contract_id:
+          type: string
+          pattern: ^\d{1,32}$
+          description: The ts_contract number as get_linkedin_account_my_recruiter_contracts lists it, e.g. "437500276". Never a urn.
+      required:
+        - contract_id
+    SelectLinkedinAccountRecruiterContractResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            antidetect_browser_sid:
+              type: string
+            status:
+              type: string
+              enum:
+                - new
+                - initial_syncing
+                - active
+                - sync_failed
+                - shared_out
+                - subscription_required
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+            account_share_sid:
+              type: string
+              nullable: true
+            share_role:
+              type: string
+              nullable: true
+              enum:
+                - owner
+                - holder
+                - giver
+                - receiver
+            ln_id:
+              type: string
+              nullable: true
+            ln_member_id:
+              type: string
+              nullable: true
+            sn_id:
+              type: string
+              nullable: true
+            nickname:
+              type: string
+              nullable: true
+            recruiter_seat_id:
+              type: string
+              nullable: true
+              description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with has_recruiter true means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
+            full_name:
+              type: string
+              nullable: true
+            avatar_url:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
+            has_premium:
+              type: boolean
+            has_sn:
+              type: boolean
+            has_recruiter:
+              type: boolean
+            smart_limits_enabled:
+              type: boolean
+            inmail_credits:
+              type: number
+              nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
+            last_premium_check_at:
+              type: string
+              nullable: true
+            last_connections_sync_at:
+              type: string
+              nullable: true
+            last_conversations_sync_at:
+              type: string
+              nullable: true
+            last_sales_navigator_conversations_sync_at:
+              type: string
+              nullable: true
+            last_recruiter_conversations_sync_at:
+              type: string
+              nullable: true
+            last_connection_requests_sync_at:
+              type: string
+              nullable: true
+            last_connection_invitations_sync_at:
+              type: string
+              nullable: true
+            last_followers_sync_at:
+              type: string
+              nullable: true
+            last_snapshot_at:
+              type: string
+              nullable: true
+            initial_sync_completed_at:
+              type: string
+              nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
+            last_heartbeat_at:
+              type: string
+              nullable: true
+            sync_config:
+              type: object
+              nullable: true
+              properties:
+                entries:
+                  type: object
+                  properties:
+                    connections:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    sales_navigator_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    recruiter_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_requests:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_invitations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    premium_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    snapshot_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: Per-track sync-interval overrides, keyed by sync track.
+                timezone:
+                  type: string
+                  description: IANA timezone the window is evaluated in.
+                window:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day_of_week:
+                        type: integer
+                        minimum: 1
+                        maximum: 7
+                      start_minute:
+                        type: integer
+                        minimum: 0
+                        maximum: 1439
+                      end_minute:
+                        type: integer
+                        minimum: 1
+                        maximum: 1440
+                    required:
+                      - day_of_week
+                      - start_minute
+                      - end_minute
+                  description: Weekly sync-activity window blocks; empty = always open.
+            webhook_config:
+              type: object
+              nullable: true
+              properties:
+                connections:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_requests:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_invitations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                sales_navigator_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                recruiter_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                messages:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                followers:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                snapshot:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                strike_log:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                limits:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+            created_by:
+              type: object
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+                - reason
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - antidetect_browser_sid
+            - status
+            - account_share_sid
+            - share_role
+            - ln_id
+            - ln_member_id
+            - sn_id
+            - nickname
+            - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
+            - full_name
+            - avatar_url
+            - label
+            - has_premium
+            - has_sn
+            - has_recruiter
+            - smart_limits_enabled
+            - inmail_credits
+            - premium_inmail_credits
+            - last_premium_check_at
+            - last_connections_sync_at
+            - last_conversations_sync_at
+            - last_sales_navigator_conversations_sync_at
+            - last_recruiter_conversations_sync_at
+            - last_connection_requests_sync_at
+            - last_connection_invitations_sync_at
+            - last_followers_sync_at
+            - last_snapshot_at
+            - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
+            - last_heartbeat_at
+            - sync_config
+            - webhook_config
+            - created_by
+            - created_at
+            - updated_at
+            - deleted_at
+        result:
+          type: object
+          properties:
+            recruiter_contract:
+              type: object
+              nullable: true
+              properties:
+                contract_id:
+                  type: string
+                  description: "The ts_contract number: what select_linkedin_account_recruiter_contract takes. Never a urn."
+                contract_urn:
+                  type: string
+                  nullable: true
+                  description: urn:li:ts_contract:N, verbatim.
+                contract_name:
+                  type: string
+                  nullable: true
+                category:
+                  type: string
+                  nullable: true
+                  description: CORPORATE = a Recruiter seat on a company contract; INDIVIDUAL = a LinkedIn Job Posting contract on the personal account, never a Recruiter seat. Open vocabulary.
+                description:
+                  type: string
+                  nullable: true
+                sso_enabled:
+                  type: boolean
+                  nullable: true
+                application_instance_urn:
+                  type: string
+                  nullable: true
+                enterprise_profile_urn:
+                  type: string
+                  nullable: true
+                enterprise_account_id:
+                  type: string
+                  nullable: true
+                  description: Parsed from enterprise_profile_urn; null when its shape did not match.
+                enterprise_profile_id:
+                  type: string
+                  nullable: true
+              required:
+                - contract_id
+                - contract_urn
+                - contract_name
+                - category
+                - description
+                - sso_enabled
+                - application_instance_urn
+                - enterprise_profile_urn
+                - enterprise_account_id
+                - enterprise_profile_id
+              description: The row the browser was bound to.
+            owner_seat_id:
+              type: string
+              nullable: true
+              description: The ts_seat under the bound contract, off LinkedIn's answer; null when the answer carried none.
+            profile_id:
+              type: string
+              nullable: true
+              description: The talent (AEMAA…) id of the recruiter under the bound contract.
+            redirect_url:
+              type: string
+              nullable: true
+              description: Where LinkedIn sends the chooser next. Informational.
+            seat_stamped:
+              type: boolean
+              description: "True when recruiter_seat_id and recruiter_contract_id were stamped from this answer; false when it carried no seat, in which case the browser is bound and the next premium check (checks: ['recruiter']) stamps the pair."
+          required:
+            - recruiter_contract
+            - owner_seat_id
+            - profile_id
+            - redirect_url
+            - seat_stamped
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     SendLinkedinConnectionRequestRequest:
       type: object
       description: Request body of `send_linkedin_connection_request`.
@@ -51657,7 +52960,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -51990,6 +53297,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -52139,7 +53447,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -52472,6 +53784,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -54613,7 +55926,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -54946,6 +56263,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -55139,7 +56457,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -55472,6 +56794,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -56663,7 +57986,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -56996,6 +58323,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label
@@ -57426,7 +58754,11 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page; past this clock every recruiter tool answers 409 recruiter_reauth_required until the seat holder signs in to Recruiter again in the account's browser. Null = not read (no seat, or a vendor without a readable cookie store)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the platform signs the browser back in by itself when a Recruiter password is stored on the account (recruiter_credentials_stored_at); otherwise every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is where the seat holder stores the password or opens the browser to sign in. Null = no clock (not read, or the session cookie was not seen, which is not a verdict)."
+            recruiter_credentials_stored_at:
+              type: string
+              nullable: true
+              description: "When the seat holder stored the Recruiter password on this account (ISO 8601); null = none stored. With it the platform signs the browser back into LinkedIn Recruiter by itself whenever LinkedIn asks for the password again (about every 30 days), so recruiter tools keep working across that; without it a run-out session answers 409 recruiter_reauth_required until a person acts. The password itself is never readable through any tool or API: it is stored encrypted and used only for that sign-in, and it is forgotten on the first wrong-password answer. Storing it is done by the seat holder on the account's page in the app (the 409 carries the link), not through MCP."
             full_name:
               type: string
               nullable: true
@@ -57759,6 +59091,7 @@ components:
             - recruiter_seat_id
             - recruiter_contract_id
             - recruiter_session_expires_at
+            - recruiter_credentials_stored_at
             - full_name
             - avatar_url
             - label

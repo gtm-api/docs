@@ -3,6 +3,27 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-15" description="A stored Recruiter password renews the session by itself; the contract chooser as tools">
+  **Recruiter signs back in on its own.** Recruiter asks the seat holder for the LinkedIn password
+  about every 30 days, and until now the only renewal was a person signing in through the cloud
+  browser, on every seat, every month. The seat holder can now store the Recruiter password on the
+  account, on the account's page in the app. When LinkedIn asks for it, in a scheduled sync or in the
+  middle of a call, the platform signs the browser back in and the call goes on. The password is
+  encrypted at rest, never returned by any read, used in one place, and forgotten the moment LinkedIn
+  rejects it. No API call and no MCP tool takes or returns it; `recruiter_credentials_stored_at` on
+  the account says whether one is stored. Where the platform could not renew the session by itself,
+  `409 recruiter_reauth_required` now carries `context.sign_in_status` (why: `credentials_not_stored`,
+  `wrong_credentials`, `challenge`, `sign_in_throttled`, `sign_in_failed`), `account_url` (where the
+  seat holder stores the password) and a `suggestion` written for an agent to relay.
+
+  **The contract chooser as tools.** `get_linkedin_account_my_recruiter_contracts` lists the
+  Recruiter contracts the account's member can act under, with `current_contract_id`;
+  `select_linkedin_account_recruiter_contract` binds the browser to one of them (`contract_id` exactly
+  as listed; `422 contract_not_offered` names the rows on offer). Both live on the recruiter mount and
+  neither is gated on the session clock. The premium check still binds an unambiguous choice by
+  itself; these are for the case where it could not.
+</Update>
+
 <Update label="2026-09-15" description="Acceptance detection, sending by profile URL, widening a webhook">
   **A connection request is accepted the moment we can prove it.** `linkedin-connection-requests.accepted`
   now fires from three places: the connection-request sync, which refreshes the head of the
