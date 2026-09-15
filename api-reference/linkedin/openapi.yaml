@@ -1673,7 +1673,7 @@ paths:
       operationId: check_linkedin_account_premium_subscription
       summary: Check premium subscription
       description: |-
-        Refresh the account's subscription state and persist it: Premium, the Sales Navigator and Recruiter seats, and the InMail balance (self-probe, no target, no credits). `checks` picks which of those four to run and omitting it runs all four, which is the call you want when you just need the picture. Ask for a subset when you need one answer cheaply: `recruiter` reads a marker in the already-open tab, while the full run opens a background tab for the profile. Each result is written to the account record, and a probe that fails leaves the previous value alone rather than clearing it, so a failure never reads as "seat lost". On the full run a false Premium settles both seats without probing them, because each includes Premium.
+        Refresh the account's subscription state and persist it: Premium, the Sales Navigator and Recruiter seats, and the InMail balance (self-probe, no target, no credits). `checks` picks which of those four to run and omitting it runs all four, which is the call you want when you just need the picture. Ask for a subset when you need one answer cheaply: `recruiter` reads a marker in the already-open tab, while the full run opens a background tab for the profile. Each result is written to the account record, and a probe that fails leaves the previous value alone rather than clearing it, so a failure never reads as "seat lost". On the full run a false Premium settles both seats without probing them, because each includes Premium. A Recruiter seat whose member holds several contracts is bound to the only corporate contract on offer by this check itself; with several on offer the seat stays unstamped until the seat holder picks one in the account's browser.
 
         Contract:
         - MCP tool `check_linkedin_account_premium_subscription`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -8801,7 +8801,7 @@ components:
               - inmail_credits
           minItems: 1
           maxItems: 4
-          description: "Which steps to run. OMIT for all four, which is the normal call. `premium` reads the profile flag and, on a full run, settles both seats when it comes back false. `sales_nav` and `recruiter` probe one seat each and are the cheap ones. `inmail_credits` reads the Sales Navigator balance (the LSS_INMAIL grant) and needs a Sales Navigator SEAT: on a full run it is skipped for a seatless account (the last known balance is kept), and naming it in `checks` for one is refused with 422 `sales_nav_required`. Asking for a subset skips the rest entirely, so nothing you did not ask for is re-read or re-written."
+          description: "Which steps to run. OMIT for all four, which is the normal call. `premium` reads the profile flag and, on a full run, settles both seats when it comes back false. `sales_nav` and `recruiter` probe one seat each and are the cheap ones. `inmail_credits` reads the pool the plan has: the Sales Navigator grant into inmail_credits with a seat, the Premium plan's own balance into premium_inmail_credits for a Premium account without one (LinkedIn keeps the two apart). An account with no Premium has no pool: on a full run the step is skipped (last known balances kept), and naming it in `checks` for one is refused with 422 `premium_required`. Asking for a subset skips the rest entirely, so nothing you did not ask for is re-read or re-written."
     CheckLinkedinAccountPremiumSubscriptionResponse:
       type: object
       properties:
@@ -8891,6 +8891,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -9206,6 +9211,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -9376,6 +9382,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -9691,6 +9702,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -12039,6 +12051,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -12354,6 +12371,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -12539,6 +12557,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -12854,6 +12877,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -13051,6 +13075,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -13366,6 +13395,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -17119,6 +17149,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -17434,6 +17469,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -19323,6 +19359,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -19638,6 +19679,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -19850,6 +19892,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -20165,6 +20212,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -20399,6 +20447,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -20714,6 +20767,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -20873,6 +20927,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -21188,6 +21247,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -21336,6 +21396,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -21651,6 +21716,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -21816,6 +21882,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -22131,6 +22202,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -22329,6 +22401,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -22644,6 +22721,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -22805,6 +22883,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -23120,6 +23203,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -23355,6 +23439,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -23670,6 +23759,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -23933,6 +24023,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -24248,6 +24343,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -24559,6 +24655,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -24874,6 +24975,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -25022,6 +25124,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -25337,6 +25444,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -25544,6 +25652,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -25859,6 +25972,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -32973,6 +33087,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -33288,6 +33407,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -45126,7 +45246,26 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: is_null:true = last parse failed.
+              description: The Sales Navigator seat grant. is_null:true = never read or last parse failed.
+            premium_inmail_credits:
+              type: object
+              properties:
+                eq:
+                  type: integer
+                ne:
+                  type: integer
+                gte:
+                  type: integer
+                lte:
+                  type: integer
+                gt:
+                  type: integer
+                lt:
+                  type: integer
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The Premium plan pool (seatless Premium accounts). gte:1 = senders with Premium InMails left; is_null:true = never read.
             last_premium_check_at:
               type: object
               properties:
@@ -45482,6 +45621,11 @@ components:
                   inmail_credits:
                     type: number
                     nullable: true
+                    description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+                  premium_inmail_credits:
+                    type: number
+                    nullable: true
+                    description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
                   last_premium_check_at:
                     type: string
                     nullable: true
@@ -45797,6 +45941,7 @@ components:
                   - has_recruiter
                   - smart_limits_enabled
                   - inmail_credits
+                  - premium_inmail_credits
                   - last_premium_check_at
                   - last_connections_sync_at
                   - last_conversations_sync_at
@@ -51524,6 +51669,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -51839,6 +51989,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -52000,6 +52151,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -52315,6 +52471,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -54468,6 +54625,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -54783,6 +54945,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -54988,6 +55151,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -55303,6 +55471,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -56506,6 +56675,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -56821,6 +56995,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at
@@ -57263,6 +57438,11 @@ components:
             inmail_credits:
               type: number
               nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
             last_premium_check_at:
               type: string
               nullable: true
@@ -57578,6 +57758,7 @@ components:
             - has_recruiter
             - smart_limits_enabled
             - inmail_credits
+            - premium_inmail_credits
             - last_premium_check_at
             - last_connections_sync_at
             - last_conversations_sync_at

@@ -27,6 +27,10 @@ The premium check stamps the seat onto the account (`recruiter_seat_id`). Run it
 
 Some calls need the stamped seat number, not only the seat itself. If it is missing they answer `422 recruiter_seat_unresolvable`, and the premium check resolves it.
 
+## Several Recruiter contracts
+
+A member who holds seats on several Recruiter contracts is asked by LinkedIn to pick one before Recruiter opens, and holds no seat until they do. The premium check handles the common case on its own: when only one corporate contract is on offer (or the account is already bound to one of them) it binds the browser to that contract and stamps the seat. When several corporate contracts are on offer the check does not guess, because the wrong pick binds the browser to the wrong inbox: the seat stays unstamped and the seat holder picks the contract in the account's browser, after which the next check stamps it. `recruiter_contract_id` on the account names the contract the seat belongs to.
+
 ## The Recruiter session expires every 30 days
 
 **This is the failure everyone hits, and the one support cannot fix.**
@@ -37,7 +41,7 @@ When it expires, every Recruiter call answers `409 recruiter_reauth_required` an
 
 **Only the seat holder can renew it**, by signing in to Recruiter again in the account's browser. Nobody else can do it for them: not another teammate, not support, not the platform. Retrying the call does not help and never will.
 
-`recruiter_session_expires_at` on the account tells you when it runs out, so you can renew before it does rather than after.
+`recruiter_session_expires_at` on the account tells you when it runs out, so you can renew before it does rather than after. It is null when the platform has not seen the session cookie, which is not a verdict: a browser that is still on LinkedIn's contract chooser has no session cookie at all, and the fix there is picking a contract, not a password.
 
 ## Limits that come from LinkedIn, not from us
 

@@ -3,6 +3,28 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-15" description="The Premium InMail balance, the Recruiter contract chooser and a wider own-account burst">
+  **The Premium plan's InMail balance is read.** Accounts carry two InMail fields now, because
+  LinkedIn keeps one pool per product and moves nothing between them: `inmail_credits` is the Sales
+  Navigator seat's grant, read only while the account holds a seat, and `premium_inmail_credits` is
+  the Premium Career or Business balance, read for a Premium account without a seat. The premium
+  check's `inmail_credits` step reads whichever pool the plan has; naming it for an account with no
+  Premium answers `422 premium_required` (it used to answer `422 sales_nav_required` for a seatless
+  Premium account, whose balance was never read at all). Both fields filter. Null means not read,
+  never zero.
+
+  **Several Recruiter contracts.** A seat holder on several contracts holds no seat until the browser
+  is bound to one. The premium check now binds it when the choice is unambiguous (the contract the
+  account is already on, the only contract, or the only corporate one) and stamps the seat from the
+  answer; when several corporate contracts are on offer the seat holder picks in the account's
+  browser and the next check stamps it. A missing Recruiter session cookie no longer reads as an
+  expired session: `recruiter_session_expires_at` is null until the cookie is seen, and the Recruiter
+  wire's own refusal is what answers `409 recruiter_reauth_required`.
+
+  **Own-account reads burst 8.** The self-account bucket paces 8 calls per 6-second hold (was 5),
+  so one premium check fits a single burst; the daily cap is unchanged.
+</Update>
+
 <Update label="2026-09-05" description="The LinkedIn Recruiter inbox is the third messenger, with its seat, its session clock and the 24-hour rule">
   **273 operations**: LinkedIn 179, ID and Teams 72, Orchestration 22.
 
