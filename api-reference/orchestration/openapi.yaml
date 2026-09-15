@@ -7626,6 +7626,7 @@ components:
           description: Full replacement; WebhookEventTypeEnum values.
         filters:
           type: object
+          nullable: true
           properties:
             account_sid:
               type: string
@@ -7637,7 +7638,7 @@ components:
               nullable: true
               additionalProperties: {}
               description: 'Payload delivery gate: a FilterAst node tree evaluated against the delivery envelope, so leaves address payload.* plus the envelope fields type and occurred_at. null or absent = no gate. Grammar is strict: unknown keys and atoms are rejected, nesting depth is capped at 5, and a subscription may spend at most 20 leaves (a leaf is one {field, op} node; group / not / any wrappers are free, so a scoped condition like or[not type in [...], leaf] costs two). Use is_null rather than eq: null, which is refused. Errors: filter_grammar_invalid, filter_leaves_limit_exceeded. A filtered-out event is SKIPPED before any webhook_logs row exists, so a gated delivery leaves no trace in the log. Example, routing one hosted connect link to one tenant: {"where":{"and":[{"field":"payload.antidetect_browser_sid","op":"eq","value":"ab_br_X"}]}}'
-          description: Full replacement.
+          description: Full replacement; null or {} clears the narrowing so every subscribed event is delivered again.
         status:
           type: string
           enum:

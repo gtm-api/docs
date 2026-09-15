@@ -3,6 +3,29 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-15" description="Acceptance detection, sending by profile URL, widening a webhook">
+  **A connection request is accepted the moment we can prove it.** `linkedin-connection-requests.accepted`
+  now fires from three places: the connection-request sync, which refreshes the head of the
+  connections list before it judges an invitation that left the sent list; the connections sync
+  itself, which resolves a pending request the moment the connection row appears (`.accepted` lands
+  before that row's `.added`, and the row carries `linkedin_connection_request_sid`); and the accept
+  of an invitation whose inviter is an account on this platform. Until now the sync judged by the
+  connection rows it already had, so an acceptance the connections sync had not read yet was recorded
+  as `withdrawn` with a 21-day resend cooldown, and a request past the first page of the sent list was
+  recorded as withdrawn every day (LinkedIn's sent-invitations view reports a zero total). Both are
+  fixed, the rows this produced were repaired, and a request whose invitation is seen again on the sent
+  list goes back to pending on its own.
+
+  **Send by profile URL.** `send_linkedin_connection_request` and `send_linkedin_message` take
+  `public_identifier` (a vanity slug or a `linkedin.com/in/<slug>` URL) next to the URN. The slug is
+  resolved server-side: your own rows first, then the corpus, then a lite-profile read on the sender,
+  which spends the `enrichment` bucket like any enrichment. One addressing form per call.
+
+  **A narrowed webhook can be widened.** `update_webhook` with `filters: null` or `filters: {}` clears
+  the account narrowing. Before, neither spelling worked and the only way was to delete the webhook and
+  create it again.
+</Update>
+
 <Update label="2026-09-15" description="The Premium InMail balance, the Recruiter contract chooser and a wider own-account burst">
   **The Premium plan's InMail balance is read.** Accounts carry two InMail fields now, because
   LinkedIn keeps one pool per product and moves nothing between them: `inmail_credits` is the Sales
