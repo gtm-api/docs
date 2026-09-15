@@ -3,18 +3,29 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
-<Update label="2026-09-15" description="A stored Recruiter password renews the session by itself; the contract chooser as tools">
-  **Recruiter signs back in on its own.** Recruiter asks the seat holder for the LinkedIn password
-  about every 30 days, and until now the only renewal was a person signing in through the cloud
-  browser, on every seat, every month. The seat holder can now store the Recruiter password on the
-  account, on the account's page in the app. When LinkedIn asks for it, in a scheduled sync or in the
-  middle of a call, the platform signs the browser back in and the call goes on. The password is
-  encrypted at rest, never returned by any read, used in one place, and forgotten the moment LinkedIn
-  rejects it. No API call and no MCP tool takes or returns it; `recruiter_credentials_stored_at` on
-  the account says whether one is stored. Where the platform could not renew the session by itself,
-  `409 recruiter_reauth_required` now carries `context.sign_in_status` (why: `credentials_not_stored`,
-  `wrong_credentials`, `challenge`, `sign_in_throttled`, `sign_in_failed`), `account_url` (where the
-  seat holder stores the password) and a `suggestion` written for an agent to relay.
+<Update label="2026-09-15" description="A Recruiter status on the account, a sign-out notification, and the contract chooser as tools">
+  **`recruiter_status` replaces `has_recruiter` on LinkedIn accounts.** The flag said that a seat
+  existed and nothing about whether its Recruiter session still answered, so a seat LinkedIn had
+  signed out looked exactly like a working one until a call ran into the 401. The new field carries
+  both facts: `null` = no Recruiter seat, `active` = the seat answers, `signed_out` = LinkedIn
+  Recruiter asks the seat holder for the password again (it does so about every 30 days). It
+  filters (`eq`, `in`, `is_null`), and `linkedin-accounts.premium-changed` carries it in place of the
+  flag. Existing seat holders start as `active`; the platform sorts the signed-out ones within
+  minutes. This is a breaking rename: read `recruiter_status` where you read `has_recruiter`
+  (`recruiter_status !== null` is the old `true`).
+
+  **You hear about a sign-out once.** The status flips to `signed_out` on the first refused
+  Recruiter call, and a 15-minute check of the session clock catches it before a sync does. The
+  crossing sends one webhook, `linkedin-accounts.recruiter-signed-out` (with `reason`:
+  `session_expired` or `wire_401`), and one email to the person who connected the account; the way
+  back sends `linkedin-accounts.recruiter-signed-in`. While signed out, Recruiter calls answer
+  `409 recruiter_reauth_required` with `context.account_url` (the account's page) and a suggestion
+  an agent can relay; the recruiter inbox sync waits.
+
+  **Sign in to Recruiter from the account's page.** The button opens the account's cloud browser
+  straight on Recruiter's sign-in; after you confirm, the platform restarts the browser, re-checks
+  the seat and flips the status back to `active`. Only the seat holder can do it, and the platform
+  never stores the password.
 
   **The contract chooser as tools.** `get_linkedin_account_my_recruiter_contracts` lists the
   Recruiter contracts the account's member can act under, with `current_contract_id`;

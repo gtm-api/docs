@@ -105,7 +105,7 @@ the daily reset, and the email arrives a day later and says so.
 ## 3. Check capabilities and limits
 
 - `POST /api/linkedin-accounts/{sid}/check-premium-subscription` reports what the account's
-  LinkedIn subscription actually supports (`has_premium`, `has_sn`, `has_recruiter`, and for a
+  LinkedIn subscription actually supports (`has_premium`, `has_sn`, `recruiter_status`, and for a
   Recruiter seat its number and the session's expiry); `checks` narrows it to one step. Sales
   Navigator endpoints on an account without Sales Navigator fail upfront with
   `422 sales_nav_required`, Recruiter ones with `422 recruiter_required`, rather than mid-run.

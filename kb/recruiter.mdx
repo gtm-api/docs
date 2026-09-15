@@ -33,18 +33,17 @@ A member who holds seats on several Recruiter contracts is asked by LinkedIn to 
 
 ## The Recruiter session expires every 30 days
 
-**This is the failure everyone hits.**
+**This is the failure everyone hits, and it is not a fault.**
 
 Recruiter keeps its own session, roughly 30 days long, separate from the account's normal LinkedIn session. The account can be perfectly healthy and still have a dead Recruiter session. When it runs out, LinkedIn asks the seat holder for their password again before Recruiter opens.
 
-There are two ways to renew it, and the seat holder chooses:
+The account's `recruiter_status` says where it stands: `active` (the seat answers), `signed_out` (LinkedIn asks for the password again) or `null` (no Recruiter seat). It flips to `signed_out` on the first refused Recruiter call, and the platform also checks the session clock every 15 minutes so you hear about it before a sync runs into it. The moment it flips you get one webhook, `linkedin-accounts.recruiter-signed-out`, and the person who connected the account gets one email; nothing repeats until the next time.
 
-- **Store the Recruiter password on the account**, on the account's page in the app. From then on the platform signs the browser back in by itself the moment LinkedIn asks, whether that is a scheduled sync or a call in the middle of a task, and the call goes on as if nothing had happened. The password is encrypted at rest, no read of any kind returns it, the platform uses it in exactly one place (the sign-in itself), and it is forgotten the moment LinkedIn rejects it, so a changed LinkedIn password means storing it again. Only a person with update access to the account can store or forget it; no API call and no MCP tool takes or shows it. `recruiter_credentials_stored_at` on the account says whether one is stored.
-- **Sign in by hand** in the account's cloud browser. Nobody else can do that for the seat holder: not another teammate, not support, not an agent.
+While the seat is signed out, every Recruiter call answers `409 recruiter_reauth_required` and the recruiter inbox sync waits. The error carries `context.account_url`, the account's page in the app, and a plain suggestion an agent can relay.
 
-Without a stored password, an expired session answers `409 recruiter_reauth_required` on every Recruiter call and recurring syncs stop. The error says why the platform could not renew the session on its own, in `context.sign_in_status`: `credentials_not_stored` (nothing to sign in with), `wrong_credentials` (LinkedIn rejected the stored password, which is now forgotten), `challenge` (LinkedIn asked for a verification or a captcha, which only a person can pass), `sign_in_throttled` (at most three sign-ins an hour per account) or `sign_in_failed`. `context.account_url` points at the account's page, and `suggestion` is written for an agent to relay. Retrying the call does not help until one of the two renewals has happened.
+**Only the seat holder can sign in again.** Open the account's page, press **Sign in to Recruiter**: the account's cloud browser opens straight on Recruiter's sign-in, you enter the LinkedIn password there and confirm. The platform restarts the browser, re-checks the seat and flips the status back to `active` (and sends `linkedin-accounts.recruiter-signed-in`). Nobody else can do it for you: not another teammate, not support, not an agent, and the platform never stores the password. Retrying the call does not help until you have signed in.
 
-`recruiter_session_expires_at` on the account tells you when it runs out, so you can renew before it does rather than after. It is null when the platform has not seen the session cookie, which is not a verdict: a browser that is still on LinkedIn's contract chooser has no session cookie at all, and the fix there is picking a contract, not a password.
+`recruiter_session_expires_at` on the account tells you when the session will run out, so you can sign in before it does rather than after. It is null when the platform has not seen the session cookie, which is not a verdict: a browser that is still on LinkedIn's contract chooser has no session cookie at all, and the fix there is picking a contract, not a password.
 
 ## Limits that come from LinkedIn, not from us
 
