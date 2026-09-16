@@ -52183,6 +52183,11 @@ components:
               - kind
           maxItems: 200
           description: "Rich-text runs over text. NEW THREAD ONLY: a reply with attributes is refused 422 attributes_not_supported_in_thread."
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
       required:
         - linkedin_account_sid
         - subject
@@ -52453,6 +52458,11 @@ components:
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
           description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
       required:
         - linkedin_account_sid
         - text
@@ -52697,6 +52707,11 @@ components:
               type: string
               description: Inline payload (~15 MB cap pre-normalization).
           description: Exactly one of url / base64; normalized server-side to AAC/m4a ≤ 60 s.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
       required:
         - linkedin_account_sid
         - audio
@@ -54221,6 +54236,11 @@ components:
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
           description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
       required:
         - linkedin_account_sid
         - attendees

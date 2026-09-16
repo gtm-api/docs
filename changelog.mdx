@@ -3,6 +3,22 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-16" description="client_reference on every send verb, and on mass-action sends">
+  **Every send verb takes `client_reference`.** The field (your own key for a send: a task id, a
+  campaign, an idempotency token; max 255) used to be accepted by the basic message, the InMail and
+  the connection request only. It is now accepted by `send_linkedin_sales_nav_message`,
+  `send_linkedin_recruiter_message`, `send_linkedin_voice_message` and
+  `start_linkedin_group_conversation` too, with the same contract: stored as given on the message
+  row, searchable through `filter.client_reference` on `search_linkedin_messages`, and echoed on
+  `linkedin-messages.sent`. A Sales Navigator or Recruiter send that lost its response can now be
+  checked before it is repeated, exactly like a basic one.
+
+  **Mass-action sends carry the plan's key.** A `linkedin-connection-requests.send` or
+  `linkedin-messages.send` plan step with `client_reference` in its args tags every row the run
+  creates and every event about those rows, the way `email-messages.send` already did. One value per
+  run: it is the run's tag, not a per-item token.
+</Update>
+
 <Update label="2026-09-15" description="A Recruiter status on the account, a sign-out notification, and the contract chooser as tools">
   **`recruiter_status` replaces `has_recruiter` on LinkedIn accounts.** The flag said that a seat
   existed and nothing about whether its Recruiter session still answered, so a seat LinkedIn had
