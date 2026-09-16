@@ -727,7 +727,7 @@ paths:
         Contract:
         - MCP tool `get_billing_payment_method_add_link`, registry package `mcp.id/billing_payment_methods`, mount `id.billing`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: none.
       tags:
         - billing_payment_methods
       responses:
