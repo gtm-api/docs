@@ -156,7 +156,7 @@ retrying the same body, and take a fresh count before each call. `closing_count`
 <Note>
 `planned_return_at` does not auto-return anything. When it passes, an hourly job emails the owner
 **once** that the date passed, and stamps `expiry_notified_at`. The loan runs until somebody ends it. A
-soft-deleted workspace changes nothing: the 30-day recovery window has to elapse and the purge has to
+soft-deleted workspace changes nothing: the 30-day cleanup period has to elapse and the purge has to
 run before the loan is driven to a terminal status.
 </Note>
 

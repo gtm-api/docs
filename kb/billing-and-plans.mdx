@@ -132,9 +132,15 @@ parked newest-first with their browsers powered off. Reconnect or upgrade and th
 back.
 
 <Warning>
-If a workspace ends up with no coverage at all, its data is retained for **8 weeks** and
-then deleted, with a warning email at the 6-week mark. Reactivating inside that window
-restores everything.
+A canceled workspace that cannot fall back to Sandbox (the owner already has a free
+workspace, for example) has no coverage at all, and it is scheduled for deletion **4 weeks**
+after the subscription ends. A paused or past-due subscription never schedules it. The
+workspace owner gets an email with the date within a day, and a final one 3 days before
+it. No workspace is deleted before that final email has gone out.
+
+Resubscribe before the date and the deletion is canceled: the workspace comes back as it
+was. On the date the workspace is deleted, and that cannot be undone. API keys are revoked,
+members lose access at once, and the data is erased 30 days later.
 </Warning>
 
 Pausing is the alternative: billing stops at the next period, the workspace is gated like
