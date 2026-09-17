@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.id`, 74 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.id`, 75 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -49,6 +49,8 @@ tags:
     description: Registry package `mcp.id/billing_subscriptions`, served on MCP mount `id.billing`.
   - name: billing_transactions
     description: Registry package `mcp.id/billing_transactions`, served on MCP mount `id.billing`.
+  - name: media_uploads
+    description: Registry package `mcp.id/media_uploads`, served on MCP mount `id.platform`.
   - name: notifications
     description: Registry package `mcp.id/notifications`, served on MCP mount `id.platform`.
   - name: oauth_authorizations
@@ -1693,6 +1695,47 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+  /api/media-uploads/request-upload:
+    post:
+      operationId: request_media_upload
+      summary: Request media upload
+      description: |-
+        Get a place for ONE image or video file, then pass its file_url to create_linkedin_post (images[].url or video.url) instead of base64. In a chat without HTTP (the user pasted or has the picture): give the user upload_link, ask them to open it and drop the file, and call create_linkedin_post with file_url once they confirm. With a shell: run the curl line (upload_link, replace <path>). Pass file_type to also get a pre-signed S3 POST form (upload). Never type base64 of a pasted image: the model sees pixels, not the file, and the bytes come out wrong. The link works once for 30 minutes, up to 35 MB, images PNG/JPEG/GIF/WEBP or video MP4/MOV/WEBM (checked by content). The file is public by URL and deleted after 7 days. 120 per workspace per hour.
+
+        Contract:
+        - MCP tool `request_media_upload`, registry package `mcp.id/media_uploads`, mount `id.platform`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - media_uploads
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RequestMediaUploadRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RequestMediaUploadResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: request_media_upload
+      x-gtm-mcp-mount: id.platform
+      x-gtm-entity: media_uploads
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: complex
   /api/notifications/metrics:
     post:
       operationId: get_notifications_metrics
@@ -1739,7 +1782,7 @@ paths:
       operationId: search_notifications
       summary: Search notifications
       description: |-
-        List notifications (email and in_app channels) for the team/user with filtering, sorting and cursor pagination: the user inbox ("what was sent to me?"), admin audit ("what did the system email Jane about?"), or failure triage (status:failed in the last 24h). No full-text search. Returns a counts block of predicate tallies (by status / event_name / channel). Bodies are omitted from list rows; call get_notification for the rendered body.
+        List notifications (email and in_app channels) for the team/user with filtering, sorting and cursor pagination: the user inbox ("what was sent to me?"), admin audit ("what did the system email Jane about?"), or failure triage (status:failed in the last 24h). No full-text search. Returns a counts block of predicate tallies (by status / event_name / channel). Bodies are omitted from list rows; call get_notification for the rendered body. On gtm-api.com every row is channel email: the in_app channel, read_at and the mark-read verbs are a shared-contract surface the GetSales side writes, so read_at is always null here and there is nothing to mark read.
 
         Contract:
         - MCP tool `search_notifications`, registry package `mcp.id/notifications`, mount `id.platform`.
@@ -12278,6 +12321,148 @@ components:
         - async
         - item
         - pending
+        - result
+        - meta
+    RequestMediaUploadRequest:
+      type: object
+      description: Request body of `request_media_upload`.
+      properties:
+        purpose:
+          type: string
+          enum:
+            - post_media
+          description: "What the file is for. post_media (the default): an image or video for create_linkedin_post."
+        file_name:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Optional file name, e.g. "q3-chart.png". Characters outside A-Z a-z 0-9 . _ - become "-" in the stored name. Omit when you do not know it yet.
+        file_type:
+          type: string
+          enum:
+            - image/png
+            - image/jpeg
+            - image/gif
+            - image/webp
+            - video/mp4
+            - video/quicktime
+            - video/webm
+          description: "Optional MIME type, one the purpose takes. Given, it also mints the pre-signed S3 form with this Content-Type bound in. The upload_link needs no type: it reads it from the file."
+    RequestMediaUploadResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            purpose:
+              type: string
+              description: What the slot is for (post_media today); it decides the accepted file types.
+            upload_link:
+              type: string
+              description: One-time link on our domain, valid until upload_expires_at. A person opens it in a browser and drops the file; a shell sends it with the curl line. Accepts one successful upload.
+            upload:
+              type: object
+              nullable: true
+              properties:
+                url:
+                  type: string
+                  description: The S3 form action to POST to.
+                method:
+                  type: string
+                  enum:
+                    - POST
+                enctype:
+                  type: string
+                  enum:
+                    - multipart/form-data
+                fields:
+                  type: object
+                  additionalProperties:
+                    type: string
+                  description: Send EVERY entry verbatim as a form field, before the file.
+                file_field:
+                  type: string
+                  enum:
+                    - file
+                  description: The form field that carries the bytes; it must be the LAST part of the form.
+              required:
+                - url
+                - method
+                - enctype
+                - fields
+                - file_field
+              description: A pre-signed S3 POST form for the same object, only when file_type was given; null otherwise.
+            file_url:
+              type: string
+              description: "The object's public https URL once uploaded: pass it as images[].url or video.url."
+            upload_expires_at:
+              type: string
+              description: "ISO 8601: the form refuses uploads after this."
+            retained_until:
+              type: string
+              description: "ISO 8601: the object is deleted after this."
+            max_byte_size:
+              type: integer
+              description: The largest file the form accepts, in bytes.
+            curl:
+              type: string
+              description: "A ready upload command through upload_link: replace <path> with the local file path. Answers 201 with the stored type and size."
+          required:
+            - purpose
+            - upload_link
+            - upload
+            - file_url
+            - upload_expires_at
+            - retained_until
+            - max_byte_size
+            - curl
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
         - result
         - meta
     ResendTeamMemberInvitationResponse:

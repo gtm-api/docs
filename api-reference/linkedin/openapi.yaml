@@ -177,7 +177,7 @@ paths:
       operationId: check_antidetect_browser_proxy_location
       summary: Check proxy location
       description: |-
-        Run a multi-vendor geo + fraud check on one or many proxies. Target EXACTLY ONE of sid (ab_px_) or filter; filter mode checks up to an inline cap and reports total_matched (truncated:true when the cap was hit). Read-only probe, no row mutation.
+        Run a multi-vendor geo + fraud check on one or many proxies. Target EXACTLY ONE of sid (ab_px_) or filter; filter mode checks up to an inline cap and reports total_matched (truncated:true when the cap was hit). A verdict moves the row: an exit country that disagrees with country_code flips it to country_mismatch, a fraud score over the threshold to fraud_flagged (each emits its event). Rows the vendors could not settle are listed in inconclusive with a reason (no_ip_port / exit_unreachable / no_corroboration) and left untouched, so total_checked counts only rows that got a verdict.
 
         Contract:
         - MCP tool `check_antidetect_browser_proxy_location`, registry package `mcp.linkedin/antidetect_browser_proxies`, mount `linkedin.browsers`.
@@ -218,7 +218,7 @@ paths:
       operationId: search_antidetect_browser_proxies
       summary: Search antidetect browser proxies
       description: |-
-        List antidetect browser proxies (platform-wide pool) with filters, sorting and cursor pagination. Live proxies by default (deleted_at.is_null:true). Credentials (ip / port / username / password) are masked to null on this public read surface.
+        List antidetect browser proxies (platform-wide pool) with filters, sorting and cursor pagination. Live proxies by default (filter {"deleted_at": {"is_null": true}}). Credentials (ip / port / username / password) are masked to null on this public read surface.
 
         Contract:
         - MCP tool `search_antidetect_browser_proxies`, registry package `mcp.linkedin/antidetect_browser_proxies`, mount `linkedin.browsers`.
@@ -341,7 +341,7 @@ paths:
       operationId: generate_cloud_browser_access_key
       summary: Generate cloud-browser access key
       description: |-
-        Mint a cloud-browser access key (smart-link) on a browser. Returns the whole minted entry in result.access_key, whose `key` field is the raw cb_ak_ token (shown once), AND result.public_connect_url, the ready-to-share link to hand to whoever opens it (no platform account needed on their side). Pass result.access_key.key, never result.access_key, to revoke_cloud_browser_access_key. `purpose` decides what the page behind the link does: `relogin` walks them through signing the LinkedIn session back in and re-binds the browser once they confirm, `share` just hands them the browser to drive. Optional ttl_hours / max_connects / allowed_ips / allowed_countries scope the key. DANGEROUS: both the key and the link are bearer secrets granting remote browser access.
+        Mint a cloud-browser access key (smart-link) on a browser. Returns the whole minted entry in result.access_key, whose `key` field is the raw cb_ak_ token (shown once), AND result.public_connect_url, the ready-to-share link to hand to whoever opens it (no platform account needed on their side). Pass result.access_key.key, never result.access_key, to revoke_cloud_browser_access_key. `purpose` decides what the page behind the link does: `relogin` walks them through signing the LinkedIn session back in and re-binds the browser once they confirm, `share` just hands them the browser to drive. Optional ttl_hours / max_connects / allowed_ips / allowed_countries scope the key; send_to_email also mails the link to whoever holds the LinkedIn password (a fixed mail, no text to supply). DANGEROUS: both the key and the link are bearer secrets granting remote browser access.
 
         Contract:
         - MCP tool `generate_cloud_browser_access_key`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -540,7 +540,7 @@ paths:
       operationId: search_antidetect_browsers
       summary: Search antidetect browsers
       description: |-
-        List antidetect browsers on the team with filters (name lookup via the vendor_name filter, eq/in), sorting and cursor pagination. Live browsers by default (deleted_at.is_null:true). Returns a counts block of predicate tallies; include[] can eager-load linkedin_account, antidetect_browser_proxy and antidetect_browser_logs. Use this to find a browser sid before run / stop / delete.
+        List antidetect browsers on the team with filters (name lookup via the vendor_name filter, eq/in), sorting and cursor pagination. Live browsers by default (filter {"deleted_at": {"is_null": true}}). Returns a counts block of predicate tallies; include[] can eager-load linkedin_account, antidetect_browser_proxy and antidetect_browser_logs. Use this to find a browser sid before run / stop / delete.
 
         Contract:
         - MCP tool `search_antidetect_browsers`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -1233,7 +1233,7 @@ paths:
       operationId: update_linkedin_account_smart_limit
       summary: Update LinkedIn account smart limit
       description: |-
-        Patch one limit row's operator-tunable policy (daily_limit / target_limit / delay_in_seconds / batch_size / learning_enabled; at least one field OR reset_hold:true); status recomputes atomically. GATE: while the ACCOUNT's smart_limits_enabled is true, daily_limit / delay_in_seconds / batch_size are the warmup's and this call answers 409 smart_limits_governed (context.refused_fields). Then bound the cap with target_limit (the cap follows min(smart, target) at once), or call set_linkedin_account_smart_limits({enabled:false}) first and say that this removes the ban protection. With the switch off nothing is refused: read recommended_daily_limit / recommended_delay_in_seconds first; up to twice the recommendation (or a delay down to half) is "elevated", beyond that "ban_likely"; warn in those words before committing. A spent budget is "held"; raising daily_limit alone does not clear it, pass reset_hold:true in the same call. System-managed fields are rejected; a LinkedIn-side lock cannot be reset.
+        GATE: on a governed account (smart_limits_enabled true, the default) daily_limit / delay_in_seconds / batch_size belong to the warmup; moving any is 409 smart_limits_governed: never promise a raised cap there. target_limit only BOUNDS (the row follows min(smart_limit, target_limit)): a target above the warmup ceiling changes nothing today; a young or dormant account sits at 1..2 for weeks (see warmup_breakdown). The other way: set_linkedin_account_smart_limits({enabled:false}), said out loud as removing ban protection. One row (daily_limit / target_limit / delay_in_seconds / batch_size / learning_enabled; one field OR reset_hold:true). Switch off: nothing refused; read the row's recommended_* first, 2x (or half the delay) is "elevated", beyond that "ban_likely", warn so. A spent budget is "held": raising daily_limit alone does not clear it, pass reset_hold:true too; it resumes once the cap exceeds done_today_count (governed rows re-hold at once). System fields are rejected; a LinkedIn lock is not resettable.
 
         Contract:
         - MCP tool `update_linkedin_account_smart_limit`, registry package `mcp.linkedin/linkedin_account_smart_limits`, mount `linkedin.accounts`.
@@ -1285,7 +1285,7 @@ paths:
       operationId: reset_linkedin_account_smart_limit_hold
       summary: Reset LinkedIn account smart-limit hold
       description: |-
-        Clear OUR platform-side pause (hold_till = null) on one row. Prefer update({daily_limit:<higher>, reset_hold:true}) for the common "raise the cap AND resume". This standalone action is for resuming WITHOUT changing the limit (only meaningful when done_today_count < daily_limit, e.g. a systemic hold). On a spent budget (done_today_count >= daily_limit) the saturation-latch re-holds immediately, so this is a no-op that stays held; raise daily_limit first. Idempotent (no-op if hold was already clear). Does NOT touch done_today_count or linkedin_quota_hit_till: a LinkedIn-side hard lock cannot be reset from the public surface (result.new_status stays linkedin_blocked if that clock is still active).
+        Clear OUR platform-side pause (hold_till = null) on one row. On a spent budget (done_today_count >= daily_limit) the saturation latch re-holds at once, so this is a no-op that stays held: the cap has to grow first. On a HAND-MANAGED account (smart_limits_enabled false) prefer update({daily_limit:<higher>, reset_hold:true}), which raises the cap and resumes atomically. On a GOVERNED account (the default) daily_limit is the warmup's and cannot be raised by hand: target_limit only bounds the cap, the warmup ceiling grows with account age and sent activity across snapshots, and the ramp lifts the latch by itself once its recomputed cap outgrows done_today_count, so nothing resumes today. This action resumes WITHOUT changing the limit (meaningful only when done_today_count < daily_limit, e.g. a systemic hold). Idempotent. Does NOT touch done_today_count or linkedin_quota_hit_till: a LinkedIn-side hard lock cannot be reset from the public surface (result.new_status stays linkedin_blocked while that clock runs).
 
         Contract:
         - MCP tool `reset_linkedin_account_smart_limit_hold`, registry package `mcp.linkedin/linkedin_account_smart_limits`, mount `linkedin.accounts`.
@@ -2671,7 +2671,7 @@ paths:
       operationId: set_linkedin_account_smart_limits
       summary: Set account smart limits
       description: |-
-        Switch smart-limit governance on or off for the WHOLE account, every bucket at once (there is no per-bucket toggle). ON: the warmup sets every limit row's daily_limit / delay_in_seconds / batch_size, and update_linkedin_account_smart_limit refuses those fields with 409 smart_limits_governed; target_limit and learning_enabled stay yours. Turning on re-derives every cap from the latest snapshot on this call. OFF: every cap runs exactly as typed and the account loses the warmup ban protection: say so to the user before switching off, and read recommended_daily_limit / recommended_delay_in_seconds on the rows before typing caps. Idempotent. SINGLE account: for a fleet, author a mass action on /mcp/orchestration/mass-actions with the step `linkedin-accounts.set-smart-limits` (scope objects, args {enabled}); run it BEFORE a limit-row run over the same senders.
+        Switch smart-limit governance on or off for the WHOLE account, every bucket at once (no per-bucket toggle). The switch remembers nothing: a real flip in EITHER direction first resets every limit row to the platform defaults (daily_limit = the bucket's platform max, delay / burst = the enum pair, target_limit = the platform default, hold cleared). ON: the warmup then sets every row's daily_limit / delay_in_seconds / batch_size (re-derived from the latest snapshot) and update_linkedin_account_smart_limit refuses those fields with 409 smart_limits_governed; target_limit and learning_enabled stay yours. The seeded target_limit is a target the warmup climbs toward, never a limit somebody set. OFF: every cap runs exactly as typed and the account loses the warmup ban protection: say so first, read the rows' recommended_* before typing caps. Idempotent. SINGLE account: a fleet is a mass action with step linkedin-accounts.set-smart-limits (scope objects, args {enabled}), run BEFORE a limit-row run on the same senders.
 
         Contract:
         - MCP tool `set_linkedin_account_smart_limits`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -3526,12 +3526,12 @@ paths:
       operationId: get_my_latest_linkedin_connection_invitations
       summary: Get my latest connection invitations
       description: |-
-        Always-fresh head read of pending inbound invitations: refresh the newest from LinkedIn in-request (§5.8), then return the last N (received_at DESC). The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped.
+        Always-fresh head read of pending inbound invitations: refresh the newest from LinkedIn in-request (§5.8), then return the last N (received_at DESC). The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_connection_invitations`, registry package `mcp.linkedin/linkedin_connection_invitations`, mount `linkedin.network`.
-        - Operation `search`, response envelope `search`.
-        - Flags: read only.
+        - Operation `action`, response envelope `search`.
+        - Flags: none.
       tags:
         - linkedin_connection_invitations
       requestBody:
@@ -3554,7 +3554,7 @@ paths:
       x-gtm-mcp-tool: get_my_latest_linkedin_connection_invitations
       x-gtm-mcp-mount: linkedin.network
       x-gtm-entity: linkedin_connection_invitations
-      x-gtm-operation: search
+      x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
@@ -3782,12 +3782,12 @@ paths:
       operationId: get_my_latest_linkedin_connection_requests
       summary: Get my latest connection requests
       description: |-
-        Always-fresh head read of pending outbound requests: refresh the newest from LinkedIn in-request (§5.8), then return the last N (sent_at DESC). The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped.
+        Always-fresh head read of pending outbound requests: refresh the newest from LinkedIn in-request (§5.8), then return the last N (sent_at DESC). The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_connection_requests`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
-        - Operation `search`, response envelope `search`.
-        - Flags: read only.
+        - Operation `action`, response envelope `search`.
+        - Flags: none.
       tags:
         - linkedin_connection_requests
       requestBody:
@@ -3810,7 +3810,7 @@ paths:
       x-gtm-mcp-tool: get_my_latest_linkedin_connection_requests
       x-gtm-mcp-mount: linkedin.network
       x-gtm-entity: linkedin_connection_requests
-      x-gtm-operation: search
+      x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
@@ -3864,7 +3864,7 @@ paths:
       operationId: search_linkedin_connection_requests
       summary: Search connection requests
       description: |-
-        List outbound LinkedIn connection requests (invitations we sent) with filters, sorting, cursor pagination and full-text q over the note. Pending rows have removal_kind IS NULL; terminal rows are accepted / withdrawn / expired (deleted_at set). include[] can eager-load linkedin_account.
+        List outbound LinkedIn connection requests (invitations we sent) with filters, sorting, cursor pagination and filter.q, a LIKE (substring) over the note. Pending rows have removal_kind IS NULL; terminal rows are accepted / withdrawn / expired (deleted_at set). include[] can eager-load linkedin_account.
 
         Contract:
         - MCP tool `search_linkedin_connection_requests`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
@@ -4074,12 +4074,12 @@ paths:
       operationId: get_my_latest_linkedin_connections
       summary: Get my latest connections
       description: |-
-        Always-fresh head read: refresh the newest connections from LinkedIn in-request (§5.8), then return the last N (connected_at DESC) with a counts block. The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped. For richer slicing call search_linkedin_connections right after.
+        Always-fresh head read: refresh the newest connections from LinkedIn in-request (§5.8), then return the last N (connected_at DESC) with a counts block. The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped. For richer slicing call search_linkedin_connections right after. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_connections`, registry package `mcp.linkedin/linkedin_connections`, mount `linkedin.network`.
-        - Operation `search`, response envelope `search`.
-        - Flags: read only.
+        - Operation `action`, response envelope `search`.
+        - Flags: none.
       tags:
         - linkedin_connections
       requestBody:
@@ -4102,7 +4102,7 @@ paths:
       x-gtm-mcp-tool: get_my_latest_linkedin_connections
       x-gtm-mcp-mount: linkedin.network
       x-gtm-entity: linkedin_connections
-      x-gtm-operation: search
+      x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
@@ -4156,7 +4156,7 @@ paths:
       operationId: search_linkedin_connections
       summary: Search LinkedIn connections
       description: |-
-        List an account's 1st-degree LinkedIn connections with filters, sorting, cursor pagination and full-text q over the contact name. Live rows by default (deleted_at.is_null:true); pass is_null:false for churn analysis. Returns a counts block of predicate tallies; include[] can eager-load linkedin_account, the source request/invitation, conversations and last_messages.
+        List an account's 1st-degree LinkedIn connections with filters, sorting, cursor pagination and filter.q, a LIKE (substring) over the contact name. Live rows by default (filter {"deleted_at": {"is_null": true}}); pass {"deleted_at": {"is_null": false}} for churn analysis. Returns a counts block of predicate tallies; include[] can eager-load linkedin_account, the source request/invitation, conversations and last_messages.
 
         Contract:
         - MCP tool `search_linkedin_connections`, registry package `mcp.linkedin/linkedin_connections`, mount `linkedin.network`.
@@ -4290,7 +4290,7 @@ paths:
       operationId: get_my_latest_linkedin_conversations
       summary: Get my latest LinkedIn conversations
       description: |-
-        Always-fresh head read of the basic-LinkedIn-messenger thread list for one account (§5.8 foreground refresh, then the last N threads from the refreshed DB, last_activity_at DESC). Never serves stale data: it 429s with bucket_saturated / sync_in_progress instead. Use before an inbox decision; use sync_my_linkedin_conversations for full backfill.
+        Always-fresh head read of the basic-LinkedIn-messenger thread list for one account (§5.8 foreground refresh, then the last N threads from the refreshed DB, last_activity_at DESC). Never serves stale data: it 429s with bucket_saturated / sync_in_progress instead. Use before an inbox decision; use sync_my_linkedin_conversations for full backfill. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_conversations`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
@@ -4331,7 +4331,7 @@ paths:
       operationId: get_my_latest_linkedin_conversations_recruiter
       summary: Get my latest Recruiter conversations
       description: |-
-        LinkedIn Recruiter variant of get_my_latest_linkedin_conversations: always-fresh head read of the recruiter inbox for one account (§5.8 refresh-then-return over the talent wire, page size fixed at 15 by that wire). Same hard-429 guards; returns messenger_type='recruiter' rows whose recruiter_id is the candidate. Needs a Recruiter seat and its stamped seat number (422 recruiter_required / recruiter_seat_unresolvable).
+        LinkedIn Recruiter variant of get_my_latest_linkedin_conversations: always-fresh head read of the recruiter inbox for one account (§5.8 refresh-then-return over the talent wire, page size fixed at 15 by that wire). Same hard-429 guards; returns messenger_type='recruiter' rows whose recruiter_id is the candidate. Needs a Recruiter seat and its stamped seat number (422 recruiter_required / recruiter_seat_unresolvable). Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_conversations_recruiter`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.recruiter`.
@@ -4372,7 +4372,7 @@ paths:
       operationId: get_my_latest_linkedin_conversations_sales_nav
       summary: Get my latest Sales Navigator conversations
       description: |-
-        Sales Navigator variant of get_my_latest_linkedin_conversations: always-fresh head read of the SN thread list for one account (§5.8 refresh-then-return). Same hard-429 guards; returns messenger_type='sales_navigator' rows.
+        Sales Navigator variant of get_my_latest_linkedin_conversations: always-fresh head read of the SN thread list for one account (§5.8 refresh-then-return). Same hard-429 guards; returns messenger_type='sales_navigator' rows. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_conversations_sales_nav`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
@@ -4454,7 +4454,7 @@ paths:
       operationId: search_linkedin_conversations
       summary: Search LinkedIn conversations
       description: |-
-        List LinkedIn message threads for the team across both messenger surfaces (basic LinkedIn + Sales Navigator) with operator-object filters (account, contact ids, conversation_hash = LinkedIn's own 2-…== thread id, messenger_type, event-count, activity / message-sync clock ranges), sort, cursor pagination, and include[] for the parent account and the last 50 messages. Live rows by default; page_size:0 for count-only. Given a thread id by the user, look it up with filter.conversation_hash.eq: q is a nickname LIKE and will not find it.
+        List LinkedIn message threads for the team across both messenger surfaces (basic LinkedIn + Sales Navigator) with operator-object filters (account, contact ids, conversation_hash = LinkedIn's own 2-…== thread id, messenger_type, event-count, activity / message-sync clock ranges), sort, cursor pagination, and include[] for the parent account and the last 50 messages. Live rows by default; page_size:0 for count-only. Given a thread id by the user, look it up with filter.filter {"conversation_hash": {"eq": "<hash>"}}: q is a nickname LIKE and will not find it.
 
         Contract:
         - MCP tool `search_linkedin_conversations`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
@@ -4676,7 +4676,7 @@ paths:
       operationId: add_linkedin_conversation_participants
       summary: Add conversation participants
       description: |-
-        Add one or more members to an existing thread on LinkedIn (outward action). Pass the conversation sid + participant_ln_ids (1..20 member URNs); a 1:1 thread is promoted to a group. Returns the updated conversation.
+        Add one or more members to an existing thread on LinkedIn (outward action). Pass the conversation sid + participant_ln_ids (1..20 bare LinkedIn profile ids, the ACoA... ln_id of a connection or conversation participant; never a urn: string, the SDK wraps the id itself and a URN is wrapped twice and refused); a 1:1 thread is promoted to a group. item is the stored thread as it was before the call (the participant list follows on the next inbox sync); result carries status success and the activity_log_sid of the call. A LinkedIn refusal is a typed error (409 linkedin_refused, or the account-level 409 / 422 codes), never a success with a failed status.
 
         Contract:
         - MCP tool `add_linkedin_conversation_participants`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
@@ -4918,7 +4918,7 @@ paths:
       operationId: remove_linkedin_conversation_participants
       summary: Remove conversation participants
       description: |-
-        Remove one or more members from a group thread on LinkedIn (outward action). Pass the conversation sid + participant_ln_ids (1..20 member URNs to remove). Returns the updated conversation.
+        Remove one or more members from a group thread on LinkedIn (outward action). Pass the conversation sid + participant_ln_ids (1..20 bare LinkedIn profile ids, the ACoA... ln_id; never a urn: string, the SDK wraps the id itself). item is the stored thread as it was before the call (the participant list follows on the next inbox sync); result carries status success and the activity_log_sid of the call. A LinkedIn refusal is a typed error (409 linkedin_refused, or the account-level 409 / 422 codes), never a success with a failed status.
 
         Contract:
         - MCP tool `remove_linkedin_conversation_participants`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
@@ -4970,7 +4970,7 @@ paths:
       operationId: rename_linkedin_conversation
       summary: Rename conversation
       description: |-
-        Rename a group thread on LinkedIn (outward action). Pass the conversation sid + the new title (1..256 chars). Returns the updated conversation.
+        Rename a group thread on LinkedIn (outward action). Pass the conversation sid + the new title (1..256 chars). Group threads only: LinkedIn refuses a 1:1 thread, and that refusal is a typed error (409 linkedin_refused), never a success with a failed status. item is the stored thread as it was before the call (the title follows on the next inbox sync); result carries status success and the activity_log_sid of the call.
 
         Contract:
         - MCP tool `rename_linkedin_conversation`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
@@ -5965,12 +5965,12 @@ paths:
       operationId: get_my_latest_linkedin_followers
       summary: Get my latest followers
       description: |-
-        Always-fresh head read of the followers list: refresh the newest from LinkedIn in-request (§5.8), then return the last N (created_at DESC) with a counts block. The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped.
+        Always-fresh head read of the followers list: refresh the newest from LinkedIn in-request (§5.8), then return the last N (created_at DESC) with a counts block. The first page (cursor null) triggers the refresh; continuation pages read the already-refreshed DB. Account-scoped. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_followers`, registry package `mcp.linkedin/linkedin_followers`, mount `linkedin.network`.
-        - Operation `search`, response envelope `search`.
-        - Flags: read only.
+        - Operation `action`, response envelope `search`.
+        - Flags: none.
       tags:
         - linkedin_followers
       requestBody:
@@ -5993,7 +5993,7 @@ paths:
       x-gtm-mcp-tool: get_my_latest_linkedin_followers
       x-gtm-mcp-mount: linkedin.network
       x-gtm-entity: linkedin_followers
-      x-gtm-operation: search
+      x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
       x-gtm-dangerous: false
@@ -6047,7 +6047,7 @@ paths:
       operationId: search_linkedin_followers
       summary: Search LinkedIn followers
       description: |-
-        List stored followers of team accounts with filters, sorting, cursor pagination and full-text q over the follower name. Returns a counts block. include[] can eager-load linkedin_account plus the funnel probes linkedin_connection / linkedin_connection_request; both absent means a warm, untouched prospect.
+        List stored followers of team accounts with filters, sorting, cursor pagination and filter.q, a LIKE (substring) over the follower name. Returns a counts block. include[] can eager-load linkedin_account plus the funnel probes linkedin_connection / linkedin_connection_request; both absent means a warm, untouched prospect.
 
         Contract:
         - MCP tool `search_linkedin_followers`, registry package `mcp.linkedin/linkedin_followers`, mount `linkedin.network`.
@@ -6252,7 +6252,7 @@ paths:
       operationId: get_my_latest_linkedin_messages
       summary: Get my latest LinkedIn messages
       description: |-
-        Always-fresh head read of ONE basic-messenger thread (§5.8 refresh of that conversation from LinkedIn, then the last N messages, sent_at DESC). Never stale: it 429s with bucket_saturated / sync_in_progress. Use before drafting a reply; use search_linkedin_messages for stored history.
+        Always-fresh head read of ONE basic-messenger thread (§5.8 refresh of that conversation from LinkedIn, then the last N messages, sent_at DESC). Never stale: it 429s with bucket_saturated / sync_in_progress. Use before drafting a reply; use search_linkedin_messages for stored history. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_messages`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -6293,7 +6293,7 @@ paths:
       operationId: get_my_latest_linkedin_messages_recruiter
       summary: Get my latest Recruiter messages
       description: |-
-        LinkedIn Recruiter variant of get_my_latest_linkedin_messages: always-fresh head read of ONE recruiter thread's messages (§5.8 refresh-then-return over the talent wire, dispatched with the account's seat). Requires a messenger_type='recruiter' conversation (a 422 messenger_type_mismatch names the right tool otherwise) and a Recruiter seat with its stamped seat number; same hard-429 guards. Rows: linkedin_type='inmail', type outbox for the seat's own messages and inbox for the candidate's.
+        LinkedIn Recruiter variant of get_my_latest_linkedin_messages: always-fresh head read of ONE recruiter thread's messages (§5.8 refresh-then-return over the talent wire, dispatched with the account's seat). Requires a messenger_type='recruiter' conversation (a 422 messenger_type_mismatch names the right tool otherwise) and a Recruiter seat with its stamped seat number; same hard-429 guards. Rows: linkedin_type='inmail', type outbox for the seat's own messages and inbox for the candidate's. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_messages_recruiter`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.recruiter`.
@@ -6334,7 +6334,7 @@ paths:
       operationId: get_my_latest_linkedin_messages_sales_nav
       summary: Get my latest Sales Navigator messages
       description: |-
-        Sales Navigator variant of get_my_latest_linkedin_messages: always-fresh head read of ONE SN thread's messages (§5.8 refresh-then-return). Requires a messenger_type='sales_navigator' conversation; same hard-429 guards.
+        Sales Navigator variant of get_my_latest_linkedin_messages: always-fresh head read of ONE SN thread's messages (§5.8 refresh-then-return). Requires a messenger_type='sales_navigator' conversation; same hard-429 guards. Runs through the account's browser: a stopped or idle one is cold-started first (about 50 s, or 503 browser_starting), which also releases that account's overdue syncs.
 
         Contract:
         - MCP tool `get_my_latest_linkedin_messages_sales_nav`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -6416,7 +6416,7 @@ paths:
       operationId: search_linkedin_messages
       summary: Search LinkedIn messages
       description: |-
-        List LinkedIn messages (basic DM + Sales Navigator + InMail) with operator-object filters (account, conversation, channel, direction, contact ids, date ranges) and FULLTEXT q over body + subject. Supports include[], sort, cursor pagination. page_size:0 for count-only. To read a single message, filter by {sid:{eq:"ln_ms_…"}}.
+        List LinkedIn messages (basic DM + Sales Navigator + InMail) with operator-object filters (account, conversation, channel, direction, contact ids, date ranges) and filter.q, a LIKE (substring) over body + subject (message text, not contact names). Supports include[], sort, cursor pagination. page_size:0 for count-only. To read a single message, filter by {sid:{eq:"ln_ms_…"}}.
 
         Contract:
         - MCP tool `search_linkedin_messages`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -6498,7 +6498,7 @@ paths:
       operationId: send_linkedin_inmail
       summary: Send LinkedIn InMail
       description: |-
-        Send one premium InMail to a person (outward action). Person-addressed only via ln_id / sn_id, subject required (≤ 200), body ≤ 1900. Guards: in-flight dedup, send_inmails daily cap, Premium guard, InMail-credits guard. Fire-on-success; the response result carries the authoritative inmail_credits_remaining (open profiles may not decrement). When NOT: 1st-degree connection → send_linkedin_message (free); no Premium / zero credits → the guards 422; SN thread continuation → send_linkedin_sales_nav_message.
+        Send one premium InMail to a person (outward action). Person-addressed only via ln_id / sn_id, subject required (≤ 200), body ≤ 1900. Guards: in-flight dedup, send_inmails daily cap, Premium guard, InMail-credits guard (422 no_inmail_credits when the account's pool is known empty: the seat's grant inmail_credits with a Sales Navigator seat, premium_inmail_credits without; a balance never read does not block). Fire-on-success; the plugin's inmail_credits_remaining is written back onto that pool, and LinkedIn's own NOT_ENOUGH_INMAIL_CREDIT answers 422 no_inmail_credits and zeroes it (it is not a block of the target). When NOT: 1st-degree connection → send_linkedin_message (free); no Premium / zero credits → the guards 422; SN thread continuation → send_linkedin_sales_nav_message.
 
         Contract:
         - MCP tool `send_linkedin_inmail`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -6580,7 +6580,7 @@ paths:
       operationId: send_linkedin_sales_nav_message
       summary: Send Sales Navigator message
       description: |-
-        Send one Sales Navigator message (outward action): continue an existing SN thread via linkedin_conversation_sid (messenger_type=sales_navigator), or open a new SN thread via ln_id / sn_id. Body ≤ 8000. Guards: in-flight dedup, send_inmails daily cap, SN-seat guard, SN surface guard. Fire-on-success. When NOT: basic-messenger threads → send_linkedin_message / send_linkedin_voice_message; cold InMail outside SN → send_linkedin_inmail; account without an SN seat is rejected, so check linkedin-accounts.has_sn first.
+        Send one Sales Navigator message (outward action): continue an existing SN thread via linkedin_conversation_sid (messenger_type=sales_navigator), or open a new SN thread via ln_id / sn_id. Body ≤ 8000. Guards: in-flight dedup, send_inmails daily cap, SN-seat guard, SN surface guard, and on a NEW thread to someone outside the network the InMail-credits guard (422 no_inmail_credits when the seat's grant inmail_credits is known to be 0). Fire-on-success. A 403 SALES_SEAT_REQUIRED from LinkedIn is a stale Sales Navigator session, not a lost seat: the send re-arms it once (the sales_nav probe) and retries; a second refusal is 409 sales_session_stale (recoverable: run check_linkedin_account_premium_subscription with checks ["sales_nav"], retry), a seat the probe finds gone is 422 sales_nav_required. When NOT: basic-messenger threads → send_linkedin_message / send_linkedin_voice_message; cold InMail outside SN → send_linkedin_inmail; no SN seat is 422, so check linkedin-accounts.has_sn first.
 
         Contract:
         - MCP tool `send_linkedin_sales_nav_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -6801,7 +6801,7 @@ paths:
       operationId: create_linkedin_comment
       summary: Create LinkedIn comment
       description: |-
-        Leave ONE outbound comment on any LinkedIn post, addressed by its social-thread urn in entity_urn (wire create-comment) - a post urn in any of the four families entity_urn documents. Outward and fire-on-success: the post does NOT need to be tracked or owned by us; nothing is persisted here. Identity-bound: linkedin_account_sid REQUIRED, spends the comment_posts bucket (30/day at a 360 s floor), saturation returns 429. Reply to an existing comment via parent_comment_urn. mentions turns exact substrings of text into clickable profile links ({profile_id, name} pairs, matched left to right in list order - a name missing or out of order is a 422 with no dispatch spent). Returns the created comment ref plus the activity-log row. To react use react_linkedin_post; to read a post's comments and who wrote them use the scraping get-post-comments tool; to resolve a post URL use get_activity_urn_by_url.
+        Leave ONE outbound comment on any LinkedIn post (wire create-comment): entity_urn takes a post urn in any family or a post URL carrying one, and the comment is written on the post's social thread, which an activity or share urn costs one cached post read to name (see entity_urn). Outward and fire-on-success: the post does NOT need to be tracked or owned by us; nothing is persisted here. Identity-bound: linkedin_account_sid REQUIRED, spends the comment_posts bucket (30/day at a 360 s floor), saturation returns 429. Reply to an existing comment via parent_comment_urn. mentions turns exact substrings of text into clickable profile links ({profile_id, name} pairs, matched left to right in list order - a name missing or out of order is a 422 with no dispatch spent). Returns the created comment ref plus the activity-log row. To react use react_linkedin_post; to read a post's comments and who wrote them use the scraping get-post-comments tool; to resolve a post URL use get_activity_urn_by_url.
 
         Contract:
         - MCP tool `create_linkedin_comment`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -6842,7 +6842,7 @@ paths:
       operationId: create_linkedin_post
       summary: Create LinkedIn post
       description: |-
-        Publish ONE feed post - as the member, AS a company page it administers (author_organization_id), or INTO a group (group_id) - now or scheduled (scheduled_at) - wire create-post. Public; retract with delete_linkedin_post, or delete a scheduled draft with delete_linkedin_scheduled_post. Identity-bound: linkedin_account_sid REQUIRED, spends the posting bucket (20/day in series of 3 at a 1200 s pause; free plan 4), saturation returns 429. text is REQUIRED as a key but may be an EMPTY string when media is attached; no text, images or video at all is a 422. Media: up to 20 images XOR one video, base64 only, 35 MB decoded total. Body and alt text publish byte for byte, blank lines included. mentions makes spans of text clickable profile links (positions in UTF-16 code units); brand_partnership adds the "Brand partnership" flag; group_id and visibility are mutually exclusive. Nothing is stored here: the response carries the published post (urn, url, time, the body LinkedIn kept) plus the activity-log row.
+        Publish ONE feed post - as the member, AS a company page it administers (author_organization_id), or INTO a group (group_id) - now or scheduled (scheduled_at) - wire create-post. Public; retract with delete_linkedin_post, or delete a scheduled draft with delete_linkedin_scheduled_post. Identity-bound: linkedin_account_sid REQUIRED, spends the posting bucket (20/day in series of 3 at a 1200 s pause; free plan 4), saturation returns 429. text is REQUIRED as a key but may be an EMPTY string when media is attached; no text, images or video at all is a 422. Media: up to 20 images XOR one video, each base64 or an https url (see request_media_upload), 35 MB total. Body and alt text publish byte for byte, blank lines included. mentions makes spans of text clickable profile links (positions in UTF-16 code units); brand_partnership adds the "Brand partnership" flag; group_id excludes visibility. Nothing is stored here: the response carries the published post (urn, url, time, body) plus the activity-log row.
 
         Contract:
         - MCP tool `create_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7047,7 +7047,7 @@ paths:
       operationId: react_linkedin_post
       summary: React to LinkedIn post
       description: |-
-        Leave OUR reaction on any LinkedIn post OR comment, addressed by its social-thread urn in entity_urn (wire create-reaction): a post urn in any family, or a comment urn (either form) - the vocabulary entity_urn documents. The social-selling counterpart of create_linkedin_comment. Outward and fire-on-success: the post does NOT need to be tracked, nothing is persisted here. Identity-bound: linkedin_account_sid REQUIRED, spends the react_posts bucket (30/day at a 360 s floor), saturation returns 429. Returns reaction_urn (the created reaction's key; null on wire drift) plus the activity-log row. interested is the EVENT-post reaction: ordinary posts silently ignore it (success envelope, null reaction_urn, nothing lands - verified live), so a null urn after an interested react is the no-op tell. To comment use create_linkedin_comment; to read who already reacted use the scraping get-post-reactors tool.
+        Leave OUR reaction on any LinkedIn post OR comment (wire create-reaction): entity_urn takes a post urn in any family, a post URL carrying one, or a comment urn. A post is reacted on at its social thread; an activity or share urn costs one cached post read to name it (see entity_urn). The social-selling counterpart of create_linkedin_comment. Outward and fire-on-success: the post does NOT need to be tracked, nothing is persisted here. Identity-bound: linkedin_account_sid REQUIRED, spends the react_posts bucket (30/day at a 360 s floor), saturation returns 429. Returns reaction_urn (the reaction's key, naming the entity it landed on; null on drift or when LinkedIn ignored it) plus the activity-log row. interested is the EVENT-post reaction: ordinary posts silently ignore it (success envelope, null reaction_urn, nothing lands - verified live), so a null urn after an interested react is the no-op tell. To comment use create_linkedin_comment; to read who already reacted use the scraping get-post-reactors tool.
 
         Contract:
         - MCP tool `react_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7088,7 +7088,7 @@ paths:
       operationId: unreact_linkedin_post
       summary: Remove LinkedIn reaction
       description: |-
-        Remove OUR reaction from a LinkedIn post or comment, addressed by the same entity_urn react_linkedin_post took (wire delete-reaction). Undo a reaction left by mistake or by a play that has been retargeted. Takes no reaction_type: LinkedIn holds at most one reaction per account per entity, so removal is unambiguous. Identity-bound: linkedin_account_sid REQUIRED, spends the SAME react_posts bucket as reacting (30/day at a 360 s floor, bursting 2 so a reaction and its removal fit back-to-back), saturation returns 429. Removing a reaction that was never there is not a documented success on the wire, so it comes back as 409 reaction_not_removed rather than a cheerful no-op.
+        Remove OUR reaction from a LinkedIn post or comment, addressed by the same entity_urn react_linkedin_post took (wire delete-reaction). Undo a reaction left by mistake or by a play that has been retargeted. Takes no reaction_type: LinkedIn holds at most one reaction per account per entity, so removal is unambiguous. Identity-bound: linkedin_account_sid REQUIRED, spends the SAME react_posts bucket as reacting (30/day at a 360 s floor, bursting 2 so a reaction and its removal fit back-to-back), saturation returns 429. A post is addressed at its social thread exactly like react_linkedin_post, so undoing with the value you reacted with removes the reaction that landed. removed: true means LinkedIn accepted the delete, not that a reaction existed (a delete with nothing to remove answered true live, 2026-09-16); a refused removal comes back 409 reaction_not_removed.
 
         Contract:
         - MCP tool `unreact_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7252,7 +7252,7 @@ paths:
       operationId: scrape_linkedin_get_post_reactors
       summary: Scrape post reactors
       description: |-
-        Direct LinkedIn read (bypasses our DB): live pull of who is reacting to ONE post - or ONE COMMENT - right now, as transient reactor objects with reaction_type in OUR write vocabulary (interested = the event-post reaction), annotated with is_own. Target a post by URL or activity URN in post, or target a comment by its urn (either form: urn:li:comment:(...) or the fsd urn:li:fsd_comment:(...)) to read the comment's reactors (2026-08-21). One wire page per call; page on with cursor.
+        Direct LinkedIn read (bypasses our DB): live pull of who is reacting to ONE post - or ONE COMMENT - right now, as transient reactor objects with reaction_type in OUR write vocabulary (interested = the event-post reaction), annotated with is_own. Target a post by URL or urn in any family (activity, share, ugcPost, groupPost) in post, or target a comment by its urn (either form: urn:li:comment:(...) or the fsd urn:li:fsd_comment:(...)) to read the comment's reactors. LinkedIn files a post's reactions under its social thread, which is the ugcPost or groupPost urn for those posts and the activity urn for a share post; this tool names the thread for you and result.post.post_ln_id is the urn the feed was read by. One wire page per call; page on with cursor.
 
         Contract:
         - MCP tool `scrape_linkedin_get_post_reactors`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -7457,7 +7457,7 @@ paths:
       operationId: scrape_linkedin_search_companies
       summary: Scrape LinkedIn company search
       description: |-
-        One page of a regular LinkedIn company search, addressed EITHER by `filters` (keywords, geo ids, industry ids, headcount buckets) OR by a pasted /search/results/companies/ `url`: exactly one of the two, never both, never neither. Rows are company previews, not people. Same engine and the same company rows either way; page on with paging.has_more. For revenue, growth, follower, Fortune and buying-signal facets use scrape_linkedin_search_sales_nav_companies instead: this engine has none of them.
+        One page of a regular LinkedIn company search, addressed EITHER by `filters` (keywords, geo ids, industry ids, headcount buckets) OR by a pasted /search/results/companies/ `url`: exactly one of the two, never both, never neither. Rows are company previews, not people, carrying the card's industry, followers (LinkedIn's rounded count) and location next to the identity. Same engine and the same company rows either way; page on with paging.has_more. For revenue, growth, follower, Fortune and buying-signal facets use scrape_linkedin_search_sales_nav_companies instead: this engine has none of them.
 
         Contract:
         - MCP tool `scrape_linkedin_search_companies`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -7662,7 +7662,7 @@ paths:
       operationId: scrape_linkedin_search_people
       summary: Scrape LinkedIn people search
       description: |-
-        One page of a regular LinkedIn people search, addressed EITHER by `filters` OR by a pasted search `url`: exactly one of the two, never both, never neither. Use filters when the agent composes the search itself, url for a search already built in the LinkedIn UI or for anything the filter vocabulary cannot express. Same engine and the same person rows either way; page on with paging.has_more. commercial_use_limit_hit true means LinkedIn's monthly search paywall fired and rows may be truncated: switch to the Sales Navigator people tool or wait for the reset.
+        One page of a regular LinkedIn people search, addressed EITHER by `filters` OR by a pasted search `url`: exactly one of the two, never both, never neither. Use filters when the agent composes the search itself, url for a search already built in the LinkedIn UI or for anything the filter vocabulary cannot express. Same engine and the same person rows either way; page on with paging.has_more. Rows carry the card's headline, location and degree badge next to the identity (position / company_name are Recruiter-only). commercial_use_limit_hit true means LinkedIn's monthly search paywall fired and rows may be truncated: switch to the Sales Navigator people tool or wait for the reset.
 
         Contract:
         - MCP tool `scrape_linkedin_search_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -8225,7 +8225,7 @@ components:
             maxLength: 64
           minItems: 1
           maxItems: 20
-          description: Member URNs to add (1..20).
+          description: "Bare LinkedIn profile ids (ACoA...) to add, 1..20; not urn: strings."
       required:
         - participant_ln_ids
     AddLinkedinConversationParticipantsResponse:
@@ -8356,7 +8356,19 @@ components:
             - deleted_at
         result:
           type: object
-          additionalProperties: {}
+          properties:
+            status:
+              type: string
+              enum:
+                - success
+              description: "The only value this verb answers with: a refusal is a typed error, never a status."
+            activity_log_sid:
+              type: string
+              nullable: true
+              description: The linkedin-account-activity-log row of the call (ln_al_).
+          required:
+            - status
+            - activity_log_sid
         meta:
           type: object
           properties:
@@ -10217,10 +10229,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -10252,7 +10265,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -10747,7 +10760,7 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          description: "The target handle, in the wire's full social-thread vocabulary (2026-08-21): a post urn in any of the four families - urn:li:activity:<id> (member posts), urn:li:share:<id>, urn:li:ugcPost:<id> (company pages and newsletters), urn:li:groupPost:<groupId>-<postId> (group threads) - or a COMMENT key to target a comment, in either form: public urn:li:comment:((activity|share|ugcPost|groupPost):<id>,<id>) or the fsd urn:li:fsd_comment:(<commentId>,<full thread urn>) LinkedIn's own responses carry (normalized before the wire). All pass verbatim; a malformed urn is refused 422 before any dispatch. A post URL is also accepted when the id is in it: the feed permalink and the share link (/posts/<slug>-activity-<id>-<hash>) are both converted locally. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: reading those means opening the page, so call get_activity_urn_by_url first rather than have a write verb open a page silently. The post does NOT need to be tracked or owned by us. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
+          description: "The post to comment on. A comment is written on the post's social thread, and LinkedIn refuses one sent to any other key (live 2026-09-16: the activity urn of a ugcPost company post answered linkedin_400, its ugcPost urn took the comment), so a post handle is re-addressed at its thread before the wire. urn:li:ugcPost:<id> and urn:li:groupPost:<groupId>-<postId> are the thread and go as is. urn:li:activity:<id> and urn:li:share:<id> cost one post read first (the read enrich_linkedin_post_details makes, on this account, cached 7 days): a share post is commented at its activity urn, a ugcPost post at its ugcPost urn, a repost without commentary at the original. A post the read returns null for (deleted, or not visible to the account) is refused 422 post_not_resolvable. To reply under a comment, pass parent_comment_urn (no post read then). A post URL works when the id is in it: the feed permalink, the /posts/<slug>-activity-<id>-<hash> share link, the -ugcPost-<id>- share link. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: call enrich_linkedin_get_activity_urn_by_url first. The post does NOT need to be tracked or owned by us. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
         text:
           type: string
           minLength: 1
@@ -10866,7 +10879,12 @@ components:
               file_base64:
                 type: string
                 minLength: 1
-                description: "The image bytes: a data:<mime>;base64,<...> URL or bare base64. The only way to attach an image; there is no fetch-by-url arm."
+                description: "The image bytes of a PNG, JPEG, GIF or WEBP: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 or url. Checked before anything is dispatched: a damaged file, a non-image or invalid base64 is a 422 on this member (image_corrupt / image_format_unrecognized / image_not_base64) and spends nothing. Base64 typed out by hand is the usual source of damage: prefer url."
+              url:
+                type: string
+                maxLength: 2048
+                format: uri
+                description: An https URL of the image file, downloaded by us (public hosts only, the same 35 MB post budget, typed and checked by content). Exactly one of file_base64 or url. A request_media_upload file_url works once its upload is done. A link to a web page that shows the image is refused (image_format_unrecognized); fetch problems are media_url_invalid / media_url_host_forbidden / media_url_fetch_failed / media_too_large.
               file_byte_size:
                 type: integer
                 nullable: true
@@ -10885,8 +10903,6 @@ components:
                 type: string
                 nullable: true
                 description: Accessibility alt text; may be empty.
-            required:
-              - file_base64
           maxItems: 20
           description: Up to 20 images (the node's own cap; array order = carousel order). Mutually exclusive with video. The decoded bytes across ALL media must stay under 35 MB in total; over that is a 422, because a bigger body is refused by the node's JSON parser as a bare 413 with no response envelope. For 2+ images the backend supplies the account's own member id to the wire itself - no profile_id field exists here. Uploads are sequential node-side, so many large images make a SLOW synchronous call - the post can publish even if your client times out first, so do not blind-retry a timeout (a duplicate public post is the cost).
         visibility:
@@ -10908,7 +10924,12 @@ components:
             file_base64:
               type: string
               minLength: 1
-              description: "The video bytes: a data:<mime>;base64,<...> URL or bare base64. One video per post."
+              description: "The video bytes: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 or url."
+            url:
+              type: string
+              maxLength: 2048
+              format: uri
+              description: An https URL of an MP4, MOV or WEBM file, downloaded by us (public hosts only, within the 35 MB budget). Exactly one of file_base64 or url; a request_media_upload file_url works once uploaded.
             file_byte_size:
               type: integer
               nullable: true
@@ -10923,8 +10944,6 @@ components:
               nullable: true
               minLength: 1
               maxLength: 255
-          required:
-            - file_base64
           description: "ONE video, image-shaped minus alt_text. Mutually exclusive with images (LinkedIn does not mix them in a share - 422 here). Shares the 35 MB media budget. The upload is a single large PUT through the browser and is SLOW: the synchronous call can outlive your client timeout while the post still publishes - do not blind-retry."
         scheduled_at:
           type: string
@@ -17721,6 +17740,11 @@ components:
             - recruiter_relogin
             - share
           description: "What the page behind the link does: relogin = sign the LinkedIn session back in and re-bind the browser on confirm (default); share = drive the browser, no sign-in step; recruiter_relogin = the relogin flow aimed at LinkedIn Recruiter (2026-09-15): the cloud browser opens on linkedin.com/talent so the seat holder signs the Recruiter session back in, and the confirmed restart re-checks the account's recruiter_status."
+        send_to_email:
+          type: string
+          maxLength: 255
+          format: email
+          description: Also email the link to this address, typically the person who holds the LinkedIn password and has no account on the platform. The mail is queued after the key is committed; result.sent_to_email echoes the address. A malformed address is 422 and mints nothing.
       required:
         - sid
     GenerateCloudBrowserAccessKeyResponse:
@@ -17861,10 +17885,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -17896,7 +17921,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -18033,10 +18058,11 @@ components:
               properties:
                 key:
                   type: string
+                  nullable: true
                   minLength: 18
                   maxLength: 18
                   pattern: ^cb_ak_
-                  description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                  description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                 expires_at:
                   type: string
                   nullable: true
@@ -18072,6 +18098,9 @@ components:
             public_connect_url:
               type: string
               description: Shareable smart link carrying the key. Give this to the person who will open it.
+            sent_to_email:
+              type: string
+              description: "Present only when the request carried send_to_email: the address the link was mailed to. A queued send, not a delivery receipt."
           required:
             - access_key
             - public_connect_url
@@ -18246,10 +18275,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -18281,7 +18311,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -32623,7 +32653,7 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          description: "The target handle, in the wire's full social-thread vocabulary (2026-08-21): a post urn in any of the four families - urn:li:activity:<id> (member posts), urn:li:share:<id>, urn:li:ugcPost:<id> (company pages and newsletters), urn:li:groupPost:<groupId>-<postId> (group threads) - or a COMMENT key to target a comment, in either form: public urn:li:comment:((activity|share|ugcPost|groupPost):<id>,<id>) or the fsd urn:li:fsd_comment:(<commentId>,<full thread urn>) LinkedIn's own responses carry (normalized before the wire). All pass verbatim; a malformed urn is refused 422 before any dispatch. A post URL is also accepted when the id is in it: the feed permalink and the share link (/posts/<slug>-activity-<id>-<hash>) are both converted locally. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: reading those means opening the page, so call get_activity_urn_by_url first rather than have a write verb open a page silently. The post does NOT need to be tracked or owned by us. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
+          description: "The post or comment to react on. LinkedIn files a reaction under the post's social thread and silently drops one sent to any other key (success, null reaction_urn, nothing lands: captured live on the activity urn of a ugcPost company post), so a post handle is re-addressed at its thread before the wire. urn:li:ugcPost:<id> and urn:li:groupPost:<groupId>-<postId> are the thread and go as is. urn:li:activity:<id> and urn:li:share:<id> cost one post read first (the read enrich_linkedin_post_details makes, on this account, cached 7 days): a share post is reacted on at its activity urn, a ugcPost post at its ugcPost urn, a repost without commentary at the original. A post the read returns null for (deleted, or not visible to the account) is refused 422 post_not_resolvable. A COMMENT key targets a comment and passes verbatim, either form: urn:li:comment:((activity|share|ugcPost|groupPost):<id>,<id>) or urn:li:fsd_comment:(<commentId>,<full thread urn>). A post URL works when the id is in it: the feed permalink, the /posts/<slug>-activity-<id>-<hash> share link, the -ugcPost-<id>- share link. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: call enrich_linkedin_get_activity_urn_by_url first. A malformed urn is refused 422 before any dispatch. The post does NOT need to be tracked or owned by us."
         reaction_type:
           type: string
           nullable: true
@@ -32845,7 +32875,7 @@ components:
             maxLength: 64
           minItems: 1
           maxItems: 20
-          description: Member URNs to remove (1..20).
+          description: "Bare LinkedIn profile ids (ACoA...) to remove, 1..20; not urn: strings."
       required:
         - participant_ln_ids
     RemoveLinkedinConversationParticipantsResponse:
@@ -32976,7 +33006,19 @@ components:
             - deleted_at
         result:
           type: object
-          additionalProperties: {}
+          properties:
+            status:
+              type: string
+              enum:
+                - success
+              description: "The only value this verb answers with: a refusal is a typed error, never a status."
+            activity_log_sid:
+              type: string
+              nullable: true
+              description: The linkedin-account-activity-log row of the call (ln_al_).
+          required:
+            - status
+            - activity_log_sid
         meta:
           type: object
           properties:
@@ -33153,7 +33195,19 @@ components:
             - deleted_at
         result:
           type: object
-          additionalProperties: {}
+          properties:
+            status:
+              type: string
+              enum:
+                - success
+              description: "The only value this verb answers with: a refusal is a typed error, never a status."
+            activity_log_sid:
+              type: string
+              nullable: true
+              description: The linkedin-account-activity-log row of the call (ln_al_).
+          required:
+            - status
+            - activity_log_sid
         meta:
           type: object
           properties:
@@ -33348,10 +33402,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -33383,7 +33438,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -34636,10 +34691,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -34671,7 +34727,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -34990,10 +35046,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -35025,7 +35082,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -35547,21 +35604,27 @@ components:
                   headline:
                     type: string
                     nullable: true
+                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
                   position:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
+                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
                   avatar_url:
                     type: string
                     nullable: true
+                    description: Best effort on the regular engines (a DOM lookup, null when the card image had not rendered).
                   connection_degree:
                     type: string
                     nullable: true
+                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
                 required:
                   - ln_member_id
                   - ln_id
@@ -35700,21 +35763,27 @@ components:
                   headline:
                     type: string
                     nullable: true
+                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
                   position:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
+                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
                   avatar_url:
                     type: string
                     nullable: true
+                    description: Best effort on the regular engines (a DOM lookup, null when the card image had not rendered).
                   connection_degree:
                     type: string
                     nullable: true
+                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
                 required:
                   - ln_member_id
                   - ln_id
@@ -35810,7 +35879,7 @@ components:
         post:
           type: string
           maxLength: 512
-          description: "The post, named any way you have it. Cheapest is a post urn - `urn:li:share:<id>`, `urn:li:ugcPost:<id>` (company-page posts, newsletter issues), `urn:li:groupPost:<group>-<post>` - because that is what the comment list is actually addressed by. An `urn:li:activity:<id>`, a feed permalink (`/feed/update/urn:li:activity:<id>/`) or the share link the copy-link button produces (`/posts/<slug>-activity-<id>-<hash>`) all work too: the urn is parsed out locally at no cost, then converted to the post urn through one extra read that is cached for 7 days, so only the first call on a given post pays it. A linkedin.com link with no id in it (a bare slug URL) adds one more page load to find the urn. An `lnkd.in` shortlink (the form Copy link to post mints) is expanded server-side and its slug id lifted locally, one wire page like any id-carrying URL; one that expands to a non-LinkedIn target is refused 422 post_not_resolvable. A post LinkedIn will not name (deleted, or not visible to the executing account) is refused 422 post_urn_not_resolvable. The post does NOT need to be tracked or owned by you."
+          description: "The post, named any way you have it. LinkedIn files a post's comments under its social thread (the ugcPost or groupPost urn for those posts, the activity urn for a share post) and a wrong key fails quietly: the activity urn of a ugcPost post reads an EMPTY list newest-first and a first page with total 0 and no next cursor by relevance (live 2026-09-16), a share urn reads empty. So a `urn:li:ugcPost:<id>` or `urn:li:groupPost:<group>-<post>`, or a link carrying one (a `-ugcPost-<id>-` share link), is the thread and reads in one wire page; an `urn:li:activity:<id>` (bare, in a feed permalink or in a `/posts/<slug>-activity-<id>-<hash>` share link) or a `urn:li:share:<id>` costs one post read first (cached 7 days, so only the first call on a post pays it). result.post.post_ln_id is the urn the list was read by: page on with it to skip the read. A linkedin.com link with no id in it (a bare slug URL) adds one more page load to find the urn. An `lnkd.in` shortlink (the form Copy link to post mints) is expanded server-side and its slug id lifted locally, one wire page like any id-carrying URL; one that expands to a non-LinkedIn target is refused 422 post_not_resolvable, and so is a post the read returns null for (deleted, or not visible to the executing account). The post does NOT need to be tracked or owned by you."
         page_size:
           type: integer
           minimum: 1
@@ -36006,7 +36075,7 @@ components:
         post:
           type: string
           maxLength: 512
-          description: "A post URL, an activity URN, or a COMMENT urn (public or fsd form - passed to the wire verbatim, no page load: a comment IS the entity). Post forms accepted verbatim: `urn:li:activity:<id>`, the feed permalink (`/feed/update/urn:li:activity:<id>/`) and the share link the copy-link button produces (`/posts/<slug>-activity-<id>-<hash>`): all three are parsed locally, at no extra cost. A link with no id in it (a shortlink, a bare slug URL) is resolved by opening the page through get_activity_urn_by_url, which adds one extra page load to this call and is cached 7 days. The post does NOT need to be tracked or owned by you."
+          description: "A post URL, a post urn in any family, or a COMMENT urn (public or fsd form - passed to the wire verbatim, no post read: a comment IS the entity). Cheapest is the thread itself: a `urn:li:ugcPost:<id>` or `urn:li:groupPost:<group>-<post>`, or a URL carrying one (a `-ugcPost-<id>-` share link, a `/feed/update/urn:li:ugcPost:<id>/` permalink), read directly. An `urn:li:activity:<id>` (bare, in a feed permalink or in a `/posts/<slug>-activity-<id>-<hash>` share link) and a `urn:li:share:<id>` cost one extra post read first, the same read as enrich_linkedin_post_details and cached 7 days, so only the first call on a post pays it: an activity urn does not say whether it wraps a ugcPost or a share post, and the reactions read by the wrong key come back as an empty page. So if you already hold a post's post_urn and it is a ugcPost, pass that. A repost without commentary reads the original's reactions. An `lnkd.in` shortlink is expanded server-side at no cost; a linkedin.com link with no id in it (a bare slug URL) is resolved by opening the page through get_activity_urn_by_url, one more page load, cached 7 days. A post LinkedIn returns no post for (deleted, or not visible to the executing account) is refused 422 post_not_resolvable. The post does NOT need to be tracked or owned by you."
         page_size:
           type: integer
           minimum: 1
@@ -36837,6 +36906,7 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                    description: "Vanity slug; regular and similar-companies engines only (Sales Navigator: null, resolve via get-company-public-identifier)."
                   name:
                     type: string
                     nullable: true
@@ -36846,21 +36916,26 @@ components:
                   employees_size:
                     type: string
                     nullable: true
+                    description: Sales Navigator size bucket ("11-50"); null on the regular engine.
                   followers:
                     type: integer
                     nullable: true
+                    description: Regular and similar-companies engines; the regular card's rounded "4K followers" reads 4000.
                   location:
                     type: string
                     nullable: true
+                    description: "Regular engine: the card's location line; many cards print none."
                   tagline:
                     type: string
                     nullable: true
+                    description: Sales Navigator only.
                   logo_url:
                     type: string
                     nullable: true
                   website:
                     type: string
                     nullable: true
+                    description: On no search wire; always null.
                 required:
                   - company_ln_id
                   - nickname
@@ -37906,21 +37981,27 @@ components:
                   headline:
                     type: string
                     nullable: true
+                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
                   position:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
+                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
                   avatar_url:
                     type: string
                     nullable: true
+                    description: Best effort on the regular engines (a DOM lookup, null when the card image had not rendered).
                   connection_degree:
                     type: string
                     nullable: true
+                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
                 required:
                   - ln_member_id
                   - ln_id
@@ -39145,21 +39226,27 @@ components:
                   headline:
                     type: string
                     nullable: true
+                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
                   position:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
+                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
                   avatar_url:
                     type: string
                     nullable: true
+                    description: Best effort on the regular engines (a DOM lookup, null when the card image had not rendered).
                   connection_degree:
                     type: string
                     nullable: true
+                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
                   recruiter_id:
                     type: string
                     description: "The Recruiter (talent) profile id, AEMAA…: what send_linkedin_recruiter_message addresses as recipient_profile_id. Same member as ln_member_id."
@@ -39600,6 +39687,7 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                    description: "Vanity slug; regular and similar-companies engines only (Sales Navigator: null, resolve via get-company-public-identifier)."
                   name:
                     type: string
                     nullable: true
@@ -39609,21 +39697,26 @@ components:
                   employees_size:
                     type: string
                     nullable: true
+                    description: Sales Navigator size bucket ("11-50"); null on the regular engine.
                   followers:
                     type: integer
                     nullable: true
+                    description: Regular and similar-companies engines; the regular card's rounded "4K followers" reads 4000.
                   location:
                     type: string
                     nullable: true
+                    description: "Regular engine: the card's location line; many cards print none."
                   tagline:
                     type: string
                     nullable: true
+                    description: Sales Navigator only.
                   logo_url:
                     type: string
                     nullable: true
                   website:
                     type: string
                     nullable: true
+                    description: On no search wire; always null.
                 required:
                   - company_ln_id
                   - nickname
@@ -40168,21 +40261,27 @@ components:
                   headline:
                     type: string
                     nullable: true
+                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
                   position:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
+                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
                   avatar_url:
                     type: string
                     nullable: true
+                    description: Best effort on the regular engines (a DOM lookup, null when the card image had not rendered).
                   connection_degree:
                     type: string
                     nullable: true
+                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
                 required:
                   - ln_member_id
                   - ln_id
@@ -40541,21 +40640,27 @@ components:
                   headline:
                     type: string
                     nullable: true
+                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
                   position:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
+                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
                   avatar_url:
                     type: string
                     nullable: true
+                    description: Best effort on the regular engines (a DOM lookup, null when the card image had not rendered).
                   connection_degree:
                     type: string
                     nullable: true
+                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
                 required:
                   - ln_member_id
                   - ln_id
@@ -40698,6 +40803,7 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                    description: "Vanity slug; regular and similar-companies engines only (Sales Navigator: null, resolve via get-company-public-identifier)."
                   name:
                     type: string
                     nullable: true
@@ -40707,21 +40813,26 @@ components:
                   employees_size:
                     type: string
                     nullable: true
+                    description: Sales Navigator size bucket ("11-50"); null on the regular engine.
                   followers:
                     type: integer
                     nullable: true
+                    description: Regular and similar-companies engines; the regular card's rounded "4K followers" reads 4000.
                   location:
                     type: string
                     nullable: true
+                    description: "Regular engine: the card's location line; many cards print none."
                   tagline:
                     type: string
                     nullable: true
+                    description: Sales Navigator only.
                   logo_url:
                     type: string
                     nullable: true
                   website:
                     type: string
                     nullable: true
+                    description: On no search wire; always null.
                 required:
                   - company_ln_id
                   - nickname
@@ -40864,21 +40975,27 @@ components:
                   headline:
                     type: string
                     nullable: true
+                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
                   position:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
+                    description: Recruiter search only; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
+                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
                   avatar_url:
                     type: string
                     nullable: true
+                    description: Best effort on the regular engines (a DOM lookup, null when the card image had not rendered).
                   connection_degree:
                     type: string
                     nullable: true
+                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
                 required:
                   - ln_member_id
                   - ln_id
@@ -41110,6 +41227,8 @@ components:
                       - stopped_by_user
                       - started_after_maintenance
                       - stopped_before_delete
+                      - stopped_for_maintenance
+                      - released_after_maintenance
                       - start_failure
                       - proxy_error
                       - login_issue
@@ -41934,10 +42053,11 @@ components:
                       properties:
                         key:
                           type: string
+                          nullable: true
                           minLength: 18
                           maxLength: 18
                           pattern: ^cb_ak_
-                          description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                          description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                         expires_at:
                           type: string
                           nullable: true
@@ -41969,7 +42089,7 @@ components:
                         - max_connects
                         - allowed_ips
                         - allowed_countries
-                    description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+                    description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
                   created_by:
                     type: object
                     properties:
@@ -50539,7 +50659,7 @@ components:
             q:
               type: string
               maxLength: 128
-              description: FULLTEXT over message text + inmail subject.
+              description: "A LIKE (substring, case-insensitive) over message text + InMail subject. Message text only: it does not search contact names."
             sent_at:
               type: object
               properties:
@@ -51430,7 +51550,7 @@ components:
           type: string
           nullable: true
           maxLength: 300
-          description: Invitation note; server caps at 200 chars when the sender is not premium. Over the cap it is 422 unless allow_no_note_fallback is set.
+          description: "Invitation note; server caps at 200 chars when the sender is not premium. Over the cap it is 422 unless allow_no_note_fallback is set. Sent verbatim: the platform renders no merge fields, a {{first_name}} goes out as those braces."
         allow_no_note_fallback:
           type: boolean
           description: "Default false. When the note is longer than the sender's cap (200 free / 300 premium), send the invite WITHOUT it instead of refusing 422, for campaigns where reaching the person beats personalizing. The response says which happened in result.note_fallback_used, and the stored row carries note=null, so a follow-up does not assume a note the prospect never saw. Scope, stated plainly: this covers the length cap, which the server evaluates itself. LinkedIn's own monthly with-note quota is only visible at send time and arrives untyped, so a refusal there still fails the call rather than being retried blind (a retry after an ambiguous send can invite the person twice)."
@@ -51595,7 +51715,7 @@ components:
           type: string
           minLength: 1
           maxLength: 1900
-          description: InMail body; 1..1900 chars.
+          description: "InMail body; 1..1900 chars. Sent verbatim: the platform renders no merge fields, a {{first_name}} goes out as those braces."
         attachments:
           type: array
           items:
@@ -51609,7 +51729,7 @@ components:
                 type: string
                 maxLength: 2048
                 format: uri
-                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+                description: "An https URL of the file, downloaded by the backend and encoded for you (public hosts on port 443 only, no credentials in the URL; a request_media_upload file_url works once uploaded). Exactly one of file_base64 / file_url. Refused 422 on this member before anything is dispatched: attachment_url_invalid (not https, a port other than 443, credentials), attachment_url_host_forbidden (a private or reserved address), attachment_fetch_failed, attachments_too_large."
               file_name:
                 type: string
                 minLength: 1
@@ -51875,7 +51995,7 @@ components:
           type: string
           minLength: 1
           maxLength: 8000
-          description: Message body; 1..8000 chars.
+          description: "Message body; 1..8000 chars. Sent verbatim: the platform renders no merge fields, a {{first_name}} goes out as those braces."
         attachments:
           type: array
           items:
@@ -51889,7 +52009,7 @@ components:
                 type: string
                 maxLength: 2048
                 format: uri
-                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+                description: "An https URL of the file, downloaded by the backend and encoded for you (public hosts on port 443 only, no credentials in the URL; a request_media_upload file_url works once uploaded). Exactly one of file_base64 / file_url. Refused 422 on this member before anything is dispatched: attachment_url_invalid (not https, a port other than 443, credentials), attachment_url_host_forbidden (a private or reserved address), attachment_fetch_failed, attachments_too_large."
               file_name:
                 type: string
                 minLength: 1
@@ -52159,7 +52279,7 @@ components:
           type: string
           minLength: 1
           maxLength: 1900
-          description: InMail body; 1..1900 chars, \n line breaks.
+          description: "InMail body; 1..1900 chars, \\n line breaks. Sent verbatim: the platform renders no merge fields, a {{first_name}} goes out as those braces."
         attributes:
           type: array
           items:
@@ -52427,7 +52547,7 @@ components:
           type: string
           minLength: 1
           maxLength: 8000
-          description: Message body; 1..8000 chars.
+          description: "Message body; 1..8000 chars. Sent verbatim: the platform renders no merge fields, a {{first_name}} goes out as those braces."
         attachments:
           type: array
           items:
@@ -52441,7 +52561,7 @@ components:
                 type: string
                 maxLength: 2048
                 format: uri
-                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+                description: "An https URL of the file, downloaded by the backend and encoded for you (public hosts on port 443 only, no credentials in the URL; a request_media_upload file_url works once uploaded). Exactly one of file_base64 / file_url. Refused 422 on this member before anything is dispatched: attachment_url_invalid (not https, a port other than 443, credentials), attachment_url_host_forbidden (a private or reserved address), attachment_fetch_failed, attachments_too_large."
               file_name:
                 type: string
                 minLength: 1
@@ -52702,7 +52822,7 @@ components:
           properties:
             url:
               type: string
-              description: https:// source the backend fetches.
+              description: "An https URL of the audio file, downloaded by the backend (public hosts on port 443 only, no credentials in the URL, up to 32 MB before normalization). Refused 422 before anything is dispatched: audio_url_invalid (not https, a port other than 443, credentials), audio_url_host_forbidden (a private or reserved address), audio_fetch_failed, audio_too_large."
             base64:
               type: string
               description: Inline payload (~15 MB cap pre-normalization).
@@ -54200,7 +54320,7 @@ components:
           type: string
           minLength: 1
           maxLength: 8000
-          description: Opening message; 1..8000 chars.
+          description: "Opening message; 1..8000 chars. Sent verbatim: the platform renders no merge fields, a {{first_name}} goes out as those braces."
         conversation_title:
           type: string
           nullable: true
@@ -54219,7 +54339,7 @@ components:
                 type: string
                 maxLength: 2048
                 format: uri
-                description: https:// URL the BACKEND downloads server-side and encodes for you. Exactly one of file_base64 / file_url.
+                description: "An https URL of the file, downloaded by the backend and encoded for you (public hosts on port 443 only, no credentials in the URL; a request_media_upload file_url works once uploaded). Exactly one of file_base64 / file_url. Refused 422 on this member before anything is dispatched: attachment_url_invalid (not https, a port other than 443, credentials), attachment_url_host_forbidden (a private or reserved address), attachment_fetch_failed, attachments_too_large."
               file_name:
                 type: string
                 minLength: 1
@@ -54602,10 +54722,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -54637,7 +54758,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:
@@ -56940,7 +57061,7 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          description: "The target handle, in the wire's full social-thread vocabulary (2026-08-21): a post urn in any of the four families - urn:li:activity:<id> (member posts), urn:li:share:<id>, urn:li:ugcPost:<id> (company pages and newsletters), urn:li:groupPost:<groupId>-<postId> (group threads) - or a COMMENT key to target a comment, in either form: public urn:li:comment:((activity|share|ugcPost|groupPost):<id>,<id>) or the fsd urn:li:fsd_comment:(<commentId>,<full thread urn>) LinkedIn's own responses carry (normalized before the wire). All pass verbatim; a malformed urn is refused 422 before any dispatch. A post URL is also accepted when the id is in it: the feed permalink and the share link (/posts/<slug>-activity-<id>-<hash>) are both converted locally. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: reading those means opening the page, so call get_activity_urn_by_url first rather than have a write verb open a page silently. The post does NOT need to be tracked or owned by us. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
+          description: "The post or comment to react on. LinkedIn files a reaction under the post's social thread and silently drops one sent to any other key (success, null reaction_urn, nothing lands: captured live on the activity urn of a ugcPost company post), so a post handle is re-addressed at its thread before the wire. urn:li:ugcPost:<id> and urn:li:groupPost:<groupId>-<postId> are the thread and go as is. urn:li:activity:<id> and urn:li:share:<id> cost one post read first (the read enrich_linkedin_post_details makes, on this account, cached 7 days): a share post is reacted on at its activity urn, a ugcPost post at its ugcPost urn, a repost without commentary at the original. A post the read returns null for (deleted, or not visible to the account) is refused 422 post_not_resolvable. A COMMENT key targets a comment and passes verbatim, either form: urn:li:comment:((activity|share|ugcPost|groupPost):<id>,<id>) or urn:li:fsd_comment:(<commentId>,<full thread urn>). A post URL works when the id is in it: the feed permalink, the /posts/<slug>-activity-<id>-<hash> share link, the -ugcPost-<id>- share link. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: call enrich_linkedin_get_activity_urn_by_url first. A malformed urn is refused 422 before any dispatch. The post does NOT need to be tracked or owned by us."
       required:
         - linkedin_account_sid
         - entity_urn
@@ -57462,10 +57583,11 @@ components:
                 properties:
                   key:
                     type: string
+                    nullable: true
                     minLength: 18
                     maxLength: 18
                     pattern: ^cb_ak_
-                    description: "The bearer token itself. Readable in full here, and only here: on cloud-browser-sessions it is masked to the last 4."
+                    description: "The bearer token itself, in full, for a caller holding can_manage_cloud_browser_external_links (the permission that mints it: reading a key is the same power as minting one, since the public connect checks nothing but the key). null for every other caller; the entry stays so the link, its expiry and its use can still be listed. On cloud-browser-sessions it is masked to the last 4."
                   expires_at:
                     type: string
                     nullable: true
@@ -57497,7 +57619,7 @@ components:
                   - max_connects
                   - allowed_ips
                   - allowed_countries
-              description: The smart links minted on this browser, keys included in full. Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+              description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
             created_by:
               type: object
               properties:

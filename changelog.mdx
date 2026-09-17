@@ -3,6 +3,143 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-17" description="Upload slots for post media, media by URL on create-post, image checks before dispatch">
+  **A place to put a file the caller cannot send inline.** `request_media_upload` (the id platform mount)
+  reserves an upload slot and answers with a one-time upload link on our domain (a person opens it and drops
+  the file, a shell runs `curl -T <file> <link>`), a public `file_url` to pass on, and, when `file_type` is
+  given, a pre-signed S3 form. A slot takes one file of up to 35 MB within 30 minutes, the object is kept for
+  7 days, and a workspace may request 120 slots an hour. Purpose `post_media` (PNG, JPEG, GIF, WEBP, MP4,
+  MOV, WEBM) is the only purpose today.
+
+  **`create_linkedin_post` takes media by URL.** Each `images[]` member and `video` carries exactly one of
+  `file_base64` or `url`; a URL, an upload slot's `file_url` included, is downloaded by the platform over
+  https from a public host and checked before the post is dispatched. Typing a file out as base64 damages
+  it: an agent that re-typed a PNG produced a corrupt file, and LinkedIn answered with an empty 400 after the
+  upload. A damaged image is now refused up front, before any browser or LinkedIn call: `422` on
+  `images[i].file_base64` (or `images[i].url`) with rule `image_not_base64`, `image_format_unrecognized` or
+  `image_corrupt`.
+
+  **Every URL the platform downloads for you is https and public.** `attachments[].file_url` on
+  `send_linkedin_message`, `send_linkedin_inmail`, `send_linkedin_sales_nav_message` and
+  `send_linkedin_recruiter_message`, and `audio.url` on `send_linkedin_voice_message`, must be https URLs of
+  public hosts. A private or reserved address, credentials in the URL or a port other than 443 answer `422`
+  (`attachment_url_invalid` / `attachment_url_host_forbidden`, `audio_url_invalid` /
+  `audio_url_host_forbidden`); the codes for a failed or oversized download are unchanged.
+</Update>
+
+<Update label="2026-09-17" description="Reactions and comments land on the post's social thread">
+  **The tools address a post's social thread for you.** LinkedIn files reactions and comments under the
+  post's own `urn:li:ugcPost:` or `urn:li:groupPost:` for those families, and under the activity urn for a
+  `urn:li:share:` post. A reaction sent to the wrong key answered success and landed nowhere, and a comment
+  was refused with `linkedin_400`. `react_linkedin_post`, `unreact_linkedin_post`,
+  `create_linkedin_comment`, `scrape_linkedin_get_post_reactors` and `scrape_linkedin_get_post_comments` now
+  take a post urn of any family or a post link (a `-ugcPost-<id>-` share link and a
+  `/feed/update/urn:li:ugcPost:<id>/` permalink included) and name the thread before the wire. An activity
+  or share urn costs one post read on the acting account, cached for 7 days; a post that cannot be read
+  answers `422 post_not_resolvable`. `post.post_ln_id` in the reactor and comment lists is the urn the page
+  was read by.
+</Update>
+
+<Update label="2026-09-17" description="Mass actions: the sender is a step arg, a target's own extras win, preview says more">
+  **A send step names its sender in `args`.** `preview_mass_action` refuses a
+  `linkedin-connection-requests.send`, `linkedin-messages.send` or `email-messages.send` step without
+  `args.linkedin_account_sid` / `args.email_account_sid` (`422`, rule `sender_required` on
+  `plan.steps.{i}.args.<key>`). Such a run used to pass preview and fail on its first item.
+
+  **A target's own `client_reference`, `note` and `allow_no_note_fallback` win over the step args.** The
+  args stay the run-level default. This reverses the 2026-09-16 note below: `client_reference` is the key of
+  one row, and a run that names one per target keeps them.
+
+  **`preview_mass_action` warns and estimates.** `warnings[]` lists every `{{placeholder}}` in the step args
+  (the platform renders no merge fields; the braces go out as typed), and `eta.estimated_completion_at` is
+  filled for a scheduled run: the first item starts at once, each further gap is the mean of the schedule's
+  interval.
+
+  **`append_mass_action_items` takes payload leads only.** A generate run (step 1 is a `.create` verb) and
+  an objects run (items addressed by an existing row) answer `422 run_not_payload_addressed`; create a new
+  run instead.
+
+  **Runs authored with an API key work.** The identity behind a `gtm_live_` key now carries the workspace's
+  home cluster, so a mass action created through the REST API no longer fails its first channel step.
+
+  **`get_webhook_logs_metrics` rates are ratios of terminal outcomes.** `success_rate` and `failure_rate`
+  divide by succeeded plus failed deliveries and are `null` while nothing terminal exists in the period;
+  deliveries still retrying no longer read as a zero failure rate.
+</Update>
+
+<Update label="2026-09-17" description="Stricter tool arguments, live reads marked, smart limits and InMail">
+  **Unknown keys in tool arguments are refused.** The MCP tools and the REST edge parse strictly: a key the
+  schema does not know answers `422 validation_failed` with rule `unknown_key` and a hint, for example the
+  nested `filter` shape or `filter.q` for free text. A dotted filter key that used to fall through as an
+  empty filter now fails loudly.
+
+  **The ten `get_my_latest_*` tools are live reads.** They start the account's browser and read LinkedIn, so
+  they carry `readOnlyHint: false` and `openWorldHint: true`; an MCP client that auto-approves read-only
+  tools will ask first.
+
+  **`set_linkedin_account_smart_limits` remembers nothing.** A real flip in either direction puts every
+  limit row of the account back on the platform defaults first (cap, hold, burst, target), so off never
+  inherits the ramp's last cap and on never inherits a hand-typed one.
+
+  **Smart-limit rows of a deleted account are gone from the public surface.**
+  `search_linkedin_account_smart_limits` no longer lists them, and `update_linkedin_account_smart_limit`
+  and `reset_linkedin_account_smart_limit_hold` answer `404`.
+
+  **InMail credits guard the send.** `send_linkedin_inmail`, and a `send_linkedin_sales_nav_message` that
+  opens a new thread outside the network, refuse before the wire when the account's pool is known to be
+  empty (`422 no_inmail_credits`). The balance LinkedIn reports after a send is written back to the account,
+  a `NOT_ENOUGH_INMAIL_CREDIT` refusal zeroes it, and a stale Sales Navigator session is re-armed once before
+  `409 sales_session_stale`.
+
+  **Cloud-browser access keys are shown only to callers who may mint them.** A read with a token that lacks
+  `can_manage_cloud_browser_external_links` gets the `cloud_browser_access` entries with `key: null`; the
+  link, its expiry and its use stay visible. `generate_cloud_browser_access_key` takes `send_to_email`: the
+  platform mails the link to that address, and the result carries `sent_to_email`.
+
+  **Group conversation verbs are tracked.** `add_linkedin_conversation_participants`,
+  `remove_linkedin_conversation_participants` and `rename_linkedin_conversation` write an activity-log row
+  (`activity_log_sid` in the result), a LinkedIn refusal is the typed `409 linkedin_refused`, and
+  `participant_ln_ids` take bare profile ids (a urn is `422`).
+
+  **Voice messages: our failure is not your file.** A transcoder missing on the platform answers
+  `503 audio_transcoder_unavailable`; audio that cannot be decoded answers `422 audio_invalid`.
+
+  **Proxy location checks no longer report a false mismatch.** A check that could not conclude
+  (`no_ip_port`, `exit_unreachable`, `no_corroboration`) is recorded as inconclusive.
+</Update>
+
+<Update label="2026-09-17" description="Workspace deletion in 30 days with two notices, deleted workspaces cleaned up everywhere, smaller fixes">
+  **The data-retention clock is 30 days, with two emails and no restore.** After a terminal loss of coverage
+  a workspace is scheduled for deletion 30 days out (it was 8 weeks): the owner gets one email when the date
+  is set and a final notice 72 hours before, and the deletion runs only after the final notice went out.
+  `delete_team` answers `recovery_available_until: null`: a deleted workspace is not restored.
+
+  **A deleted workspace is cleaned up on every service.** On deletion its webhooks stop and its mass-action
+  runs are stopped; its LinkedIn accounts are disconnected and the platform's own browser profiles released.
+  Thirty days later every row the workspace owned is deleted for good, LinkedIn data, browsers, logs and
+  photos included.
+
+  **`linkedin-connection-requests.resend-available` is sent.** The event was in the webhook catalog but
+  nothing emitted it; an hourly sweep now announces each withdrawn request once its 21-day cooldown has
+  passed, once per row.
+
+  **An auto scrape run waits out a pacing refusal instead of failing.** A page refused by the scraping
+  bucket's batch pace (`delay_not_elapsed`) parks the run at its cursor and resumes it; only budget
+  exhaustion (`daily_saturation`, a hold, a LinkedIn quota) fails a run. Runs used to fail on page 3 and
+  restart from page 1.
+
+  **A browser parked by a platform maintenance window comes back on its own.** It is released to `idle`
+  and wakes on its next due sync or dispatch; it used to be released to `stopped`, which nothing restarted.
+
+  **The card a first checkout paid with shows up.** The first transaction of a subscription is attached to
+  it even though Paddle delivers it before the subscription event, so the payment-methods list derives the
+  billing card from it right after checkout.
+
+  **Data request reads no longer hit MySQL's sort-memory limit.** A workspace with one large cached result
+  (over 256 KB) got `500` on cache reuse, on a nickname resolve and on `search_data_requests`; those reads
+  were reworked and the lookups are index-served.
+</Update>
+
 <Update label="2026-09-16" description="Removing a card a subscription still uses answers 409">
   **A card a subscription still uses is a conflict, not a server error.**
   `delete_billing_payment_method` (`DELETE /api/billing-payment-methods/{sid}`) only takes a method
