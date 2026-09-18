@@ -14,29 +14,46 @@ on) has its own daily bucket. When a bucket is spent, further actions of that ki
 until the budget refreshes. Parked work resumes automatically as soon as the limit
 releases; nothing needs re-queuing.
 
-## Pacing: bursts and holds
+## Pacing: one call at a time
 
-Inside the day, every bucket paces as "N at once, then hold X seconds": a burst of `batch_size`
-calls fires back-to-back, then `delay_in_seconds` passes before the next burst. Reads are paced in
-single seconds, actions in tens of seconds; connection requests and posts are deliberately slower.
-Both numbers are per account and editable (burst 1..10, hold 1..3600 s), and the platform's own
-values for the account come back on every row as `recommended_delay_in_seconds`.
+Inside the day, calls of one bucket leave one at a time with a gap between them. The gap is
+`delay_in_seconds / batch_size` of the bucket's row, varied by up to 20% per call. Reads are
+paced in single seconds, actions in tens of seconds; connection requests and posts are
+deliberately slower. Both numbers are per account and editable (`batch_size` 1..10,
+`delay_in_seconds` 1..3600), and the platform's own value for the account comes back on every
+row as `recommended_delay_in_seconds`.
 
-| Action type | Per day | Burst | Hold |
-|---|---|---|---|
-| Connection requests | 25 | 2 | 60 s |
-| Accept / ignore / withdraw / follow | 40 | 3 | 10 s |
-| Messages, voice notes | 50 | 3 | 30 s |
-| InMails, Sales Navigator and Recruiter messages | 30 | 2 | 45 s |
-| Inbox housekeeping (read / unread, mute, attachments) | 100 | 3 | 10 s |
-| Comments | 30 | 2 | 60 s |
-| Reactions, endorsements | 30 | 3 | 20 s |
-| Profile visits | 50 | 3 | 30 s |
-| Profile edits | 10 | 1 | 30 s |
-| Searches, typeaheads, engagement lists | 100 | 2 | 10 s |
-| Profile, company and post reads | 80 | 2 | 10 s |
-| Posts | 20 | 3 | 120 s |
-| Own-account sync reads | 200 | 8 | 6 s |
+| Action type | Per day | One call about every |
+|---|---|---|
+| Connection requests | 25 | 30 s |
+| Accept / ignore / withdraw / follow | 40 | 4 s |
+| Messages, voice notes | 50 | 10 s |
+| InMails, Sales Navigator and Recruiter messages | 30 | 23 s |
+| Inbox housekeeping (read / unread, mute, attachments) | 100 | 4 s |
+| Comments | 30 | 30 s |
+| Reactions, endorsements | 30 | 7 s |
+| Profile visits | 50 | 10 s |
+| Profile edits | 10 | 30 s |
+| Searches, typeaheads, engagement lists | 100 | 5 s |
+| Profile, company and post reads | 80 | 5 s |
+| Posts | 20 | 40 s |
+| Own-account sync reads | 200 | 1 s |
+| Custom requests | 60 | 5 s |
+
+An undo (unreact, delete a comment or a post, unendorse, unfollow, withdraw a request, recall a
+message) waits 2 seconds instead of the bucket's gap, so an action and its undo fit back to back.
+
+The slot is reserved before the call leaves, so two calls fired in the same second never reach
+LinkedIn together: the second one queues behind the first. What the caller sees depends on how
+long the queue is:
+
+| Wait for the slot | What happens |
+|---|---|
+| Up to 20 seconds | The server sleeps it. The call simply takes longer and answers normally |
+| Longer | `429 rate_limited`, `context.reason` `bucket_saturated`, `cause` `delay_not_elapsed`, and `retry_after`: the moment the same call goes through |
+
+Parallel calls on one account therefore buy nothing. Run them one after another, or spread the
+work over several accounts: every account paces on its own.
 
 On top of every bucket, one account starts at most 10 calls a minute.
 
@@ -68,7 +85,7 @@ working.
 ## Smart limits on or off: one switch per account
 
 Smart limits are a single switch on the account, not a setting per bucket. While they are
-on, the warmup owns every daily cap, hold and burst: a request that types one of them by hand
+on, the warmup owns every daily cap and pacing number: a request that types one of them by hand
 is refused with `409` and `context.reason` `smart_limits_governed`, and the answer names the
 fields it refused and the two ways forward. Inside the protected mode you can still bound a
 bucket with `target_limit` (the cap follows `min(smart, target)` at once) and pin the learner
@@ -114,10 +131,12 @@ curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-account-smart-lim
 </CodeGroup>
 
 <Warning>
-Hitting a budget or a hold over the API answers `429 rate_limited` with `context.reason`
-`bucket_saturated` and a `retry_after` timestamp. Inside a mass action the item is parked on
-that clock and resumes on its own; a direct call simply retries after it. The account is not
-penalized for your retry logic.
+Hitting a budget, a hold or a pacing gap longer than 20 seconds over the API answers
+`429 rate_limited` with `context.reason` `bucket_saturated`, the `cause` (`daily_saturation`,
+`held`, `delay_not_elapsed` or `linkedin_quota_hit`) and a `retry_after` timestamp. Inside a
+mass action the item is parked on that clock and resumes on its own; a direct call retries at
+`retry_after`, not earlier: an earlier retry is refused again with the same timestamp. The
+account is not penalized for your retry logic.
 </Warning>
 
 ## Related

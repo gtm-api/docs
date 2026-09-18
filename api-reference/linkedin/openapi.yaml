@@ -1678,7 +1678,7 @@ paths:
         Contract:
         - MCP tool `check_linkedin_account_premium_subscription`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -1720,6 +1720,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/check-target-block:
     post:
       operationId: check_linkedin_account_target_block
@@ -1730,7 +1731,7 @@ paths:
         Contract:
         - MCP tool `check_linkedin_account_target_block`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -1772,6 +1773,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/endorse-skill:
     post:
       operationId: endorse_linkedin_account_skill
@@ -1782,7 +1784,7 @@ paths:
         Contract:
         - MCP tool `endorse_linkedin_account_skill`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `endorse_skills` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -1824,17 +1826,18 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: endorse_skills
   /api/linkedin-accounts/{sid}/endorse-skill-by-id:
     post:
       operationId: endorse_linkedin_account_skill_by_id
       summary: Endorse skill by id
       description: |-
-        Endorse ONE explicit skill on a 1st-degree connection as this account (wire endorse-skill, ?action=endorse). Unlike endorse_linkedin_account_skill there is no discovery read and no auto-pick: you supply skill_id, exactly one dispatch. Skill ids exist only on skills that already carry at least one endorsement (a zero-endorsement skill is not addressable), so take them from the enrichment person-skills read. Requires a 1st-degree connection (409 not_connected). Spends the endorse_skills bucket (30/day at 360 s, bursts 2 so an endorse and its undo fire back to back). Returns the echoed skill urn, endorsed_by_viewer (true after endorse) and the global endorsement_count, plus the activity-log row. Re-endorsing is a LinkedIn-side no-op; undo with unendorse_linkedin_account_skill.
+        Endorse ONE explicit skill on a 1st-degree connection as this account (wire endorse-skill, ?action=endorse). Unlike endorse_linkedin_account_skill there is no discovery read and no auto-pick: you supply skill_id, exactly one dispatch. Skill ids exist only on skills that already carry at least one endorsement (a zero-endorsement skill is not addressable), so take them from the enrichment person-skills read. Requires a 1st-degree connection (409 not_connected). Spends the endorse_skills bucket (30/day, paced; the undo waits only 2 s, so an endorse and its undo fit back to back). Returns the echoed skill urn, endorsed_by_viewer (true after endorse) and the global endorsement_count, plus the activity-log row. Re-endorsing is a LinkedIn-side no-op; undo with unendorse_linkedin_account_skill.
 
         Contract:
         - MCP tool `endorse_linkedin_account_skill_by_id`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `endorse_skills` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -1876,6 +1879,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: endorse_skills
   /api/linkedin-accounts/{sid}/get-my-analytics:
     post:
       operationId: get_linkedin_account_my_analytics
@@ -1886,7 +1890,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_analytics`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -1928,6 +1932,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-catch-up:
     post:
       operationId: get_linkedin_account_my_catch_up
@@ -1938,7 +1943,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_catch_up`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -1980,6 +1985,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-credits:
     post:
       operationId: get_linkedin_account_my_credits
@@ -1990,7 +1996,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_credits`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2026,6 +2032,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-following:
     post:
       operationId: get_linkedin_account_my_following
@@ -2036,7 +2043,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_following`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2078,6 +2085,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-full-profile:
     post:
       operationId: get_linkedin_account_my_full_profile
@@ -2088,7 +2096,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_full_profile`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2124,6 +2132,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-hiring-projects:
     post:
       operationId: get_linkedin_account_my_hiring_projects
@@ -2134,7 +2143,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_hiring_projects`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2176,6 +2185,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-lite-profile:
     post:
       operationId: get_linkedin_account_my_lite_profile
@@ -2186,7 +2196,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_lite_profile`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2222,6 +2232,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-profile-views:
     post:
       operationId: get_linkedin_account_my_profile_views
@@ -2232,7 +2243,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_profile_views`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2274,6 +2285,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-recruiter-contracts:
     post:
       operationId: get_linkedin_account_my_recruiter_contracts
@@ -2284,7 +2296,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_recruiter_contracts`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2320,6 +2332,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-recruiter-seat:
     post:
       operationId: get_linkedin_account_my_recruiter_seat
@@ -2330,7 +2343,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_recruiter_seat`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2366,6 +2379,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-sales-nav-notifications:
     post:
       operationId: get_linkedin_account_my_sales_nav_notifications
@@ -2376,7 +2390,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_sales_nav_notifications`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2418,6 +2432,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-sessions:
     post:
       operationId: get_linkedin_account_my_sessions
@@ -2428,7 +2443,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_sessions`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2464,6 +2479,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/get-my-ssi:
     post:
       operationId: get_linkedin_account_my_ssi
@@ -2474,7 +2490,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_account_my_ssi`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2510,6 +2526,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/my-profile:
     patch:
       operationId: edit_linkedin_account_my_profile
@@ -2520,7 +2537,7 @@ paths:
         Contract:
         - MCP tool `edit_linkedin_account_my_profile`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `edit_profile` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2562,6 +2579,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: edit_profile
   /api/linkedin-accounts/{sid}/reset-sync:
     post:
       operationId: reset_linkedin_account_sync
@@ -2624,7 +2642,7 @@ paths:
         Contract:
         - MCP tool `select_linkedin_account_recruiter_contract`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2661,17 +2679,18 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
-      x-gtm-dangerous: false
+      x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-accounts/{sid}/set-smart-limits:
     post:
       operationId: set_linkedin_account_smart_limits
       summary: Set account smart limits
       description: |-
-        Switch smart-limit governance on or off for the WHOLE account, every bucket at once (no per-bucket toggle). The switch remembers nothing: a real flip in EITHER direction first resets every limit row to the platform defaults (daily_limit = the bucket's platform max, delay / burst = the enum pair, target_limit = the platform default, hold cleared). ON: the warmup then sets every row's daily_limit / delay_in_seconds / batch_size (re-derived from the latest snapshot) and update_linkedin_account_smart_limit refuses those fields with 409 smart_limits_governed; target_limit and learning_enabled stay yours. The seeded target_limit is a target the warmup climbs toward, never a limit somebody set. OFF: every cap runs exactly as typed and the account loses the warmup ban protection: say so first, read the rows' recommended_* before typing caps. Idempotent. SINGLE account: a fleet is a mass action with step linkedin-accounts.set-smart-limits (scope objects, args {enabled}), run BEFORE a limit-row run on the same senders.
+        Switch smart-limit governance on or off for the WHOLE account, every bucket at once (no per-bucket toggle). The switch remembers nothing: a real flip in EITHER direction first resets every limit row to the platform defaults (daily_limit = the bucket's platform max, delay / batch = the enum pair, target_limit = the platform default, hold cleared). ON: the warmup then sets every row's daily_limit / delay_in_seconds / batch_size (re-derived from the latest snapshot) and update_linkedin_account_smart_limit refuses those fields with 409 smart_limits_governed; target_limit and learning_enabled stay yours. The seeded target_limit is a target the warmup climbs toward, never a limit somebody set. OFF: every cap runs exactly as typed and the account loses the warmup ban protection: say so first, read the rows' recommended_* before typing caps. Idempotent. SINGLE account: a fleet is a mass action with step linkedin-accounts.set-smart-limits (scope objects, args {enabled}), run BEFORE a limit-row run on the same senders.
 
         Contract:
         - MCP tool `set_linkedin_account_smart_limits`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -2723,12 +2742,12 @@ paths:
       operationId: unendorse_linkedin_account_skill
       summary: Unendorse skill
       description: |-
-        Retract ONE skill endorsement this account holds on a 1st-degree connection (wire unendorse-skill, ?action=unendorse): the undo of endorse_linkedin_account_skill / endorse_linkedin_account_skill_by_id, addressed by the same skill_id. Spends the SAME endorse_skills bucket as the endorse it reverses (verb-pair rule; the bucket bursts 2 so a do/undo pair fires back to back). Returns the echoed skill urn, endorsed_by_viewer (false after unendorse) and the global endorsement_count, plus the activity-log row. Retracting the LAST endorsement of a skill collapses its person-skills row to name only (no skill_id, no count). Retracting one this account never made is unverified on the wire.
+        Retract ONE skill endorsement this account holds on a 1st-degree connection (wire unendorse-skill, ?action=unendorse): the undo of endorse_linkedin_account_skill / endorse_linkedin_account_skill_by_id, addressed by the same skill_id. Spends the SAME endorse_skills bucket as the endorse it reverses (verb-pair rule; an undo is paced 2 s, not the bucket delay, so a do/undo pair fits back to back). Returns the echoed skill urn, endorsed_by_viewer (false after unendorse) and the global endorsement_count, plus the activity-log row. Retracting the LAST endorsement of a skill collapses its person-skills row to name only (no skill_id, no count). Retracting one this account never made is unverified on the wire.
 
         Contract:
         - MCP tool `unendorse_linkedin_account_skill`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `endorse_skills` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2770,6 +2789,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: endorse_skills
   /api/linkedin-accounts/{sid}/update-sync-config:
     post:
       operationId: update_linkedin_account_sync_config
@@ -2832,7 +2852,7 @@ paths:
         Contract:
         - MCP tool `visit_linkedin_account_profile`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `visit_profiles` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       parameters:
@@ -2874,6 +2894,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: visit_profiles
   /api/linkedin-auto-scrape-results/search:
     post:
       operationId: search_linkedin_auto_scrape_results
@@ -3531,7 +3552,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_connection_invitations`, registry package `mcp.linkedin/linkedin_connection_invitations`, mount `linkedin.network`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connection_invitations
       requestBody:
@@ -3562,6 +3583,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-connection-invitations/metrics:
     post:
       operationId: get_linkedin_connection_invitations_metrics
@@ -3695,7 +3717,7 @@ paths:
         Contract:
         - MCP tool `accept_linkedin_connection_invitation`, registry package `mcp.linkedin/linkedin_connection_invitations`, mount `linkedin.network`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connection_invitations
       parameters:
@@ -3731,6 +3753,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-connection-invitations/{sid}/ignore:
     post:
       operationId: ignore_linkedin_connection_invitation
@@ -3741,7 +3764,7 @@ paths:
         Contract:
         - MCP tool `ignore_linkedin_connection_invitation`, registry package `mcp.linkedin/linkedin_connection_invitations`, mount `linkedin.network`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connection_invitations
       parameters:
@@ -3777,6 +3800,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-connection-requests/get-my-latest:
     post:
       operationId: get_my_latest_linkedin_connection_requests
@@ -3787,7 +3811,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_connection_requests`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connection_requests
       requestBody:
@@ -3818,6 +3842,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-connection-requests/metrics:
     post:
       operationId: get_linkedin_connection_requests_metrics
@@ -3910,7 +3935,7 @@ paths:
         Contract:
         - MCP tool `send_linkedin_connection_request`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item; paced: a call spends the `send_connection_requests` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connection_requests
       requestBody:
@@ -3941,6 +3966,7 @@ paths:
       x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: send_connection_requests
   /api/linkedin-connection-requests/sync-linkedin-connection-requests:
     post:
       operationId: sync_linkedin_connection_requests
@@ -3992,7 +4018,7 @@ paths:
         Contract:
         - MCP tool `withdraw_linkedin_connection_request`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connection_requests
       parameters:
@@ -4028,6 +4054,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-connections/check-degree:
     post:
       operationId: check_linkedin_connection_degree
@@ -4038,7 +4065,7 @@ paths:
         Contract:
         - MCP tool `check_linkedin_connection_degree`, registry package `mcp.linkedin/linkedin_connections`, mount `linkedin.network`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connections
       requestBody:
@@ -4069,6 +4096,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-connections/get-my-latest:
     post:
       operationId: get_my_latest_linkedin_connections
@@ -4079,7 +4107,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_connections`, registry package `mcp.linkedin/linkedin_connections`, mount `linkedin.network`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connections
       requestBody:
@@ -4110,6 +4138,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-connections/metrics:
     post:
       operationId: get_linkedin_connections_metrics
@@ -4243,7 +4272,7 @@ paths:
         Contract:
         - MCP tool `remove_linkedin_connection`, registry package `mcp.linkedin/linkedin_connections`, mount `linkedin.network`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_connections
       parameters:
@@ -4285,6 +4314,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-conversations/get-my-latest:
     post:
       operationId: get_my_latest_linkedin_conversations
@@ -4295,7 +4325,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_conversations`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       requestBody:
@@ -4326,6 +4356,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-conversations/get-my-latest-recruiter:
     post:
       operationId: get_my_latest_linkedin_conversations_recruiter
@@ -4336,7 +4367,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_conversations_recruiter`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.recruiter`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       requestBody:
@@ -4367,6 +4398,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-conversations/get-my-latest-sales-nav:
     post:
       operationId: get_my_latest_linkedin_conversations_sales_nav
@@ -4377,7 +4409,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_conversations_sales_nav`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       requestBody:
@@ -4408,6 +4440,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-conversations/metrics:
     post:
       operationId: get_linkedin_conversations_metrics
@@ -4681,7 +4714,7 @@ paths:
         Contract:
         - MCP tool `add_linkedin_conversation_participants`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       parameters:
@@ -4723,6 +4756,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-conversations/{sid}/delete-on-linkedin:
     post:
       operationId: delete_linkedin_conversation_on_linkedin
@@ -4733,7 +4767,7 @@ paths:
         Contract:
         - MCP tool `delete_linkedin_conversation_on_linkedin`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       parameters:
@@ -4769,6 +4803,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-conversations/{sid}/mark-read:
     post:
       operationId: mark_linkedin_conversation_read
@@ -4779,7 +4814,7 @@ paths:
         Contract:
         - MCP tool `mark_linkedin_conversation_read`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       parameters:
@@ -4815,6 +4850,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-conversations/{sid}/mark-unread:
     post:
       operationId: mark_linkedin_conversation_unread
@@ -4825,7 +4861,7 @@ paths:
         Contract:
         - MCP tool `mark_linkedin_conversation_unread`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       parameters:
@@ -4861,6 +4897,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-conversations/{sid}/mute:
     post:
       operationId: mute_linkedin_conversation
@@ -4871,7 +4908,7 @@ paths:
         Contract:
         - MCP tool `mute_linkedin_conversation`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       parameters:
@@ -4913,6 +4950,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-conversations/{sid}/remove-participants:
     post:
       operationId: remove_linkedin_conversation_participants
@@ -4923,7 +4961,7 @@ paths:
         Contract:
         - MCP tool `remove_linkedin_conversation_participants`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       parameters:
@@ -4965,6 +5003,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-conversations/{sid}/rename:
     post:
       operationId: rename_linkedin_conversation
@@ -4975,7 +5014,7 @@ paths:
         Contract:
         - MCP tool `rename_linkedin_conversation`, registry package `mcp.linkedin/linkedin_conversations`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_conversations
       parameters:
@@ -5017,6 +5056,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-custom/execute:
     post:
       operationId: execute_linkedin_custom_request
@@ -5027,7 +5067,7 @@ paths:
         Contract:
         - MCP tool `execute_linkedin_custom_request`, registry package `mcp.linkedin/linkedin_custom_requests`, mount `linkedin.platform`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `custom_request` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_custom_requests
       requestBody:
@@ -5058,6 +5098,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: custom_request
   /api/linkedin-enrichment/company-lite-profile:
     post:
       operationId: enrich_linkedin_company_lite_profile
@@ -5068,7 +5109,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_company_lite_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5099,6 +5140,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/company-posts:
     post:
       operationId: enrich_linkedin_company_posts
@@ -5109,7 +5151,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_company_posts`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5140,6 +5182,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/company-profile:
     post:
       operationId: enrich_linkedin_company_profile
@@ -5150,7 +5193,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_company_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5181,6 +5224,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/company-public-identifier:
     post:
       operationId: enrich_linkedin_company_public_identifier
@@ -5191,7 +5235,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_company_public_identifier`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5222,6 +5266,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/get-activity-urn-by-url:
     post:
       operationId: enrich_linkedin_get_activity_urn_by_url
@@ -5232,7 +5277,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_get_activity_urn_by_url`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5263,6 +5308,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-basic-profile:
     post:
       operationId: enrich_linkedin_person_basic_profile
@@ -5273,7 +5319,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_basic_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5304,6 +5350,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-certifications:
     post:
       operationId: enrich_linkedin_person_certifications
@@ -5314,7 +5361,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_certifications`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5345,6 +5392,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-comment-activity:
     post:
       operationId: enrich_linkedin_person_comment_activity
@@ -5355,7 +5403,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_comment_activity`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5386,6 +5434,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-contact-info:
     post:
       operationId: enrich_linkedin_person_contact_info
@@ -5396,7 +5445,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_contact_info`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5427,6 +5476,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-education:
     post:
       operationId: enrich_linkedin_person_education
@@ -5437,7 +5487,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_education`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5468,6 +5518,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-experience:
     post:
       operationId: enrich_linkedin_person_experience
@@ -5478,7 +5529,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_experience`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5509,6 +5560,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-featured:
     post:
       operationId: enrich_linkedin_person_featured
@@ -5519,7 +5571,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_featured`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5550,6 +5602,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-full-profile:
     post:
       operationId: enrich_linkedin_person_full_profile
@@ -5560,7 +5613,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_full_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5591,6 +5644,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-interests:
     post:
       operationId: enrich_linkedin_person_interests
@@ -5601,7 +5655,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_interests`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5632,6 +5686,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-languages:
     post:
       operationId: enrich_linkedin_person_languages
@@ -5642,7 +5697,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_languages`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5673,6 +5728,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-lite-profile:
     post:
       operationId: enrich_linkedin_person_lite_profile
@@ -5683,7 +5739,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_lite_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5714,6 +5770,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-posts:
     post:
       operationId: enrich_linkedin_person_posts
@@ -5724,7 +5781,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_posts`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5755,6 +5812,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-reaction-activity:
     post:
       operationId: enrich_linkedin_person_reaction_activity
@@ -5765,7 +5823,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_reaction_activity`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5796,6 +5854,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-recommendations:
     post:
       operationId: enrich_linkedin_person_recommendations
@@ -5806,7 +5865,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_recommendations`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5837,6 +5896,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-services:
     post:
       operationId: enrich_linkedin_person_services
@@ -5847,7 +5907,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_services`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5878,6 +5938,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/person-skills:
     post:
       operationId: enrich_linkedin_person_skills
@@ -5888,7 +5949,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_person_skills`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5919,6 +5980,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-enrichment/post-details:
     post:
       operationId: enrich_linkedin_post_details
@@ -5929,7 +5991,7 @@ paths:
         Contract:
         - MCP tool `enrich_linkedin_post_details`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_enrichment
       requestBody:
@@ -5960,6 +6022,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
   /api/linkedin-followers/get-my-latest:
     post:
       operationId: get_my_latest_linkedin_followers
@@ -5970,7 +6033,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_followers`, registry package `mcp.linkedin/linkedin_followers`, mount `linkedin.network`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_followers
       requestBody:
@@ -6001,6 +6064,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-followers/metrics:
     post:
       operationId: get_linkedin_followers_metrics
@@ -6093,7 +6157,7 @@ paths:
         Contract:
         - MCP tool `follow_linkedin_member`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item; paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       requestBody:
@@ -6124,6 +6188,7 @@ paths:
       x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-followings/unfollow:
     post:
       operationId: unfollow_linkedin_member
@@ -6134,7 +6199,7 @@ paths:
         Contract:
         - MCP tool `unfollow_linkedin_member`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_accounts
       requestBody:
@@ -6165,6 +6230,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-messages/download-attachment:
     post:
       operationId: download_linkedin_message_attachment
@@ -6175,7 +6241,7 @@ paths:
         Contract:
         - MCP tool `download_linkedin_message_attachment`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6206,6 +6272,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-messages/download-sales-nav-attachment:
     post:
       operationId: download_linkedin_sales_nav_message_attachment
@@ -6216,7 +6283,7 @@ paths:
         Contract:
         - MCP tool `download_linkedin_sales_nav_message_attachment`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: read only.
+        - Flags: read only; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6247,6 +6314,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-messages/get-my-latest:
     post:
       operationId: get_my_latest_linkedin_messages
@@ -6257,7 +6325,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_messages`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6288,6 +6356,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-messages/get-my-latest-recruiter:
     post:
       operationId: get_my_latest_linkedin_messages_recruiter
@@ -6298,7 +6367,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_messages_recruiter`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.recruiter`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6329,6 +6398,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-messages/get-my-latest-sales-nav:
     post:
       operationId: get_my_latest_linkedin_messages_sales_nav
@@ -6339,7 +6409,7 @@ paths:
         Contract:
         - MCP tool `get_my_latest_linkedin_messages_sales_nav`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `search`.
-        - Flags: none.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6370,6 +6440,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
   /api/linkedin-messages/metrics:
     post:
       operationId: get_linkedin_messages_metrics
@@ -6462,7 +6533,7 @@ paths:
         Contract:
         - MCP tool `send_linkedin_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item; paced: a call spends the `send_messages` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6493,6 +6564,7 @@ paths:
       x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: send_messages
   /api/linkedin-messages/send-inmail:
     post:
       operationId: send_linkedin_inmail
@@ -6503,7 +6575,7 @@ paths:
         Contract:
         - MCP tool `send_linkedin_inmail`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `send_inmails` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6534,6 +6606,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: send_inmails
   /api/linkedin-messages/send-recruiter:
     post:
       operationId: send_linkedin_recruiter_message
@@ -6544,7 +6617,7 @@ paths:
         Contract:
         - MCP tool `send_linkedin_recruiter_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.recruiter`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `send_inmails` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6575,6 +6648,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: send_inmails
   /api/linkedin-messages/send-sales-nav:
     post:
       operationId: send_linkedin_sales_nav_message
@@ -6585,7 +6659,7 @@ paths:
         Contract:
         - MCP tool `send_linkedin_sales_nav_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `send_inmails` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6616,6 +6690,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: send_inmails
   /api/linkedin-messages/send-voice:
     post:
       operationId: send_linkedin_voice_message
@@ -6626,7 +6701,7 @@ paths:
         Contract:
         - MCP tool `send_linkedin_voice_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `send_messages` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6657,6 +6732,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: send_messages
   /api/linkedin-messages/start-group:
     post:
       operationId: start_linkedin_group_conversation
@@ -6667,7 +6743,7 @@ paths:
         Contract:
         - MCP tool `start_linkedin_group_conversation`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `send_messages` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       requestBody:
@@ -6698,6 +6774,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: send_messages
   /api/linkedin-messages/{sid}/delete-on-linkedin:
     post:
       operationId: delete_linkedin_message_on_linkedin
@@ -6708,7 +6785,7 @@ paths:
         Contract:
         - MCP tool `delete_linkedin_message_on_linkedin`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       parameters:
@@ -6744,6 +6821,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-messages/{sid}/react:
     post:
       operationId: react_linkedin_message
@@ -6754,7 +6832,7 @@ paths:
         Contract:
         - MCP tool `react_linkedin_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `messaging_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_messages
       parameters:
@@ -6796,6 +6874,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: messaging_general
   /api/linkedin-posting/comment:
     post:
       operationId: create_linkedin_comment
@@ -6806,7 +6885,7 @@ paths:
         Contract:
         - MCP tool `create_linkedin_comment`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; mass action: this verb's own request accepts a filter or targets[] set, which the owning service drains; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; mass action: this verb's own request accepts a filter or targets[] set, which the owning service drains; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item; paced: a call spends the `comment_posts` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -6837,6 +6916,7 @@ paths:
       x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: comment_posts
   /api/linkedin-posting/create-post:
     post:
       operationId: create_linkedin_post
@@ -6847,7 +6927,7 @@ paths:
         Contract:
         - MCP tool `create_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -6878,17 +6958,18 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
   /api/linkedin-posting/delete-comment:
     post:
       operationId: delete_linkedin_comment
       summary: Delete LinkedIn comment
       description: |-
-        Delete one of OUR OWN LinkedIn comments, addressed by comment_urn (wire delete-comment). The counterpart of create_linkedin_comment. You already hold the handle: create_linkedin_comment returns comment_urn, and the linkedin-scraping get-post-comments rows carry the same compound urn, so a comment can be removed without any extra read. LinkedIn only deletes the account's own comments and we do not pre-validate that. Identity-bound: linkedin_account_sid REQUIRED, spends the SAME comment_posts bucket as commenting (30/day at a 360 s floor, bursting 2 so a comment and its delete fit back-to-back), saturation returns 429. Nothing is stored on this service.
+        Delete one of OUR OWN LinkedIn comments, addressed by comment_urn (wire delete-comment). The counterpart of create_linkedin_comment. You already hold the handle: create_linkedin_comment returns comment_urn, and the linkedin-scraping get-post-comments rows carry the same compound urn, so a comment can be removed without any extra read. LinkedIn only deletes the account's own comments and we do not pre-validate that. Identity-bound: linkedin_account_sid REQUIRED, spends the SAME comment_posts bucket as commenting (30/day), but an undo is paced 2 s, not the bucket delay, so a comment and its delete fit back to back; saturation returns 429. Nothing is stored on this service.
 
         Contract:
         - MCP tool `delete_linkedin_comment`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `comment_posts` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -6919,6 +7000,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: comment_posts
   /api/linkedin-posting/delete-post:
     post:
       operationId: delete_linkedin_post
@@ -6929,7 +7011,7 @@ paths:
         Contract:
         - MCP tool `delete_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -6960,6 +7042,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
   /api/linkedin-posting/delete-scheduled-post:
     post:
       operationId: delete_linkedin_scheduled_post
@@ -6970,7 +7053,7 @@ paths:
         Contract:
         - MCP tool `delete_linkedin_scheduled_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -7001,6 +7084,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
   /api/linkedin-posting/get-scheduled-posts:
     post:
       operationId: get_linkedin_scheduled_posts
@@ -7011,7 +7095,7 @@ paths:
         Contract:
         - MCP tool `get_linkedin_scheduled_posts`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -7042,6 +7126,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
   /api/linkedin-posting/react:
     post:
       operationId: react_linkedin_post
@@ -7052,7 +7137,7 @@ paths:
         Contract:
         - MCP tool `react_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; mass action: this verb's own request accepts a filter or targets[] set, which the owning service drains; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; mass action: this verb's own request accepts a filter or targets[] set, which the owning service drains; step eligible: gtm.service.orchestration can run this verb as a mass-action plan step, once per item; paced: a call spends the `react_posts` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -7083,17 +7168,18 @@ paths:
       x-gtm-step-eligible: true
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: react_posts
   /api/linkedin-posting/unreact:
     post:
       operationId: unreact_linkedin_post
       summary: Remove LinkedIn reaction
       description: |-
-        Remove OUR reaction from a LinkedIn post or comment, addressed by the same entity_urn react_linkedin_post took (wire delete-reaction). Undo a reaction left by mistake or by a play that has been retargeted. Takes no reaction_type: LinkedIn holds at most one reaction per account per entity, so removal is unambiguous. Identity-bound: linkedin_account_sid REQUIRED, spends the SAME react_posts bucket as reacting (30/day at a 360 s floor, bursting 2 so a reaction and its removal fit back-to-back), saturation returns 429. A post is addressed at its social thread exactly like react_linkedin_post, so undoing with the value you reacted with removes the reaction that landed. removed: true means LinkedIn accepted the delete, not that a reaction existed (a delete with nothing to remove answered true live, 2026-09-16); a refused removal comes back 409 reaction_not_removed.
+        Remove OUR reaction from a LinkedIn post or comment, addressed by the same entity_urn react_linkedin_post took (wire delete-reaction). Undo a reaction left by mistake or by a play that has been retargeted. Takes no reaction_type: LinkedIn holds at most one reaction per account per entity, so removal is unambiguous. Identity-bound: linkedin_account_sid REQUIRED, spends the SAME react_posts bucket as reacting (30/day), but an undo is paced 2 s, not the bucket delay, so a reaction and its removal fit back to back; saturation returns 429. A post is addressed at its social thread exactly like react_linkedin_post, so undoing with the value you reacted with removes the reaction that landed. removed: true means LinkedIn accepted the delete, not that a reaction existed (a delete with nothing to remove answered true live, 2026-09-16); a refused removal comes back 409 reaction_not_removed.
 
         Contract:
         - MCP tool `unreact_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
         - Operation `action`, response envelope `action`.
-        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `react_posts` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_posting
       requestBody:
@@ -7124,6 +7210,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: react_posts
   /api/linkedin-scraping/company-decision-makers:
     post:
       operationId: scrape_linkedin_company_decision_makers
@@ -7134,7 +7221,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_company_decision_makers`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7165,6 +7252,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/company-employees:
     post:
       operationId: scrape_linkedin_company_employees
@@ -7175,7 +7263,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_company_employees`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7206,6 +7294,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/get-post-comments:
     post:
       operationId: scrape_linkedin_get_post_comments
@@ -7216,7 +7305,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_get_post_comments`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7247,6 +7336,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/get-post-reactors:
     post:
       operationId: scrape_linkedin_get_post_reactors
@@ -7257,7 +7347,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_get_post_reactors`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7288,6 +7378,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/get-post-resharers:
     post:
       operationId: scrape_linkedin_get_post_resharers
@@ -7298,7 +7389,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_get_post_resharers`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7329,6 +7420,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: complex
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/param-id-lookup:
     post:
       operationId: scrape_linkedin_param_id_lookup
@@ -7339,7 +7431,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_param_id_lookup`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7370,6 +7462,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/recruiter-param-id-lookup:
     post:
       operationId: scrape_linkedin_recruiter_param_id_lookup
@@ -7380,7 +7473,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_recruiter_param_id_lookup`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7411,6 +7504,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/sales-nav-param-id-lookup:
     post:
       operationId: scrape_linkedin_sales_nav_param_id_lookup
@@ -7421,7 +7515,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_sales_nav_param_id_lookup`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7452,6 +7546,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-companies:
     post:
       operationId: scrape_linkedin_search_companies
@@ -7462,7 +7557,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_companies`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7493,6 +7588,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-courses:
     post:
       operationId: scrape_linkedin_search_courses
@@ -7503,7 +7599,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_courses`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7534,6 +7630,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-events:
     post:
       operationId: scrape_linkedin_search_events
@@ -7544,7 +7641,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_events`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7575,6 +7672,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-groups:
     post:
       operationId: scrape_linkedin_search_groups
@@ -7585,7 +7683,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_groups`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7616,6 +7714,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-jobs:
     post:
       operationId: scrape_linkedin_search_jobs
@@ -7626,7 +7725,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_jobs`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7657,6 +7756,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-people:
     post:
       operationId: scrape_linkedin_search_people
@@ -7667,7 +7767,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7698,6 +7798,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-posts:
     post:
       operationId: scrape_linkedin_search_posts
@@ -7708,7 +7809,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_posts`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7739,6 +7840,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-products:
     post:
       operationId: scrape_linkedin_search_products
@@ -7749,7 +7851,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_products`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7780,6 +7882,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-recruiter-people:
     post:
       operationId: scrape_linkedin_search_recruiter_people
@@ -7790,7 +7893,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_recruiter_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7821,6 +7924,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-sales-nav-companies:
     post:
       operationId: scrape_linkedin_search_sales_nav_companies
@@ -7831,7 +7935,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_sales_nav_companies`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7862,6 +7966,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-sales-nav-people:
     post:
       operationId: scrape_linkedin_search_sales_nav_people
@@ -7872,7 +7977,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_sales_nav_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7903,6 +8008,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-schools:
     post:
       operationId: scrape_linkedin_search_schools
@@ -7913,7 +8019,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_schools`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7944,6 +8050,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/search-service-providers:
     post:
       operationId: scrape_linkedin_search_service_providers
@@ -7954,7 +8061,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_search_service_providers`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -7985,6 +8092,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/similar-companies:
     post:
       operationId: scrape_linkedin_similar_companies
@@ -7995,7 +8103,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_similar_companies`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -8026,6 +8134,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/similar-profiles:
     post:
       operationId: scrape_linkedin_similar_profiles
@@ -8036,7 +8145,7 @@ paths:
         Contract:
         - MCP tool `scrape_linkedin_similar_profiles`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
         - Operation `action`, response envelope `action`.
-        - Flags: none.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
       tags:
         - linkedin_scraping
       requestBody:
@@ -8067,6 +8176,7 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
 components:
   securitySchemes:
     BearerJwt:
@@ -50656,6 +50766,25 @@ components:
                   items:
                     type: string
               additionalProperties: false
+            client_reference:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: "The caller's own key given at send time. The way to ask whether a send landed before repeating it: search by the key you sent."
             q:
               type: string
               maxLength: 128
@@ -57825,12 +57954,12 @@ components:
           type: integer
           minimum: 1
           maximum: 3600
-          description: "The hold: seconds between one burst and the next (1..3600)."
+          description: The pacing window in seconds (1..3600). Calls of the bucket leave one at a time, delay_in_seconds / batch_size apart; nothing fires back-to-back.
         batch_size:
           type: integer
           minimum: 1
           maximum: 10
-          description: "The burst: calls that fire back-to-back before the hold (1..10; a longer burst only trips the ten-starts-a-minute account guard)."
+          description: "Calls per pacing window (1..10). It only divides the window: two calls of the bucket are delay_in_seconds / batch_size apart, so 30 s with 3 paces a call every 10 s. It is not a burst."
         reset_hold:
           type: boolean
           description: Clear the daily-saturation hold in the same call (the atomic "raise the limit AND resume now"). Only resumes if the new daily_limit > done_today_count; otherwise the row re-holds. Never touches a LinkedIn-side lock.

@@ -253,11 +253,12 @@ running the new search. New search, new key.
 Every method on this surface, searches and typeaheads alike, spends one shared per-account bucket called `scraping`.
 
 <Warning>
-Default budget: 100 scraping calls per day per connected account, with a 240 second cooldown enforced after every 10
-calls. So roughly ten calls back to back (a few typeaheads plus the search), then about four minutes of waiting. When
-the budget is spent, the account is on hold, or the cooldown has not elapsed, the call returns `429 rate_limited` with
-`reason: "bucket_saturated"`, the `cause` (`daily_saturation`, `held` or `delay_not_elapsed`) and a `retry_after`
-timestamp. Retry after that timestamp, not on a fixed schedule.
+Default budget: 100 scraping calls per day per connected account, paced about one call every 5 seconds. A short wait
+for the slot is slept by the server, so a few typeaheads plus the search run one after another as slightly slower
+calls, and firing them in parallel gains nothing. When the budget is spent, the account is on hold, or the wait for
+the slot is longer than 20 seconds, the call returns `429 rate_limited` with `reason: "bucket_saturated"`, the `cause`
+(`daily_saturation`, `held` or `delay_not_elapsed`) and a `retry_after` timestamp. Retry at that timestamp, not on a
+fixed schedule and not earlier.
 </Warning>
 
 The free plan clamps the bucket to 15 scraping calls per day per account, and a young

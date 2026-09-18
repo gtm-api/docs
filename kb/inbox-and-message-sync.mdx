@@ -153,8 +153,8 @@ never emits `linkedin-conversations.sync-completed`, so it does not postpone the
 
 <Note>
 Every head refresh page and every background message pull spends one call from the account's
-`self_account_sync` budget: **200 calls per day**, with a **6 second** pacing delay and bursts
-of **5**. When it is spent, reads answer `429 rate_limited` with `limit_type:
+`self_account_sync` budget: **200 calls per day**, paced about **one call a second**. When it
+is spent, reads answer `429 rate_limited` with `limit_type:
 "self_account_sync"` and a `retry_after`, and parked runs resume at the next daily reset or
 when the limit is raised. See [smart limits and warmup](/kb/smart-limits-and-warmup).
 </Note>
