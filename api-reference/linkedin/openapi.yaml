@@ -8316,6 +8316,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -8509,6 +8530,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -9489,6 +9531,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -9985,6 +10048,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -10134,6 +10218,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -10960,6 +11065,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -11172,6 +11298,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -11399,6 +11546,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -11570,6 +11738,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -11774,6 +11963,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -11864,6 +12074,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -11949,6 +12180,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -12044,6 +12296,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -12134,6 +12407,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -12679,6 +12973,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -13203,6 +13518,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -13701,6 +14037,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -13815,6 +14172,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -14086,6 +14464,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -14237,6 +14636,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -14332,6 +14752,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -14425,6 +14866,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -14589,6 +15051,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -14710,6 +15193,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -14881,6 +15385,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -15018,6 +15543,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -15144,6 +15690,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -15296,6 +15863,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -15430,6 +16018,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -15663,6 +16272,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -15839,6 +16469,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -15944,6 +16595,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -16064,6 +16736,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -16326,6 +17019,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -16504,6 +17218,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -16655,6 +17390,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -16781,6 +17537,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -16912,6 +17689,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -17155,6 +17953,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -17274,6 +18093,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -17803,6 +18643,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -20066,6 +20927,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -20634,6 +21516,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -21108,6 +22011,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -21593,6 +22517,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -22067,6 +23012,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -22608,6 +23574,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -23082,6 +24069,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -23656,6 +24664,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -24187,6 +25216,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -24763,6 +25813,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -25413,6 +26484,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -25887,6 +26979,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -26424,6 +27537,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -29035,6 +30169,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -29226,6 +30381,27 @@ components:
             - items_upserted
             - stop_reason
           description: §5.8 in-request refresh outcome (first page runs the LinkedIn refresh; continuation pages report performed=false).
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -29403,6 +30579,27 @@ components:
         counts:
           type: object
           additionalProperties: {}
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -29625,6 +30822,27 @@ components:
             - items_seen
             - items_upserted
             - stop_reason
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -29843,6 +31061,27 @@ components:
         counts:
           type: object
           additionalProperties: {}
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -30060,6 +31299,27 @@ components:
         counts:
           type: object
           additionalProperties: {}
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -30277,6 +31537,27 @@ components:
         counts:
           type: object
           additionalProperties: {}
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -30461,6 +31742,27 @@ components:
             - items_seen
             - items_upserted
             - stop_reason
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -30763,6 +32065,27 @@ components:
             - items_seen
             - items_upserted
             - stop_reason
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -31065,6 +32388,27 @@ components:
             - items_seen
             - items_upserted
             - stop_reason
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -31367,6 +32711,27 @@ components:
             - items_seen
             - items_upserted
             - stop_reason
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -31489,6 +32854,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -31804,6 +33190,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -31970,6 +33377,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -32265,6 +33693,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -32742,6 +34191,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -32837,6 +34307,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -32966,6 +34457,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -33159,6 +34671,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -33348,6 +34881,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -35787,6 +37341,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -35963,6 +37538,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -36159,6 +37755,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -36334,6 +37951,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -36499,6 +38137,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -36634,6 +38293,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -36768,6 +38448,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -36914,6 +38615,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -37114,6 +38836,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -37308,6 +39051,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -37487,6 +39251,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -37656,6 +39441,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -37912,6 +39718,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -38185,6 +40012,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -38450,6 +40298,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -38651,6 +40520,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -39462,6 +41352,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -39895,6 +41806,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -40461,6 +42393,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -40630,6 +42583,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -40840,6 +42814,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -40994,6 +42989,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -41158,6 +43174,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -51650,6 +53687,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -51808,6 +53866,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -52081,6 +54160,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -52360,6 +54460,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -52638,6 +54759,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -52912,6 +55054,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -53161,6 +55324,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -54691,6 +56875,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -56640,6 +58845,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -57169,6 +59395,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -57253,6 +59500,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -59445,6 +61713,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -59570,6 +61859,27 @@ components:
             - span_id
             - timestamp
             - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
