@@ -55,6 +55,23 @@ long the queue is:
 Parallel calls on one account therefore buy nothing. Run them one after another, or spread the
 work over several accounts: every account paces on its own.
 
+A success names the same clock, so there is no need to run into the gap to learn it. Every
+response whose call reached LinkedIn carries a `pacing` block:
+
+```json
+"pacing": {
+  "linkedin_account_sid": "ln_ac_YOUR_ACCOUNT",
+  "limit_type": "send_messages",
+  "next_call_after": "2026-09-18T12:00:10+00:00",
+  "remaining_today": 46
+}
+```
+
+`next_call_after` is the moment the same call goes through again without waiting: the next slot
+while the day has budget left, the daily reset when it has none. `remaining_today` is what the
+bucket has left after this call. A call that spends two buckets (a reaction on a post given by
+link reads the post first) names the bucket of the action itself and the later of the two clocks.
+
 On top of every bucket, one account starts at most 10 calls a minute.
 
 <Frame caption="The Smart Limits tab of the account drawer: the warmup score with its six signals, incident logs, and the per-action caps below.">
