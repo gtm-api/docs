@@ -648,7 +648,7 @@ paths:
       operationId: search_api_requests
       summary: Search API requests
       description: |-
-        List the team's external API requests newest first: every call made with an api key or an OAuth client (your own calls included), as logged by the service that answered it, merged across id, linkedin and orchestration. One row per request: the client (key or OAuth client, with its name), the route and entity, the HTTP status and its family, the duration, the trace id. Use for "what did our agents do", "show the failing requests since noon" (filter status_family in [4xx,5xx]), "what did the n8n client call" (filter client_sid), or to reconstruct one MCP turn (filter trace_id). page_size 0 counts only; the cursor is a keyset merged across services. counts.sources says which services answered; a service marked error contributed nothing. Not LinkedIn activity (that is the account activity log) and not a quota: the log counts, it never limits.
+        List the team's external API requests newest first: every call made with an api key or an OAuth client (your own calls included), as logged by the service that answered it, merged across id, linkedin and orchestration. One row per request: the client (key or OAuth client, with its name), the route and entity, the HTTP status and its family, the typed error it failed with (error_code, error_reason, error_cause), the account it named, the duration, the trace id. Use for "what did our agents do", "show the failing requests since noon" (filter status_family in [4xx,5xx]), "why are these all 429" (filter error_cause: a paused account is not a spent daily limit), "what did the n8n client call" (filter client_sid), or one MCP turn (filter trace_id). page_size 0 counts only; the cursor is a keyset merged across services. counts.sources says which services answered; a service marked error contributed nothing. Not LinkedIn activity (that is the account activity log) and not a quota: the log counts, it never limits.
 
         Contract:
         - MCP tool `search_api_requests`, registry package `mcp.id/api_requests`, mount `id.platform`.
@@ -7323,6 +7323,25 @@ components:
                     type: string
               additionalProperties: false
               description: 'The route key, exact: "POST api/linkedin-conversations/search".'
+            account_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: 'The account the request named (ln_ac_*, em_ac_*): "everything that was refused on this sender". is_null:true = calls that named no account.'
             status:
               type: object
               properties:
@@ -7384,6 +7403,63 @@ components:
                       - 5xx
               additionalProperties: false
               description: 4xx and 5xx together are the errors every dashboard number counts.
+            error_code:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The typed error code of the envelope that was returned (rate_limited, validation_failed, not_found); is_null:true = the calls that succeeded.
+            error_reason:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: "The sub-code inside error.context (bucket_saturated, account_rate_exceeded, not_connected): what a status alone cannot say."
+            error_cause:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: "The specific trigger a layered gate adds (held, daily_saturation, delay_not_elapsed, linkedin_quota_hit): held means a person paused the account, daily_saturation means the limit is spent, and a 429 does not tell them apart."
             occurred_at:
               type: object
               properties:
@@ -14931,6 +15007,25 @@ components:
                     type: string
               additionalProperties: false
               description: 'The route key, exact: "POST api/linkedin-conversations/search".'
+            account_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: 'The account the request named (ln_ac_*, em_ac_*): "everything that was refused on this sender". is_null:true = calls that named no account.'
             status:
               type: object
               properties:
@@ -14992,6 +15087,63 @@ components:
                       - 5xx
               additionalProperties: false
               description: 4xx and 5xx together are the errors every dashboard number counts.
+            error_code:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The typed error code of the envelope that was returned (rate_limited, validation_failed, not_found); is_null:true = the calls that succeeded.
+            error_reason:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: "The sub-code inside error.context (bucket_saturated, account_rate_exceeded, not_connected): what a status alone cannot say."
+            error_cause:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: "The specific trigger a layered gate adds (held, daily_saturation, delay_not_elapsed, linkedin_quota_hit): held means a person paused the account, daily_saturation means the limit is spent, and a 429 does not tell them apart."
             occurred_at:
               type: object
               properties:
@@ -15114,6 +15266,9 @@ components:
                   action_name:
                     type: string
                     nullable: true
+                  account_sid:
+                    type: string
+                    nullable: true
                   status:
                     type: integer
                   status_family:
@@ -15123,6 +15278,15 @@ components:
                       - 3xx
                       - 4xx
                       - 5xx
+                  error_code:
+                    type: string
+                    nullable: true
+                  error_reason:
+                    type: string
+                    nullable: true
+                  error_cause:
+                    type: string
+                    nullable: true
                   duration_ms:
                     type: integer
                     nullable: true
@@ -15144,8 +15308,12 @@ components:
                   - entity
                   - operation
                   - action_name
+                  - account_sid
                   - status
                   - status_family
+                  - error_code
+                  - error_reason
+                  - error_cause
                   - duration_ms
                   - trace_id
               included:
