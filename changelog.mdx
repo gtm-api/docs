@@ -3,6 +3,82 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-18" description="Pacing is one call at a time, and every answer names the clock">
+  **Calls of one action type leave one at a time.** A bucket no longer fires a burst and then holds: two
+  calls are spaced `delay_in_seconds / batch_size` apart (10 seconds for messages, 30 for connection
+  requests, 5 for searches and profile reads), varied by up to 20% per call. The slot is reserved before the
+  call leaves, so two calls fired in the same second never reach LinkedIn together, which is what LinkedIn
+  answered with `429 FUSE_LIMIT_EXCEEDED` on 2026-09-17. An undo (unreact, delete a comment or a post,
+  unendorse, unfollow, withdraw, recall a message) waits 2 seconds, so an action and its undo fit together.
+
+  **A wait is either slept or named.** Up to 20 seconds the server sleeps it and the call just takes
+  longer. A longer wait answers `429 rate_limited` with `context.reason` `bucket_saturated`, `cause`
+  `delay_not_elapsed` and `retry_after`: the same call goes through at that moment, and an earlier retry is
+  refused again with the same timestamp. Parallel calls on one account queue behind each other, so run them
+  one after another or spread them over accounts.
+
+  **A success names the clock too.** Every response whose call reached LinkedIn carries
+  `pacing: { linkedin_account_sid, limit_type, next_call_after, remaining_today }`. `next_call_after` is the
+  next slot while the day has budget left and the daily reset when it has none. MCP tools that are paced say
+  so in their description (`Paced: send_messages.`), a toolset listing states the rule once, and the OpenAPI
+  carries `x-gtm-paced-bucket` on the same 110 operations.
+
+  **One refusal no longer collapses a limit.** A LinkedIn refusal lowers a bucket's learned ceiling only to
+  what the account has proven: the most it did in a day over the last 10 days, counted from sent actions and
+  from the counts LinkedIn refused at. A refusal with no volume behind it changes nothing, a lowered ceiling
+  expires when 10 days pass without another refusal, and rows the old rule had lowered re-derive at the
+  next snapshot.
+</Update>
+
+<Update label="2026-09-18" description="A preview validates the arguments before it hands out a token">
+  **The preview of a protected action asks the backend first.** A preview used to check the arguments
+  against the tool schema only, so a call the platform would refuse with `422` was previewed, confirmed, and
+  refused at commit. The preview now runs the real route's own checks (authentication, permissions, request
+  validation) without running the action. A refusal comes back at the preview, as the same error the commit
+  would give, and no `commit_token` is issued for it. A preview that passed says `validated: true`. That is
+  a statement about the arguments: the daily budget, a Sales Navigator seat or whether the person is
+  connected are only known when the action runs. LinkedIn tools today; identity and mass-action tools
+  preview as before.
+
+  **`select_linkedin_account_recruiter_contract` is a protected action.** Switching the contract changes
+  which seat and inbox the session acts under, so it previews like the other outward actions.
+</Update>
+
+<Update label="2026-09-18" description="API request log: why a call was refused, on which account, uploads included">
+  **A refused call says why.** `search_api_requests` rows carry `error_code`, `error_reason` and
+  `error_cause`, read off the envelope the client received, and `account_sid`, the account the call named.
+  `rate_limited` is four different refusals and the three together tell them apart: a saturated bucket, a
+  hold a person set, LinkedIn's own lock, the per-minute guard. All four filter with
+  `eq / ne / in / nin / is_null`, so "everything refused as `held` on this sender" is one call. The
+  dashboard has chips for All / Errors / 4xx / 5xx, prints the reason in words in the row and opens the
+  whole row on click.
+
+  **A split by client is named.** `get_api_request_metrics` with `group_by: "client_sid"` returns `label`
+  (the API key's name, revoked keys included, or the OAuth client's) and `credential_kind` on every group.
+
+  **An upload through a one-time link is in the log.** The `PUT` to an upload link is recorded as a call of
+  the client that requested the slot (`PUT external/uploads/{token}`), refusals included, so a `422` on the
+  file has a row to point at.
+</Update>
+
+<Update label="2026-09-18" description="Sales Navigator calls re-arm a stale session by themselves">
+  **`403 SALES_SEAT_REQUIRED` is a stale session, and the platform now handles it for every call.**
+  LinkedIn's Sales Navigator API refuses a seated browser that has not opened a Sales Navigator page for a
+  while. The background sync already re-opened it; direct calls (`get_linkedin_account_my_credits`, the
+  Sales Navigator searches and typeahead, the Sales Navigator inbox reads and sends) failed on the first
+  refusal. They now re-arm the session and retry once. A seat that turns out to be gone answers
+  `422 sales_nav_required`; a second refusal right after the re-arm answers `409 sales_session_stale`.
+
+  **The Sales Navigator inbox sync no longer depends on the account's own `sn_id`.** Who in a thread is the
+  account owner is decided by the member id the participant decodes to. Accounts that had no `sn_id` stored
+  skipped every page of that sync; they sync now.
+
+  **Searching by a person's identifier finds the person.** A filter on `ln_id`, `sn_id` or `recruiter_id`
+  matches the member on every surface for every operator (`ne` and `nin` included, which some searches
+  used to ignore), on conversations, messages, connections, invitations, requests, followers and the
+  activity and block logs. `search_linkedin_messages` also filters by `client_reference`.
+</Update>
+
 <Update label="2026-09-17" description="Upload slots for post media, media by URL on create-post, image checks before dispatch">
   **A place to put a file the caller cannot send inline.** `request_media_upload` (the id platform mount)
   reserves an upload slot and answers with a one-time upload link on our domain (a person opens it and drops
