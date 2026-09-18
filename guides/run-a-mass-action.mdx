@@ -22,14 +22,17 @@ A mass action is a bulk dispatch on the Orchestration service: up to 100 items, 
   "scope": {
     "kind": "targets",
     "targets": [
-      { "linkedin_account_sid": "ln_ac_Hx7kQ3mN2pL4", "ln_member_id": "jcooper" }
+      { "ln_id": "ACoAAAdbzRUBAAAAAAAAAAAAAAAAAAAAAAAAAAA" }
     ]
   },
   "plan": {
     "steps": [
       {
         "tool": "linkedin-connection-requests.send-linkedin-connection-request",
-        "args": { "message": "Hi, enjoyed your post on pipeline reviews." }
+        "args": {
+          "linkedin_account_sid": "ln_ac_Hx7kQ3mN2pL4",
+          "note": "Hi, enjoyed your post on pipeline reviews."
+        }
       }
     ]
   },
@@ -41,6 +44,7 @@ A mass action is a bulk dispatch on the Orchestration service: up to 100 items, 
 What the validator enforces:
 
 - **Step vocabulary.** Only step-eligible verbs can appear in `plan.steps[].tool`. Anything else fails with `validation_failed` and a `field_errors` entry naming the authorable set, so the plan is repairable in one pass.
+- **One sender per run.** A send-class step names the account it sends from in `args.linkedin_account_sid`. A target's payload carries the target (`ln_id`, the profile URN) and its per-send extras (`note`, `client_reference`), never the sender: a plan that leaves the sender out of `args` fails preview with `sender_required`.
 - **Scope shape.** `objects` (existing rows by sid), `targets` (per-item payload identities), `generate` (N slots, step 1 must create the object), or `none` (a standing run an auto-scrape feeds later). All bounded at 100 items.
 - **Schedule mandate.** A plan with a send-class step must carry a `schedule`; the per-gap interval is randomized between your min and max, because a fixed cadence is itself a detectable pattern. Omit `schedule` only for plans that can drain immediately.
 
