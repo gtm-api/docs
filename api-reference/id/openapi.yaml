@@ -9176,6 +9176,21 @@ components:
                     type: string
               additionalProperties: false
               description: e.g. linkedin-accounts.logged-out.
+            read_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: is_null:true = unread.
             entity_sid:
               type: object
               properties:
@@ -16638,6 +16653,21 @@ components:
                     type: string
               additionalProperties: false
               description: e.g. linkedin-accounts.logged-out.
+            read_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: is_null:true = unread.
             entity_sid:
               type: object
               properties:
@@ -17236,6 +17266,25 @@ components:
                   type: string
               additionalProperties: false
               description: Match on the human-readable client name.
+            actor_kind:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: What the client is (agent, integration, ...); is_null:true = unclassified legacy clients.
             status:
               type: object
               properties:

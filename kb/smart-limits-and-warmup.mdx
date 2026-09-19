@@ -17,11 +17,11 @@ releases; nothing needs re-queuing.
 ## Pacing: one call at a time
 
 Inside the day, calls of one bucket leave one at a time with a gap between them. The gap is
-`delay_in_seconds / batch_size` of the bucket's row, varied by up to 20% per call. Reads are
-paced in single seconds, actions in tens of seconds; connection requests and posts are
-deliberately slower. Both numbers are per account and editable (`batch_size` 1..10,
-`delay_in_seconds` 1..3600), and the platform's own value for the account comes back on every
-row as `recommended_delay_in_seconds`.
+the bucket's `delay_in_seconds`, varied by up to 20% per call; there is no burst, two calls of
+one bucket never leave together. Reads are paced in single seconds, actions in tens of
+seconds; connection requests and posts are deliberately slower. The number is per account and
+editable (`delay_in_seconds` 1..3600), and the platform's own value for the account comes back
+on every row as `recommended_delay_in_seconds`.
 
 | Action type | Per day | One call about every |
 |---|---|---|

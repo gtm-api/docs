@@ -1233,7 +1233,7 @@ paths:
       operationId: update_linkedin_account_smart_limit
       summary: Update LinkedIn account smart limit
       description: |-
-        GATE: on a governed account (smart_limits_enabled true, the default) daily_limit / delay_in_seconds / batch_size belong to the warmup; moving any is 409 smart_limits_governed: never promise a raised cap there. target_limit only BOUNDS (the row follows min(smart_limit, target_limit)): a target above the warmup ceiling changes nothing today; a young or dormant account sits at 1..2 for weeks (see warmup_breakdown). The other way: set_linkedin_account_smart_limits({enabled:false}), said out loud as removing ban protection. One row (daily_limit / target_limit / delay_in_seconds / batch_size / learning_enabled; one field OR reset_hold:true). Switch off: nothing refused; read the row's recommended_* first, 2x (or half the delay) is "elevated", beyond that "ban_likely", warn so. A spent budget is "held": raising daily_limit alone does not clear it, pass reset_hold:true too; it resumes once the cap exceeds done_today_count (governed rows re-hold at once). System fields are rejected; a LinkedIn lock is not resettable.
+        GATE: on a governed account (smart_limits_enabled true, the default) daily_limit / delay_in_seconds belong to the warmup; moving either is 409 smart_limits_governed: never promise a raised cap there. target_limit only BOUNDS (the row follows min(smart_limit, target_limit)): a target above the warmup ceiling changes nothing today; a young or dormant account sits at 1..2 for weeks (see warmup_breakdown). The other way: set_linkedin_account_smart_limits({enabled:false}), said out loud as removing ban protection. One row (daily_limit / target_limit / delay_in_seconds / learning_enabled; one field OR reset_hold:true). Switch off: nothing refused; read the row's recommended_* first, 2x (or half the delay) is "elevated", beyond that "ban_likely", warn so. A spent budget is "held": raising daily_limit alone does not clear it, pass reset_hold:true too; it resumes once the cap exceeds done_today_count (governed rows re-hold at once). System fields are rejected; a LinkedIn lock is not resettable.
 
         Contract:
         - MCP tool `update_linkedin_account_smart_limit`, registry package `mcp.linkedin/linkedin_account_smart_limits`, mount `linkedin.accounts`.
@@ -2690,7 +2690,7 @@ paths:
       operationId: set_linkedin_account_smart_limits
       summary: Set account smart limits
       description: |-
-        Switch smart-limit governance on or off for the WHOLE account, every bucket at once (no per-bucket toggle). The switch remembers nothing: a real flip in EITHER direction first resets every limit row to the platform defaults (daily_limit = the bucket's platform max, delay / batch = the enum pair, target_limit = the platform default, hold cleared). ON: the warmup then sets every row's daily_limit / delay_in_seconds / batch_size (re-derived from the latest snapshot) and update_linkedin_account_smart_limit refuses those fields with 409 smart_limits_governed; target_limit and learning_enabled stay yours. The seeded target_limit is a target the warmup climbs toward, never a limit somebody set. OFF: every cap runs exactly as typed and the account loses the warmup ban protection: say so first, read the rows' recommended_* before typing caps. Idempotent. SINGLE account: a fleet is a mass action with step linkedin-accounts.set-smart-limits (scope objects, args {enabled}), run BEFORE a limit-row run on the same senders.
+        Switch smart-limit governance on or off for the WHOLE account, every bucket at once (no per-bucket toggle). The switch remembers nothing: a real flip in EITHER direction first resets every limit row to the platform defaults (daily_limit = the bucket's platform max, delay_in_seconds = the flat default, target_limit = the platform default, hold cleared). ON: the warmup then sets every row's daily_limit / delay_in_seconds (re-derived from the latest snapshot) and update_linkedin_account_smart_limit refuses those fields with 409 smart_limits_governed; target_limit and learning_enabled stay yours. The seeded target_limit is a target the warmup climbs toward, never a limit somebody set. OFF: every cap runs exactly as typed and the account loses the warmup ban protection: say so first, read the rows' recommended_* before typing caps. Idempotent. SINGLE account: a fleet is a mass action with step linkedin-accounts.set-smart-limits (scope objects, args {enabled}), run BEFORE a limit-row run on the same senders.
 
         Contract:
         - MCP tool `set_linkedin_account_smart_limits`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -11822,6 +11822,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -31850,6 +31852,8 @@ components:
                     description: Writer provenance.
                   ln_member_id:
                     type: string
+                    nullable: true
+                    description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
                   ln_id:
                     type: string
                     nullable: true
@@ -32173,6 +32177,8 @@ components:
                     description: Writer provenance.
                   ln_member_id:
                     type: string
+                    nullable: true
+                    description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
                   ln_id:
                     type: string
                     nullable: true
@@ -32496,6 +32502,8 @@ components:
                     description: Writer provenance.
                   ln_member_id:
                     type: string
+                    nullable: true
+                    description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
                   ln_id:
                     type: string
                     nullable: true
@@ -34050,6 +34058,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -35339,8 +35349,6 @@ components:
               nullable: true
             delay_in_seconds:
               type: number
-            batch_size:
-              type: number
             done_today_count:
               type: number
             done_7d_count:
@@ -35360,9 +35368,6 @@ components:
             linkedin_quota_hit_till:
               type: string
               nullable: true
-            last_counted_at:
-              type: string
-              nullable: true
             created_at:
               type: string
             updated_at:
@@ -35376,13 +35381,11 @@ components:
             - smart_limit
             - target_limit
             - delay_in_seconds
-            - batch_size
             - done_today_count
             - last_reset_at
             - status
             - hold_till
             - linkedin_quota_hit_till
-            - last_counted_at
             - created_at
             - updated_at
         result:
@@ -43862,6 +43865,19 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            account_share_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The share a browser came in with; is_null:false = every browser that belongs to a shared account.
             linkedin_account_sid:
               type: object
               properties:
@@ -45229,6 +45245,155 @@ components:
                 lt:
                   type: string
               additionalProperties: false
+            updated_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+              additionalProperties: false
+            completed_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: is_null:true = still running or never ran.
+            linkedin_account_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The account that executed (or was asked to execute) the request.
+            input_kind:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - ln_id
+                    - sn_id
+                    - nickname
+                    - ln_member_id
+                    - url
+                    - activity_urn
+                    - params
+                    - domain
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - ln_id
+                      - sn_id
+                      - nickname
+                      - ln_member_id
+                      - url
+                      - activity_urn
+                      - params
+                      - domain
+              additionalProperties: false
+            input_value:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: 'The raw input as it was given, exact match: "did we already fetch this url / this slug".'
+            ln_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: A profile URN; matches the PERSON (normalized to the member id), so a row stored under the Sales Navigator id is found too.
+            sn_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: A Sales Navigator id; matches the person, like ln_id.
+            nickname:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+            cached_from_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The row a cache-served request was answered from; eq = every request one fetch has served.
+            error_code:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: Why a request failed (not_found, linkedin_429, browser_not_alive, ...); is_null:false = everything that failed.
             idempotency_key:
               type: object
               properties:
@@ -45692,6 +45857,56 @@ components:
                   type: array
                   items:
                     type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+            target_recruiter_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The Recruiter (talent) envelope of the person the action addressed; matches the person, like target_ln_id.
+            target_entity_urn:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: 'The object the action acted on: the post a reaction or a comment landed on (urn:li:activity / ugcPost), the comment a delete removed. "What did this account like?" is target_entity_type:post on like_post rows.'
+            target_entity_type:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - post
+                    - comment
+                    - message
+                    - conversation
+                    - invitation
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - post
+                      - comment
+                      - message
+                      - conversation
+                      - invitation
                 is_null:
                   type: boolean
               additionalProperties: false
@@ -46308,6 +46523,23 @@ components:
                   items:
                     type: string
               additionalProperties: false
+            limit_type:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: The smart-limit bucket the refusal locked (send_messages, send_connection_requests, ...). One reason can lock more than one bucket.
             has_premium:
               type: object
               properties:
@@ -46677,6 +46909,97 @@ components:
                 lt:
                   type: integer
               additionalProperties: false
+            learning_enabled:
+              type: object
+              properties:
+                eq:
+                  type: boolean
+              additionalProperties: false
+              description: false = the adaptive ceiling is pinned off for this row.
+            learned_ceiling:
+              type: object
+              properties:
+                eq:
+                  type: integer
+                ne:
+                  type: integer
+                gte:
+                  type: integer
+                lte:
+                  type: integer
+                gt:
+                  type: integer
+                lt:
+                  type: integer
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The cap LinkedIn refusals taught this bucket; is_null:false = every row the learner has lowered.
+            learned_ceiling_source:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: backoff (a LinkedIn refusal lowered it) | probe (a clean streak raised it).
+            learned_ceiling_updated_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+            probe_not_before:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                gt:
+                  type: string
+                lt:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: When the learner may next try a higher ceiling.
+            clean_saturation_streak:
+              type: object
+              properties:
+                eq:
+                  type: integer
+                ne:
+                  type: integer
+                gte:
+                  type: integer
+                lte:
+                  type: integer
+                gt:
+                  type: integer
+                lt:
+                  type: integer
+              additionalProperties: false
+              description: Days in a row the bucket spent its whole budget without a LinkedIn refusal.
             done_today_count:
               type: object
               properties:
@@ -46872,8 +47195,6 @@ components:
                     nullable: true
                   delay_in_seconds:
                     type: number
-                  batch_size:
-                    type: number
                   done_today_count:
                     type: number
                   done_7d_count:
@@ -46893,9 +47214,6 @@ components:
                   linkedin_quota_hit_till:
                     type: string
                     nullable: true
-                  last_counted_at:
-                    type: string
-                    nullable: true
                   created_at:
                     type: string
                   updated_at:
@@ -46909,13 +47227,11 @@ components:
                   - smart_limit
                   - target_limit
                   - delay_in_seconds
-                  - batch_size
                   - done_today_count
                   - last_reset_at
                   - status
                   - hold_till
                   - linkedin_quota_hit_till
-                  - last_counted_at
                   - created_at
                   - updated_at
               included:
@@ -50629,6 +50945,17 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            linkedin_invitation_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: LinkedIn's own id of the invitation, as a webhook or the wire names it.
             note:
               type: object
               properties:
@@ -51884,6 +52211,25 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            recruiter_contract_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The Recruiter contract the thread was synced or sent under (a seat holder with several contracts switches with select_recruiter_contract; each contract is its own inbox). Null off the recruiter surface and on rows synced before 2026-09-19.
             nickname:
               type: object
               properties:
@@ -52781,6 +53127,25 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            recruiter_contract_id:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The Recruiter contract the thread was synced or sent under (a seat holder with several contracts switches with select_recruiter_contract; each contract is its own inbox). Null off the recruiter surface and on rows synced before 2026-09-19.
             nickname:
               type: object
               properties:
@@ -52822,6 +53187,19 @@ components:
                   type: boolean
               additionalProperties: false
               description: "The caller's own key given at send time. The way to ask whether a send landed before repeating it: search by the key you sent."
+            subject:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: The InMail subject, exact match; is_null:false = every message that carried one. For a text search use q.
             q:
               type: string
               maxLength: 128
@@ -52963,6 +53341,8 @@ components:
                     description: Writer provenance.
                   ln_member_id:
                     type: string
+                    nullable: true
+                    description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
                   ln_id:
                     type: string
                     nullable: true
@@ -54019,6 +54399,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -54319,6 +54701,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -54618,6 +55002,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -54913,6 +55299,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -55183,6 +55571,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -56734,6 +57124,8 @@ components:
               description: Writer provenance.
             ln_member_id:
               type: string
+              nullable: true
+              description: The counterpart's member id, decoded from whichever LinkedIn id the thread carries. Null only on a thread with an organization (a Message Ads page names nobody).
             ln_id:
               type: string
               nullable: true
@@ -60222,12 +60614,7 @@ components:
           type: integer
           minimum: 1
           maximum: 3600
-          description: The pacing window in seconds (1..3600). Calls of the bucket leave one at a time, delay_in_seconds / batch_size apart; nothing fires back-to-back.
-        batch_size:
-          type: integer
-          minimum: 1
-          maximum: 10
-          description: "Calls per pacing window (1..10). It only divides the window: two calls of the bucket are delay_in_seconds / batch_size apart, so 30 s with 3 paces a call every 10 s. It is not a burst."
+          description: The flat delay in seconds between any two calls of the bucket (1..3600), varied by up to 20% per call; nothing fires back-to-back. An undo verb (unreact, delete a comment or post, unendorse, unfollow, withdraw) waits 2 s instead.
         reset_hold:
           type: boolean
           description: Clear the daily-saturation hold in the same call (the atomic "raise the limit AND resume now"). Only resumes if the new daily_limit > done_today_count; otherwise the row re-holds. Never touches a LinkedIn-side lock.
@@ -60280,8 +60667,6 @@ components:
               nullable: true
             delay_in_seconds:
               type: number
-            batch_size:
-              type: number
             done_today_count:
               type: number
             done_7d_count:
@@ -60301,9 +60686,6 @@ components:
             linkedin_quota_hit_till:
               type: string
               nullable: true
-            last_counted_at:
-              type: string
-              nullable: true
             created_at:
               type: string
             updated_at:
@@ -60317,13 +60699,11 @@ components:
             - smart_limit
             - target_limit
             - delay_in_seconds
-            - batch_size
             - done_today_count
             - last_reset_at
             - status
             - hold_till
             - linkedin_quota_hit_till
-            - last_counted_at
             - created_at
             - updated_at
         updated_fields:

@@ -3,6 +3,18 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-19" description="The burst leaves the smart-limit row: one flat delay per bucket">
+  **`delay_in_seconds` is the whole pacing rule.** Since 2026-09-18 calls of one action type leave one
+  at a time, and the row's "burst N, then hold X" pair only divided the number the gate used. The pair
+  is gone: `batch_size` and `last_counted_at` left the smart-limit row, the `update` verb and the
+  `linkedin-account-smart-limits.update` mass-action step, and `delay_in_seconds` is the flat gap
+  between any two calls of the bucket (1..3600, varied by up to 20% per call; an undo still waits
+  2 seconds). Existing rows were carried onto the number they were already running: a row at the
+  platform pair took the platform's flat default (10 s for messages, 30 s for connection requests,
+  5 s for searches and profile reads, 1 s for own-account reads), a hand-set pair kept its own
+  average rate. A body that still sends `batch_size` is refused with `validation_failed`.
+</Update>
+
 <Update label="2026-09-19" description="One person is one identity, whichever LinkedIn id you hold">
   **Every LinkedIn id of a person decodes to the same member.** A profile URN (`ACoAA...`), a Sales
   Navigator id (`ACwAA...`) and a Recruiter id (`AEMAA...`) carry the same member number, and the platform
