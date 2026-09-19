@@ -15,7 +15,7 @@ Webhooks live on the Orchestration service and cover events from the whole platf
 
 `POST /api/webhooks` takes a `name`, your `target_url` and the `events[]` you want:
 
-```json
+```json POST /orchestration/v4/api/webhooks
 {
   "name": "Mass action outcomes",
   "target_url": "https://example.com/hooks/gtm",

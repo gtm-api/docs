@@ -15,7 +15,7 @@ A mass action is a bulk dispatch on the Orchestration service: up to 100 items, 
 
 `POST /api/mass-actions/preview` validates the whole plan without persisting, charging or sending anything, and reports every finding at once.
 
-```json
+```json POST /orchestration/v4/api/mass-actions/preview
 {
   "title": "July outreach, batch 3",
   "target_entity": "linkedin-connection-requests",

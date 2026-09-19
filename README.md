@@ -45,6 +45,29 @@ To update the reference: change the tool definition, regenerate
 `./sync-openapi.sh --check` fails on any drift between the copies and the source; run it
 before committing.
 
+## Request examples are executed, not just read
+
+Every request example on these pages is sent, at test time, to the backend it documents:
+each service's suite (`tests/Feature/Docs/DocsExamplesTest` in gtm.service.linkedin, id and
+orchestration) lifts the examples with `gtm.lib.common` `Core/Testing/DocsExamples` and posts
+them to the service's validate twin (`api/_validate/...`), where the request is authenticated
+and validated exactly as on the real route and the action never runs. An example the backend
+would refuse turns that service's pipeline red, naming the page and line. The suite reads
+this checkout from the monorepo on a developer's machine and clones this public repo in CI.
+
+For an example to count it must have one of two shapes; anything else is prose to the gate:
+
+- a `bash` block with a `curl` command against `https://app.gtm-api.com/<service>/v4/<path>`,
+  using `-X`, `-H` and `-d '<json>'` (a comment line above the command is fine);
+- a `json` block whose fence title is the request line, for example
+  ```` ```json POST /orchestration/v4/api/mass-actions/preview ````. Mintlify shows the title
+  as the block's label, so the reader sees what the test sees. A `json` block without one is a
+  response sample and is never sent.
+
+Ids in an example are placeholders of the form `<prefix>_YOUR_<NAME>` (`ln_ac_YOUR_ACCOUNT`,
+`bl_sb_YOUR_SUB`); the suite replaces them with rows it creates. Routes outside `/api`
+(`/auth/*`, `/oauth/*`) have no twin and are left out.
+
 ## Preview locally
 
 ```bash
