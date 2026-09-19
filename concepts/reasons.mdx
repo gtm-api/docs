@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 197 reasons across 4 services.
+reason is thrown without a sentence). 198 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -178,6 +178,7 @@ reason is thrown without a sentence). 197 reasons across 4 services.
 | `run_not_failed` | Only a failed provisioning run can be retried; this one has not failed. | orchestration |
 | `run_window_expired` | More than 15 minutes passed since the login was confirmed; open a new session. | linkedin |
 | `sales_nav_required` | This source reads Sales Navigator and the account has no Sales Navigator seat; pick an account with one, or a LinkedIn-search source. | linkedin |
+| `sales_session_stale` | LinkedIn refused this Sales Navigator call for a stale seat session; the platform re-arms the session or moves the call off the seat on the next attempt, retry after retry_after. | linkedin |
 | `scheduled_at_in_past` | scheduled_at is in the past; omit it to send now, or pass a future time. | email |
 | `scheduled_change_is_not_cancel` | The scheduled change on this subscription is not a cancellation, so there is no cancellation to undo. | id |
 | `scheduled_post_not_deleted` | LinkedIn did not delete this scheduled post: it is not this account's, or it was already published or removed. | linkedin |
