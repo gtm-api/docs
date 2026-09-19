@@ -3,6 +3,26 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-19" description="One person is one identity, whichever LinkedIn id you hold">
+  **Every LinkedIn id of a person decodes to the same member.** A profile URN (`ACoAA...`), a Sales
+  Navigator id (`ACwAA...`) and a Recruiter id (`AEMAA...`) carry the same member number, and the platform
+  now reads them in one place. A URN is filed by what it is, not by the field it arrived in (`ln_id:
+  "ACwAA..."` lands on `sn_id`), `ln_member_id` is derived from any of them, and the same person named twice
+  is one row: in the data corpus, in a mass action (two targets that decode to one member are one item,
+  never two sends), in the synced connections, invitations and threads.
+
+  **A bad identifier is refused where you sent it.** `ln_member_id` is the decoded member number, digits
+  only: a vanity slug there is `422 ln_member_id_not_numeric` on that field, with the field it belongs in
+  named. An id that does not decode is `urn_undecodable`; two ids that name two different people are
+  `identity_conflict`; a Recruiter id given to a verb that dispatches on the member profile (connect,
+  message, visit, follow, endorse, the person getters) is `profile_id_not_dispatchable` with a pointer to
+  the profile URN. Mass-action previews refuse these on the target that carries them
+  (`scope.targets.3.ln_member_id`), so a run no longer previews green and dies on its canary.
+
+  **A message's `ln_member_id` can be null.** Only on a thread with an organization (a Message Ads page
+  names nobody); the literal `unknown` that used to stand in for it is gone from the column.
+</Update>
+
 <Update label="2026-09-18" description="Pacing is one call at a time, and every answer names the clock">
   **Calls of one action type leave one at a time.** A bucket no longer fires a burst and then holds: two
   calls are spaced `delay_in_seconds / batch_size` apart (10 seconds for messages, 30 for connection
