@@ -23,6 +23,18 @@ description: "What's new in the GTM API platform and this documentation."
   names nobody); the literal `unknown` that used to stand in for it is gone from the column.
 </Update>
 
+<Update label="2026-09-19" description="Every refusal has one shape: a field, a reason, a sentence, a context">
+  **The reason is the rule, the sentence is the message.** A `validation_failed` names the field, and each entry
+  under it carries `rule` (the machine reason: `ln_member_id_not_numeric`, `resend_not_available`,
+  `no_connected_account`) and `message` (the sentence for it). A `conflict`, `rate_limited` or
+  `service_unavailable` carries the reason in `context.reason`. Until now the shape depended on who wrote the
+  refusal: some answered the bare reason as the whole message, some wrote the reason inside the message under
+  the rule name `validation`, and the platform's own field checks (`The x field is required.`) named no reason
+  at all. Now a refusal from the platform's field checks names the rule that failed (`required`, `max`, `in`),
+  and no reason is answered without its sentence: every one is listed on the new
+  [Reasons](/concepts/reasons) page, generated from the same table the backends answer from.
+</Update>
+
 <Update label="2026-09-18" description="Pacing is one call at a time, and every answer names the clock">
   **Calls of one action type leave one at a time.** A bucket no longer fires a burst and then holds: two
   calls are spaced `delay_in_seconds / batch_size` apart (10 seconds for messages, 30 for connection
