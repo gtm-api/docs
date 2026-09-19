@@ -81,7 +81,7 @@ Every failure, from any service, is the same shape:
 
 - `code` is always one of the 16 values below, never an arbitrary string.
 - `recoverable` says whether retrying with corrected input can succeed (`true`) or the state itself is the problem (`false`).
-- `field_errors` appears only on `validation_failed`, keyed by field.
+- `field_errors` appears only on `validation_failed`, keyed by field. Each entry's `rule` is the machine reason (`ln_member_id_not_numeric`, `resend_not_available`) and its `message` the sentence for it; the same reason appears as `error.context.reason` on a `conflict`, `rate_limited` or `service_unavailable`. Every reason and its sentence is listed on the [Reasons](/concepts/reasons) page, generated from the backends' own catalogs.
 - `delete_blocked` errors additionally carry `error.blockers[]`: each blocker names its `type`, a `hard` or `soft` severity, and the `resolution` that clears it.
 
 ## The 16 error codes
