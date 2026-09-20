@@ -3,6 +3,29 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-20" description="A custom-domain certificate stays active while it renews">
+  **A renewal no longer moves the certificate out of `active`.** `renew_ssl_certificate` and the daily
+  renewal job used to move the row to `challenge` for the length of the attempt, and to `failed` when the
+  attempt failed, while the certificate on the domain went on serving. `status` now says what the domain
+  serves: an `active` certificate stays `active` while a renewal runs and after one fails, until it expires
+  or is deleted. The attempt is the `challenge` object. It is set while an attempt is in flight, on any
+  status, and null otherwise.
+
+  **After a renew, poll `challenge`, not `status`.** Read `get_ssl_certificate` until `challenge` is null.
+  `last_error` null means the new certificate is live, and `issued_at` and `expires_at` have moved.
+  `last_error` set means the attempt failed and the current certificate keeps serving. A client that waits
+  for `status: "active"` after a renew sees it on the first read and learns nothing from it. A row that
+  serves nothing (`pending`, `failed`, `expired`) moves through `challenge` to `active` or `failed` as
+  before, on `issue_ssl_certificate` and on `renew_ssl_certificate`.
+
+  **An `active` certificate with `last_error` set is still serving.** It means the last renewal failed. The
+  platform retries once a day while the certificate is within 30 days of `expires_at`. The failure email is
+  sent when a renewal starts failing, not on every retry, and the notice about an approaching expiry is sent
+  once per certificate. Fix what `last_error` names (usually the CNAME) and call `renew_ssl_certificate`, or
+  leave it to the next daily attempt. An `issue` or `renew` call while an attempt is in flight answers
+  `409 issuance_already_in_progress`.
+</Update>
+
 <Update label="2026-09-19" description="The burst leaves the smart-limit row: one flat delay per bucket">
   **`delay_in_seconds` is the whole pacing rule.** Since 2026-09-18 calls of one action type leave one
   at a time, and the row's "burst N, then hold X" pair only divided the number the gate used. The pair
