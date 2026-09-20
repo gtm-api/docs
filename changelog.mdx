@@ -43,6 +43,14 @@ description: "What's new in the GTM API platform and this documentation."
   once per certificate. Fix what `last_error` names (usually the CNAME) and call `renew_ssl_certificate`, or
   leave it to the next daily attempt. An `issue` or `renew` call while an attempt is in flight answers
   `409 issuance_already_in_progress`.
+
+  **One live certificate per domain.** More than one workspace can register the same domain while nobody
+  holds it, and the first certificate to go `active` holds the domain until it expires or is deleted. From
+  then on `create_ssl_certificate`, `issue_ssl_certificate` and `renew_ssl_certificate` answer
+  `409 domain_active_in_another_team` for that domain in every other workspace, and retrying does not help
+  while that certificate is live. An attempt that was already in flight there ends as a failed attempt, with
+  `last_error` opening with the same reason. Before, only `create` checked, so a workspace that had
+  registered the domain earlier could still issue a second live certificate for it.
 </Update>
 
 <Update label="2026-09-19" description="The burst leaves the smart-limit row: one flat delay per bucket">
