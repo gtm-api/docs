@@ -51,6 +51,15 @@ description: "What's new in the GTM API platform and this documentation."
   while that certificate is live. An attempt that was already in flight there ends as a failed attempt, with
   `last_error` opening with the same reason. Before, only `create` checked, so a workspace that had
   registered the domain earlier could still issue a second live certificate for it.
+
+  **Registering a failed, expired or deleted domain again answers as a new registration.**
+  `create_ssl_certificate` on a domain the workspace already has a row for keeps that row and its sid. When
+  the row is `pending`, `active` or has an attempt in flight it comes back untouched, with
+  `already_exists: true` and a 200. When the row is `failed` or `expired` with nothing in flight, or was
+  deleted, the call resets it to `pending` and clears `challenge` and `last_error`. That answer is now
+  `already_exists: false` with a 201. It used to say `true` and 200, which read as "nothing changed" on a
+  row that had just lost its `last_error`. Read `last_error` with `get_ssl_certificate` before you register
+  a failed domain again if you still need the reason.
 </Update>
 
 <Update label="2026-09-19" description="The burst leaves the smart-limit row: one flat delay per bucket">
