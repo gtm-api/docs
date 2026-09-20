@@ -299,8 +299,7 @@ The detail sits in one of two places, never both: a 422 carries it in `error.fie
 | Sales Navigator method on an account with no seat | 422 | `validation_failed` | `field_errors` on `linkedin_account_sid`, message starts `sales_nav_required:`; the ledger row is `rejected` |
 | Daily budget spent, account on hold, or cooldown not elapsed | 429 | `rate_limited` | `context`: `bucket_saturated`, `limit_type: "scraping"`, `cause`, `retry_after` |
 | LinkedIn's own quota lock on the account | 429 | `rate_limited` | `context`: `linkedin_strike`, `cause: "linkedin_quota_hit"`, `retry_after`; no bypass |
-| No capacity right now | 503 | `service_unavailable` | `context`: `infrastructure_unavailable` with `retry_after`; retry the same call |
-| Browser or plugin transport failure | 503 | `service_unavailable` | `context`: `plugin_unavailable` with `retry_after`; the run is marked failed and the hold released |
+| The account's browser could not serve the search this time | 503 | `service_unavailable` | `context.reason` says why, always with `retry_after`: `browser_starting` (a cold start still warming up, 30 seconds), `browser_unavailable` (the session was lost and is being restarted, two minutes), `plugin_unavailable` (the search page did not load or did not answer, one minute), `browser_maintenance` or `infrastructure_maintenance` (the browser or the fleet is being updated, five to ten minutes). The run is marked `failed`; a repeat under the same `idempotency_key` returns that row, so retry with a new key |
 
 The Sales Navigator refusal spells out its own fix: use an account that has a seat, or run `get-my-sales-navigator` to
 refresh that account's premium status first. That check also runs on its own every 360 minutes (6 hours), so a seat
