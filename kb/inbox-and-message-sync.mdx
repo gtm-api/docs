@@ -203,8 +203,10 @@ sid with `page_size` 50 and report the `refresh` block. Only full-sync if thread
 
 ## Reading the stored copy
 
-A message carries `type` (`inbox` or `outbox`), `automation` (`auto`, `manual`, `connect` or
-`synced`) and `linkedin_type` (`message`, `inmail` or `connection_note`). Messages are
+A message carries `type` (`inbox` or `outbox`), `automation` (`auto`, `manual` or `synced`) and
+`linkedin_type` (`message`, `inmail` or `connection_note`). A `connection_note` is the invitation
+note: LinkedIn puts it into the thread when the invitation is accepted, so it arrives through the
+sync like any other message (`automation: synced`) and carries that label. Messages are
 append-only on both surfaces: no edit, no delete, no unsend, no recall. There are no read
 receipts and no open tracking, and marking a thread read changes the state on LinkedIn only.
 

@@ -3,6 +3,25 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-20" description="The invitation note is the message LinkedIn delivers, and the accept webhooks name it">
+  **`connection_note` is a label on a real message, not a copy.** When an invitation is accepted,
+  LinkedIn puts the note into the 1:1 thread as an ordinary message. The platform recognizes it by its
+  text and labels that row `linkedin_type: "connection_note"`; it no longer writes a second, synthetic
+  copy of the note. So a note is one message, with LinkedIn's own id, and it arrives through the
+  message sync like any other (`automation: "synced"`).
+
+  **`automation` no longer takes `connect`.** That value marked the synthetic copy and nothing else, so
+  no message ever carried it. The field is now `auto`, `manual` or `synced`. A filter that passed
+  `connect` matched nothing before and is rejected now.
+
+  **Both accept webhooks name the note.** `linkedin-connection-requests.accepted` and
+  `linkedin-connection-invitations.accepted` carry `note_message_sid`, the `ln_ms_` sid of that thread
+  message, or null when the invitation had no note or the thread has not synced yet. On invitations it
+  replaces `seeded_message_sid`, which was always null. `linkedin-connection-requests.accepted` also
+  carries `resolved_connection_sid`, the `ln_cn_` sid of the connection the acceptance produced, so
+  reaching the new connection no longer needs a search.
+</Update>
+
 <Update label="2026-09-20" description="A custom-domain certificate stays active while it renews">
   **A renewal no longer moves the certificate out of `active`.** `renew_ssl_certificate` and the daily
   renewal job used to move the row to `challenge` for the length of the attempt, and to `failed` when the

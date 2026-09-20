@@ -11817,9 +11817,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
@@ -31847,9 +31846,8 @@ components:
                     enum:
                       - auto
                       - manual
-                      - connect
                       - synced
-                    description: Writer provenance.
+                    description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -32172,9 +32170,8 @@ components:
                     enum:
                       - auto
                       - manual
-                      - connect
                       - synced
-                    description: Writer provenance.
+                    description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -32497,9 +32494,8 @@ components:
                     enum:
                       - auto
                       - manual
-                      - connect
                       - synced
-                    description: Writer provenance.
+                    description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -34053,9 +34049,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
@@ -53025,17 +53020,15 @@ components:
                   enum:
                     - auto
                     - manual
-                    - connect
                     - synced
-                  description: Writer provenance.
+                  description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
                 ne:
                   type: string
                   enum:
                     - auto
                     - manual
-                    - connect
                     - synced
-                  description: Writer provenance.
+                  description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
                 in:
                   type: array
                   items:
@@ -53043,9 +53036,8 @@ components:
                     enum:
                       - auto
                       - manual
-                      - connect
                       - synced
-                    description: Writer provenance.
+                    description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
                 nin:
                   type: array
                   items:
@@ -53053,9 +53045,8 @@ components:
                     enum:
                       - auto
                       - manual
-                      - connect
                       - synced
-                    description: Writer provenance.
+                    description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
               additionalProperties: false
             ln_id:
               type: object
@@ -53336,9 +53327,8 @@ components:
                     enum:
                       - auto
                       - manual
-                      - connect
                       - synced
-                    description: Writer provenance.
+                    description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
                   ln_member_id:
                     type: string
                     nullable: true
@@ -54394,9 +54384,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
@@ -54696,9 +54685,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
@@ -54997,9 +54985,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
@@ -55294,9 +55281,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
@@ -55566,9 +55552,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
@@ -57119,9 +57104,8 @@ components:
               enum:
                 - auto
                 - manual
-                - connect
                 - synced
-              description: Writer provenance.
+              description: "Writer provenance: a sequence runner (auto), a person through a send tool (manual), or the messages sync (synced). An invitation note is a synced row labelled linkedin_type=connection_note; the 'connect' value left on 2026-09-20 with the seeders that were its only writer and never shipped."
             ln_member_id:
               type: string
               nullable: true
