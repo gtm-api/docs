@@ -3,6 +3,28 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-22" description="Edit the whole profile in one call: About, top skills, photo, background, and a tool for positions">
+  **`edit_linkedin_account_my_profile` edits the whole profile.** Next to the intro card it now takes
+  `about` (the About text, 2600 characters; an empty string clears it), `top_skills` (up to five, as
+  names or the `ProfileSkill:<n>` ids a previous save reported; an empty list removes them all),
+  `photo` and `background` (one image each, as base64 or an https URL we download; PNG, JPEG, GIF or
+  WEBP, typed by their bytes). Send only what changes: the intro card is read first and submitted
+  whole, the About save is partial, each image replaces one picture. Every section is its own
+  LinkedIn save, run in order (intro card, About, photo, background) and reported under
+  `result.sections` with its own activity-log row; a section LinkedIn refuses stops the call there and
+  the error names `failed_section` and `applied_sections`, so what landed before it stays. One call
+  spends one `edit_profile` slot however many sections it saves.
+
+  **`set_linkedin_account_my_position` adds, edits or removes one position.** No `position_id` adds
+  (title, company and start date required, an end date unless `is_current`); a `position_id` edits,
+  and only the fields you send change, because the platform reads the position's form first and
+  submits it whole (LinkedIn replaces the form; `is_current: true` drops the end date, an end date
+  ends a current position); `position_id` with `delete: true` removes it. The id is the one each
+  entry now carries on the account's own experience list (`enrich_linkedin_person_experience` on
+  the account's own profile), or the add's answer. The response carries the position's form as it
+  was before an edit or a delete, and LinkedIn's own verdict. Spends one `edit_profile` slot per call.
+</Update>
+
 <Update label="2026-09-22" description="The Recruiter InMail balance is a third pool, and it guards Recruiter sends">
   **`recruiter_inmail_credits` on LinkedIn accounts.** LinkedIn grants Recruiter InMails per contract and
   moves nothing between its products, so a Recruiter seat holder has a third balance next to
