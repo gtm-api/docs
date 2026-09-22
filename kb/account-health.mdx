@@ -25,8 +25,9 @@ account itself.
 The account's `status` field is platform lifecycle (`new`, `initial_syncing`, `active`, `sync_failed`,
 `shared_out`, `subscription_required`). It is not health and not login state: a sender whose LinkedIn
 session died still reads `status: "active"`. The signed-out fact is the bound browser's
-`status: "login_issue"`, which is the platform's only "signed out of LinkedIn" state. There is no
-separate `logged_out` value.
+`status: "login_issue"`, or `"restricted"` when the platform checked the account right after
+the logout from another LinkedIn account and found its public profile gone (a restriction, or
+a closed account). There is no separate `logged_out` value.
 </Warning>
 
 In the app the signal is the red **Signed out of LinkedIn** state on the sender row and in the
@@ -220,14 +221,15 @@ Read it per sender, in this order:
 
 | Dimension | Where in the response | Healthy looks like |
 |---|---|---|
-| Login state | included `antidetect_browser.status` | Anything but `login_issue`. `login_issue` = signed out of LinkedIn; `error_reason` and `last_logout_at` say what and when. NOT the account's own `status`, which is lifecycle and stays `active` through a logout |
+| Login state | included `antidetect_browser.status` | Anything but `login_issue` or `restricted`. `login_issue` = signed out of LinkedIn, a re-login fixes it; `restricted` = signed out and the public profile is gone from LinkedIn, so the holder has to sort it out with LinkedIn first. `error_reason` and `last_logout_at` say what and when. NOT the account's own `status`, which is lifecycle and stays `active` through a logout |
 | Warmup | included `linkedin_account_snapshot.warmup_score` | 90 or above; unhealthy signals are listed in `warmup_breakdown` |
 | Budgets | included `linkedin_account_smart_limits` | `active` rows; `held` / `linkedin_blocked` mean a budget is parked |
 | Blocks | included `linkedin_account_block_log_counts` | `last_7d_count` of 3 or fewer; more says the targeting is the problem |
 
 The `counts` block rides every search response, includes or not: `counts.signed_out_count` is the
-number of matching senders whose browser sits in `login_issue`, so a summary that skips the browser
-include still cannot miss them. `active_today_count` and `stale_count` are the heartbeat tallies.
+number of matching senders whose browser sits in `login_issue` or `restricted`, so a summary that
+skips the browser include still cannot miss them, and `counts.restricted_count` is the subset a
+re-login alone will not bring back. `active_today_count` and `stale_count` are the heartbeat tallies.
 
 <Note>
 Items with these includes are large. Keep `page_size` at 10 or below and follow
@@ -261,6 +263,8 @@ Paste this to your coding agent to read the whole fleet at once:
 | `linkedin-account-snapshot.captured` | A snapshot is written, so the score has been recomputed |
 | `linkedin-account-quota-hits.recorded` | LinkedIn refused an action and a row was written |
 | `linkedin-account-block-log.recorded` | A target was confirmed to be blocking an account |
+| `linkedin-accounts.logged-out` | LinkedIn signed a sender out; `antidetect-browsers.logged-out` is the browser-level twin |
+| `linkedin-accounts.restricted` | Right after the logout, the sender's public profile no longer answered from another LinkedIn account: a restricted (or closed) account. Follows `.logged-out`, never replaces it; `antidetect-browsers.restricted` is the browser-level twin |
 
 ## Related
 

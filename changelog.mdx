@@ -3,6 +3,25 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-22" description="A signed-out sender is checked before you are told: lost session or LinkedIn restriction">
+  **Two red statuses, two emails.** When LinkedIn signs a connected account out, the platform now
+  reads that member's public profile from another LinkedIn account of the fleet before sending
+  anything. A profile that answers means a lost session: the browser stays `login_issue` and the
+  **Your LinkedIn account was signed out** mail carries a **Profile check** line saying so. No
+  profile for the member's stable id means LinkedIn restricted the account (or the holder closed
+  it): the browser moves to the new `restricted` status and the mail is **LinkedIn restricted your
+  account**, with LinkedIn's verification and appeal steps instead of a re-login. Both statuses
+  are sticky, powered off and never auto-restarted; **Start** re-verifies the session for both.
+
+  **What changes on the wire.** `antidetect_browsers.status` gains `restricted`; a dispatch on such
+  a sender is refused with 409 `browser_account_restricted` (next to `browser_logged_out`); the
+  browser event log gains the `account_restricted` row with the identities asked and LinkedIn's
+  answer; the account search counts gain `restricted_count`, and `signed_out_count` now counts both
+  red statuses; two webhook events, `antidetect-browsers.restricted` and
+  `linkedin-accounts.restricted`, fire once per episode after the logged-out pair. See
+  [browser troubleshooting](/kb/browser-troubleshooting#restricted-linkedin-took-the-account-away).
+</Update>
+
 <Update label="2026-09-22" description="The services page as one read and one write, and reposts through one tool">
   **Your "Providing services" page.** `get_linkedin_account_my_services` reads the connected account's
   own services page as its edit form (status, description, the offered services with their ids, the

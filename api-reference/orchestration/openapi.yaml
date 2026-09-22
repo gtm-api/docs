@@ -1977,6 +1977,7 @@ components:
               - linkedin-accounts.login-succeeded
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
+              - linkedin-accounts.restricted
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
@@ -2017,6 +2018,7 @@ components:
               - antidetect-browsers.logged-in
               - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
+              - antidetect-browsers.restricted
               - antidetect-browsers.started
               - antidetect-browsers.stopped
               - antidetect-browsers.start-failed
@@ -4473,6 +4475,7 @@ components:
               - linkedin-accounts.login-succeeded
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
+              - linkedin-accounts.restricted
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
@@ -4513,6 +4516,7 @@ components:
               - antidetect-browsers.logged-in
               - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
+              - antidetect-browsers.restricted
               - antidetect-browsers.started
               - antidetect-browsers.stopped
               - antidetect-browsers.start-failed
@@ -7548,6 +7552,7 @@ components:
               - linkedin-accounts.login-succeeded
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
+              - linkedin-accounts.restricted
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
@@ -7588,6 +7593,7 @@ components:
               - antidetect-browsers.logged-in
               - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
+              - antidetect-browsers.restricted
               - antidetect-browsers.started
               - antidetect-browsers.stopped
               - antidetect-browsers.start-failed

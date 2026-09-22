@@ -17,7 +17,8 @@ four statuses below are exactly what the **Browser issue** filter chip on the li
 | `running_issue` | amber | The session started, then hit a runtime or proxy error. Powered off. | Run it again, then check the proxy |
 | `client_error_investigation` | amber | Repeated failures crossed the escalation threshold on a cause only you can fix: the vendor profile was deleted, the LinkedIn session or account is the problem, or the proxy you supplied is down. Powered off. | Fix what **Last error** names, then Restart |
 | `support_error_investigation` | amber | Repeated failures crossed the threshold on our side (a pool proxy, the node, the host) or on a cause we could not classify. Powered off. | Nothing on your side: our team is paged and restarts it once the cause is cleared |
-| `login_issue` | red | LinkedIn invalidated the session. Powered off, and sticky. | Re-login inside the browser, nothing else |
+| `login_issue` | red | LinkedIn invalidated the session. Powered off, and sticky. Right after the logout the platform checked the account from another LinkedIn account and the profile was still up, so this is a lost session. | Re-login inside the browser, nothing else |
+| `restricted` | red | LinkedIn invalidated the session and, checked right after from another LinkedIn account, shows no public profile for the member: a restricted (or closed) account. Powered off, and sticky. | Sort it out with LinkedIn on your own device (its verification or appeal), then re-login inside the browser |
 | `shared_out` | grey | Not a fault. The browser is lent to another workspace. | The share ending |
 | `subscription_required` | amber | Not a fault. The browser does not fit the team's subscription. | Upgrading, or freeing a slot |
 
@@ -40,9 +41,9 @@ with HTTP 409 and `error.context.reason = "invalid_status_transition"`.
 | Profile survives | Powering off a faulted browser does not log the account out. The profile persists on disk, so the LinkedIn session survives a power-off, a suspend and a cold start. |
 
 <Warning>
-`start_issue` and `login_issue` never recover on their own. A sync run that hits either
-one re-defers every 30 minutes, indefinitely, with `wait_reason = "browser:start_issue"`
-or `browser:login_issue`, until a person or an API call intervenes. A browser that is
+`start_issue`, `login_issue` and `restricted` never recover on their own. A sync run that hits
+one of them re-defers every 30 minutes, indefinitely, with `wait_reason = "browser:start_issue"`,
+`browser:login_issue` or `browser:restricted`, until a person or an API call intervenes. A browser that is
 merely waking re-checks every 60 seconds instead.
 </Warning>
 
@@ -52,8 +53,9 @@ Stop as soon as one of these explains what you see.
 
 1. **Confirm it is a fault, not a hold.** `shared_out` and `subscription_required` are
    parked on purpose, and no lifecycle action is available.
-2. **If the pill is red, go straight to [re-login](#re-login-is-the-only-fix).**
-   Restarting a `login_issue` browser will not help.
+2. **If the pill is red, read which red it is.** `login_issue` goes straight to
+   [re-login](#re-login-is-the-only-fix); restarting it will not help. `restricted` goes to
+   [LinkedIn first](#restricted-linkedin-took-the-account-away): a re-login cannot clear it.
 3. **Read the reason.** On the **Browser** tab, scroll to **Browser event log**. The
    newest `error` row names the cause in its `event_type`, `code` and message.
 4. **Restart once.** For `start_issue` or `running_issue`, use **Restart now** on the
@@ -122,10 +124,20 @@ account search, plus the always-present `counts.signed_out_count`
 ([account health](/kb/account-health)).
 </Note>
 
-No email is sent when an account is logged out. The event goes to analytics and to
-webhooks as `antidetect-browsers.logged-out`; on screen it is the red pill. If you run
-many accounts, [subscribe to that webhook](/guides/receive-webhooks) rather than waiting
-to be told.
+Two emails can follow a logout, and the platform decides which one before it sends
+anything. Right after the crossing it reads the member's public profile from another
+LinkedIn account of the fleet, the way any visitor would. A profile that answers means a
+lost session: the person who connected the browser gets **Your LinkedIn account was signed
+out**, with a **Profile check** line saying the profile is still up. No profile for the
+member's stable id means LinkedIn restricted the account (or the holder closed it): the
+browser moves to `restricted` and the mail is **LinkedIn restricted your account**, with
+LinkedIn's verification and appeal steps instead of a re-login (see
+[below](#restricted-linkedin-took-the-account-away)). When the check itself cannot run,
+the plain signed-out mail goes out without the check line. The events go to analytics and
+to webhooks as `antidetect-browsers.logged-out` and, for the verdict,
+`antidetect-browsers.restricted`; on screen they are the two red pills. If you run many
+accounts, [subscribe to those webhooks](/guides/receive-webhooks) rather than waiting to
+be told.
 
 ### Re-login is the only fix
 
@@ -161,6 +173,33 @@ browser. The default lifetime is 8 hours, `ttl_hours` accepts 1 to 720, and you 
 cap the link is redeemable until it expires, so pass `max_connects: 1` to make it
 single-use. Send it through a private channel and revoke it once the login is done.
 </Warning>
+
+## `restricted`: LinkedIn took the account away
+
+The drawer shows **Restricted by LinkedIn** in place of the signed-out banner, and the
+status popover names the verdict: LinkedIn has no public profile for this member, checked
+from another LinkedIn account right after the sign-out. That is what a restricted account
+looks like from the outside (a closed account looks the same, so if you closed it yourself
+this is a false alarm and a re-login clears it). The **Browser event log** carries an
+`account_restricted` row with the identities that were asked and LinkedIn's answer.
+
+Three things follow from the verdict:
+
+- **A re-login alone will not fix it.** Pressing **Start** re-verifies the session, hits the
+  login wall again, and the probe runs again: the row lands back on `restricted`.
+- **LinkedIn is the only place to lift it.** Sign in to LinkedIn on your usual device or
+  browser, not through the cloud browser: LinkedIn shows the restriction notice and the
+  steps it wants, usually a photo ID check, sometimes an appeal form through LinkedIn Help.
+  Most temporary restrictions clear within a few days once the steps are done. Until then,
+  do not run the account from another tool: every new sign-in attempt counts against it.
+- **Then re-login here.** Once LinkedIn lets you in, follow the [re-login
+  steps](#re-login-is-the-only-fix) exactly as for `login_issue`; the account picks up where
+  it stopped, and nothing is lost in the meantime.
+
+Over the API, a dispatch on a restricted sender is refused with HTTP 409 and
+`error.context.reason = "browser_account_restricted"` (the logged-out refusal reads
+`browser_logged_out`), and the account search's `counts.restricted_count` says how many
+senders sit there; `counts.signed_out_count` counts both red statuses.
 
 ## Read the event log
 
@@ -200,8 +239,8 @@ curl -X POST "https://app.gtm-api.com/linkedin/v4/api/antidetect-browser-logs/se
 
 `POST /linkedin/v4/api/antidetect-browsers/run` with `{"sid": "ab_br_..."}` is the same
 action as **Restart now**. It is accepted from `stopped`, `idle`, `start_issue`,
-`running_issue`, `login_issue`, `client_error_investigation`, `support_error_investigation`
-and `maintenance`. Every refusal
+`running_issue`, `login_issue`, `restricted`, `client_error_investigation`,
+`support_error_investigation` and `maintenance`. Every refusal
 returns HTTP 409 with `error.code = "conflict"`, so switch on `error.context.reason`,
 never on the code alone.
 

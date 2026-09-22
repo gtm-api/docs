@@ -1594,7 +1594,7 @@ paths:
                 - linkedin_connection_invitations_counts
                 - linkedin_conversations_counts
                 - linkedin_followers_counts
-              description: 'antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn; also error_reason, logout_count, last_logout_at). The account item alone cannot answer "is this sender signed in": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies).'
+              description: 'antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn, restricted means signed out and the public profile is gone, a LinkedIn restriction; also error_reason, logout_count, last_logout_at). The account item alone cannot answer "is this sender signed in": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies).'
       responses:
         "200":
           description: "`get` success envelope."
@@ -9292,7 +9292,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -9814,7 +9814,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -10580,6 +10580,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -12796,7 +12797,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -13380,7 +13381,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -13929,7 +13930,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -18522,7 +18523,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -19128,6 +19129,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -19518,6 +19520,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -20778,7 +20781,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -21342,7 +21345,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -21928,7 +21931,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -22439,7 +22442,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -22939,7 +22942,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -23456,7 +23459,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -24006,7 +24009,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -24519,7 +24522,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -25106,7 +25109,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -25663,7 +25666,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -26278,7 +26281,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -26941,7 +26944,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -27529,7 +27532,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -28029,7 +28032,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -28588,7 +28591,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -36000,6 +36003,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -36373,7 +36377,7 @@ components:
             post_urn:
               type: string
               nullable: true
-              description: "The publication: urn:li:instantRepost:(<root>,<id>) for a plain repost, urn:li:share:<id> for one with thoughts."
+              description: "The publication: urn:li:instantRepost:(<root>,<id>) for a plain repost, the share (urn:li:ugcPost:<id> live, urn:li:share:<id> on older shares) for one with thoughts."
             url:
               type: string
               nullable: true
@@ -36652,7 +36656,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -37463,6 +37467,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -37818,6 +37823,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -44560,6 +44566,7 @@ components:
                       - started_after_error
                       - server_unreachable
                       - error_escalation
+                      - account_restricted
                       - proxy_replaced
                   code:
                     type: number
@@ -45321,6 +45328,7 @@ components:
                       - start_issue
                       - running_issue
                       - login_issue
+                      - restricted
                       - client_error_investigation
                       - support_error_investigation
                       - maintenance
@@ -50030,7 +50038,7 @@ components:
               - linkedin_connection_invitations_counts
               - linkedin_conversations_counts
               - linkedin_followers_counts
-            description: 'antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn; also error_reason, logout_count, last_logout_at). The account item alone cannot answer "is this sender signed in": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies).'
+            description: 'antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn, restricted means signed out and the public profile is gone, a LinkedIn restriction; also error_reason, logout_count, last_logout_at). The account item alone cannot answer "is this sender signed in": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies).'
           description: Relations to eager-load (see entity Includes).
         sort:
           type: object
@@ -50104,7 +50112,7 @@ components:
                       - sync_failed
                       - shared_out
                       - subscription_required
-                    description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+                    description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
                   account_share_sid:
                     type: string
                     nullable: true
@@ -50591,7 +50599,10 @@ components:
               description: Heartbeat cold for over 24h or never set. Not schedule-aware, so out-of-window quiet time also counts.
             signed_out_count:
               type: integer
-              description: Accounts whose bound live browser sits in login_issue, meaning SIGNED OUT of LinkedIn. Non-zero says senders need re-login even when every item shows status "active" (that field is lifecycle, not login state). Attribute per row via include antidetect_browser.
+              description: Accounts whose bound live browser sits in login_issue or restricted, meaning SIGNED OUT of LinkedIn. Non-zero says senders need attention even when every item shows status "active" (that field is lifecycle, not login state). Attribute per row via include antidetect_browser.
+            restricted_count:
+              type: integer
+              description: "The subset of signed_out_count whose browser sits in restricted: right after the logout the platform read the public profile from another account and LinkedIn had none for the member, so the account is restricted (or closed) and a re-login alone will not bring it back. Tell the user to sort it out with LinkedIn first."
           required:
             - total_count
             - with_sn_count
@@ -54756,7 +54767,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -56975,7 +56986,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -57557,7 +57568,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -58159,7 +58170,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -58711,7 +58722,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -59825,6 +59836,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -61224,7 +61236,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -61781,7 +61793,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -62759,6 +62771,7 @@ components:
                 - start_issue
                 - running_issue
                 - login_issue
+                - restricted
                 - client_error_investigation
                 - support_error_investigation
                 - maintenance
@@ -63347,7 +63360,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
@@ -64120,7 +64133,7 @@ components:
                 - sync_failed
                 - shared_out
                 - subscription_required
-              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out).'
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
             account_share_sid:
               type: string
               nullable: true
