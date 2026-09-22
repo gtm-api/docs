@@ -3,6 +3,25 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-22" description="The services page as one read and one write, and reposts through one tool">
+  **Your "Providing services" page.** `get_linkedin_account_my_services` reads the connected account's
+  own services page as its edit form (status, description, the offered services with their ids, the
+  location and messaging flags, review visibility, pricing, the currencies and the 16 top-level
+  service categories), or null when there is no page. `set_linkedin_account_my_services` is the one
+  write: with no page yet it creates one (description and services required, LinkedIn's onboarding
+  defaults for the rest), with a page it changes only what you send, `republish: true` puts an
+  unpublished page back without touching it, and `unpublish: true` takes it down. Each write spends
+  one `edit_profile` slot; the response carries the page's form as it was before the change.
+
+  **`repost_linkedin_post`.** One tool for both kinds of repost: without `text` it is the plain repost
+  (the feed's Repost button), with `text` it is a repost with your thoughts, which also takes
+  `visibility`, `allowed_commenters_scope` and `mentions` the way `create_linkedin_post` does (sending
+  those without a text is refused, not dropped). `post_urn` is the post being reposted as an activity,
+  share or ugcPost urn; a group post cannot be reposted. The answer has one shape for both:
+  `activity_urn` (what `delete_linkedin_post` takes to retract it), `post_urn`, `url`, `created_at`,
+  `text`, `parent_post_urn`. Spends the `posting` bucket.
+</Update>
+
 <Update label="2026-09-22" description="Edit the whole profile in one call: About, top skills, photo, background, and a tool for positions">
   **`edit_linkedin_account_my_profile` edits the whole profile.** Next to the intro card it now takes
   `about` (the About text, 2600 characters; an empty string clears it), `top_skills` (up to five, as
