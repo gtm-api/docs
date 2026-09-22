@@ -3,6 +3,33 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-22" description="The Recruiter InMail balance is a third pool, and it guards Recruiter sends">
+  **`recruiter_inmail_credits` on LinkedIn accounts.** LinkedIn grants Recruiter InMails per contract and
+  moves nothing between its products, so a Recruiter seat holder has a third balance next to
+  `inmail_credits` (the Sales Navigator seat's grant) and `premium_inmail_credits` (the Premium plan's
+  own balance). The premium check's `inmail_credits` step now reads it for an account whose
+  `recruiter_status` is `active`, next to whichever of the other two the plan has, and stores what
+  Recruiter's Usage Overview shows as InMail credits. The field filters (`eq`, `gte`, `is_null` and the
+  rest). Null means not read, never zero; a signed-out seat keeps its last number until it signs in
+  again, and the number goes with the seat when the seat goes. `422 premium_required` on a named
+  `inmail_credits` check now fires only when none of the three pools can be read.
+
+  **A Recruiter send is guarded by that pool.** Opening a new Recruiter thread with
+  `send_linkedin_recruiter_message` on a balance the platform knows to be zero is refused before
+  anything reaches LinkedIn, with the rule `no_inmail_credits`, the way a linkedin.com InMail is refused
+  on an empty plan pool. A reply into an existing thread is never guarded. A balance never read does not
+  block, and LinkedIn's own out-of-credits refusal zeroes the stored balance so the next send is refused
+  early.
+
+  **Three smaller things the node release carries.** The connected account's own experience entries
+  (`enrich_linkedin_person_experience` on the account's own profile) carry `position_id`, the key the
+  coming profile-editing verbs take. `enrich_linkedin_person_services` answers `page_id` as the page's
+  vanity slug for a published page, and null for a page its owner has unpublished, which looks the same
+  as never having had one. In `get_linkedin_account_my_analytics` a daily value can be negative:
+  engagements is a daily delta, and a retracted reaction shows as a below-zero day, so do not clamp it,
+  the period total is the sum.
+</Update>
+
 <Update label="2026-09-20" description="The invitation note is the message LinkedIn delivers, and the accept webhooks name it">
   **`connection_note` is a label on a real message, not a copy.** When an invitation is accepted,
   LinkedIn puts the note into the 1:1 thread as an ordinary message. The platform recognizes it by its

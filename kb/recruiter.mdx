@@ -45,6 +45,12 @@ While the seat is signed out, every Recruiter call answers `409 recruiter_reauth
 
 `recruiter_session_expires_at` on the account tells you when the session will run out, so you can sign in before it does rather than after. It is null when the platform has not seen the session cookie, which is not a verdict: a browser that is still on LinkedIn's contract chooser has no session cookie at all, and the fix there is picking a contract, not a password.
 
+## InMail credits
+
+Recruiter InMails come out of the contract's own pool, which LinkedIn keeps apart from the Sales Navigator seat's grant and from the Premium plan's balance. The account carries it as `recruiter_inmail_credits`, what Recruiter's Usage Overview shows as InMail credits. The premium check reads it for an `active` seat as part of its `inmail_credits` step, every 6 hours in the background or on demand with `check_linkedin_account_premium_subscription` and `checks: ["inmail_credits"]`. Null means the platform has not read it yet, never zero.
+
+A new thread on a balance known to be zero is refused before anything reaches LinkedIn (rule `no_inmail_credits`); a reply into an existing thread is never guarded. A signed-out seat keeps its last number until the seat holder signs in again. `search_linkedin_accounts` filters on the field, so `recruiter_inmail_credits: {eq: 0}` lists the seats that cannot open a thread until the monthly refresh.
+
 ## Limits that come from LinkedIn, not from us
 
 **One InMail per candidate per 24 hours.** Sending a second one answers `429 recruiter_inmail_cooldown` with `cooldown_ends_at`. If a reply may have landed in between, refresh the thread before assuming the send failed.
