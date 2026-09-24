@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 199 reasons across 4 services.
+reason is thrown without a sentence). 200 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -106,6 +106,7 @@ reason is thrown without a sentence). 199 reasons across 4 services.
 | `issuance_already_in_progress` | A certificate for this domain is being issued right now; wait for it. | id |
 | `latest_refresh_failed` | The live read did not complete; retry in a minute. | linkedin |
 | `linkedin_account_exists` | A LinkedIn account is already bound to this browser; delete it first, or use it. | linkedin |
+| `linkedin_page_unreadable` | LinkedIn answered this page in a shape the reader could not read (an interstitial, a session surface or a changed page), so nothing is reported rather than a wrong empty page; retry in a minute, and if it repeats the page reader needs an update. | linkedin |
 | `login_already_confirmed` | This session already carries a different login result. | linkedin |
 | `login_error_reason_required` | A login result other than success needs login_error_reason. | linkedin |
 | `login_not_confirmed` | The login of this session was not confirmed, so the browser cannot be run from it. | linkedin |

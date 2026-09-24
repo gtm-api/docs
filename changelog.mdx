@@ -12,6 +12,13 @@ description: "What's new in the GTM API platform and this documentation."
   `has_more: false` and no error attached. Ask for 50 or fewer and follow `paging.next_cursor`; a
   page of 50 fills. The small end is unchanged and worth knowing: `page_size` 1 or 2 returns the
   opening cluster of 3.
+
+  **The end of the feed is LinkedIn's word.** The same tool used to take any page LinkedIn answered
+  without posts as the end of the feed, which is how an answer the platform could not read (a page
+  that rendered differently, an interstitial) came back as a completed empty result. Now a page ends
+  the feed only when LinkedIn's own answer says the window is empty; anything else without posts is
+  refused with 503 `linkedin_page_unreadable` and a `retry_after` a minute out, never returned as
+  rows.
 </Update>
 
 <Update label="2026-09-22" description="A signed-out sender is checked before you are told: lost session or LinkedIn restriction">
