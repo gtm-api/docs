@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 198 reasons across 4 services.
+reason is thrown without a sentence). 199 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -140,6 +140,7 @@ reason is thrown without a sentence). 198 reasons across 4 services.
 | `owner_cannot_be_removed` | The workspace owner cannot be removed; transfer ownership first. | id |
 | `owner_cannot_be_rescoped` | The workspace owner sees every account; a sender slice applies to other members only. | id |
 | `paddle_unavailable` | The billing provider did not answer; retry in a minute. | id |
+| `page_size_above_linkedin_max` | LinkedIn's content search serves at most 50 posts per page and answers a larger request with an empty page, so page_size stops at 50 here; ask for 50 or fewer and follow paging.next_cursor for the rest. | linkedin |
 | `paid_subscription_applied` | A paid subscription is applied to this workspace; unapply and cancel it before deleting the workspace. | id |
 | `partner_sentinel_missing` | The partner-managed workspace has no internal subscription row; provisioning did not finish. | id |
 | `password_already_set` | This account already has a password; use the reset flow to change it. | id |

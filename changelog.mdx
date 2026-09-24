@@ -3,6 +3,17 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-24" description="Post search: page_size stops at 50, and the API says why">
+  **`scrape_linkedin_search_posts`.** `page_size` now takes 1..50 instead of 1..100, and a larger value
+  is refused with 422 `page_size_above_linkedin_max` instead of being sent through. The bound is
+  LinkedIn's, not ours: its content search opens every query with a cluster of 3 posts and serves at
+  most 50 more per pagination request. Asked for more, it answers with an empty page, which the
+  platform read as the end of the feed, so a `page_size` of 100 came back as 3 rows with
+  `has_more: false` and no error attached. Ask for 50 or fewer and follow `paging.next_cursor`; a
+  page of 50 fills. The small end is unchanged and worth knowing: `page_size` 1 or 2 returns the
+  opening cluster of 3.
+</Update>
+
 <Update label="2026-09-22" description="A signed-out sender is checked before you are told: lost session or LinkedIn restriction">
   **Two red statuses, two emails.** When LinkedIn signs a connected account out, the platform now
   reads that member's public profile from another LinkedIn account of the fleet before sending
