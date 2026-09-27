@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 200 reasons across 4 services.
+reason is thrown without a sentence). 202 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -172,6 +172,8 @@ reason is thrown without a sentence). 200 reasons across 4 services.
 | `registry_unavailable` | The identity service did not answer the email-box registry call; retry in a minute. | orchestration |
 | `relation_not_found` | reply_to_email_message_sid names no message this account holds. | email |
 | `release_not_supported` | A share is recalled, not released; use recall. | linkedin |
+| `replied` | The person wrote in this thread after stop_if_replied_after, so nothing was sent; read their message (context.linkedin_message_sid) before you send again. | linkedin |
+| `reply_check_unavailable` | The thread could not be read from LinkedIn right now, and stop_if_replied_after asks for that read before the send; nothing was sent, retry after retry_after. | linkedin |
 | `report_end_not_supported` | Only a share reports its end; a transfer completes on its own. | id |
 | `requester_has_no_email` | The requester's account has no email to reply to; add one before opening a support request. | id |
 | `resolver_unavailable` | The subject profile could not be resolved right now; retry later. | linkedin |
