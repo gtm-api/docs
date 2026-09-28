@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 202 reasons across 4 services.
+reason is thrown without a sentence). 203 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -150,6 +150,7 @@ reason is thrown without a sentence). 202 reasons across 4 services.
 | `period_start_must_be_monday` | period_start must be the Monday that opens the ISO week. | linkedin |
 | `period_too_wide` | The period spans more than 90 days; narrow period.from / period.to. | linkedin, id, orchestration, email |
 | `plugin_unavailable` | The browser plugin did not answer; retry once the browser is running. | linkedin |
+| `post_not_created` | LinkedIn did not publish this post: its answer named no post, so nothing was spent. A company-page post (author_organization_id) needs an account that administers that page; check the page role, then retry. | linkedin |
 | `post_not_deleted` | LinkedIn did not delete this post: it is not this account's, or it is already gone. | linkedin |
 | `post_not_resolvable` | The post link could not be turned into a post id (a shortlink that does not expand, a URL without an activity id); paste the full linkedin.com post URL or the urn:li:activity id. | linkedin |
 | `post_target_missing` | source_input names no post: pass activity_urn, or a post URL. | linkedin |
