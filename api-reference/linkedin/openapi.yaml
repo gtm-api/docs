@@ -2291,7 +2291,7 @@ paths:
       operationId: get_linkedin_account_my_recruiter_contracts
       summary: Get my Recruiter contracts
       description: |-
-        The Recruiter contracts this account's member can act under (LinkedIn's contract chooser, wire get-recruiter-contract-options), with current_contract_id = the contract the account's seat is stamped under. NEEDS A RECRUITER SEAT on the account (422 recruiter_required otherwise). Read it when recruiter_status is set but recruiter_seat_id is null: a member on several contracts holds no seat until the browser is bound to one, and the premium check binds one by itself only when the choice is unambiguous (the account's own contract, the only row, the only CORPORATE row). CORPORATE rows are Recruiter seats; the INDIVIDUAL row is a Job Posting contract on the personal account. Not gated on the Recruiter session clock: the chooser answers for a browser LinkedIn has not let into Recruiter yet, and a run-out session (recruiter_status signed_out) is the seat holder's to renew through the cloud browser.
+        The Recruiter contracts this account's member can act under (LinkedIn's contract chooser, wire get-recruiter-contract-options), with current_contract_id = the contract the account's seat is stamped under. NEEDS A RECRUITER SEAT on the account (422 recruiter_required otherwise). Read it when recruiter_status is set but recruiter_seat_id is null: a member on several contracts holds no seat until the browser is bound to one. The premium check does not bind one by itself: from the platform's browser this list answers LinkedIn 401 on every account so far, a live session included, and the refusal comes back verbatim as result.status failed without touching recruiter_status. The working way to a bound seat is the seat holder's Sign in to Recruiter: the cloud browser opens on Recruiter, LinkedIn shows its own contract chooser, and the confirmed start re-reads the seat. CORPORATE rows are Recruiter seats; the INDIVIDUAL row is a Job Posting contract on the personal account. Not gated on the Recruiter session clock.
 
         Contract:
         - MCP tool `get_linkedin_account_my_recruiter_contracts`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
@@ -2790,7 +2790,7 @@ paths:
       operationId: select_linkedin_account_recruiter_contract
       summary: Select my Recruiter contract
       description: |-
-        Bind the account's browser to ONE of the member's Recruiter contracts (the contract chooser's Select, wire select-recruiter-contract) and stamp the seat that comes with it. contract_id is the ts_contract NUMBER from get_linkedin_account_my_recruiter_contracts, never a urn. Pick a CORPORATE row: the wrong row binds the browser to the wrong inbox, and a member on several contracts is exactly who this is for (the premium check does not guess among several). 422 contract_not_offered lists the rows on offer in context.offered; 422 contract_not_selectable means the row lacks an urn the Select needs. On success recruiter_seat_id and recruiter_contract_id are stamped from LinkedIn's answer (seat_stamped true); when the answer carried no seat the browser is still bound and the next premium check with checks: ['recruiter'] stamps the pair. Switching contracts switches the Recruiter inbox the sync reads: a reset of recruiter_conversations after a switch is the operator's call.
+        Bind the account's browser to ONE of the member's Recruiter contracts (the contract chooser's Select, wire select-recruiter-contract) and stamp the seat that comes with it. contract_id is the ts_contract NUMBER from get_linkedin_account_my_recruiter_contracts, never a urn. Pick a CORPORATE row: the wrong row binds the browser to the wrong inbox, and a member on several contracts is exactly who this is for; the premium check never binds one by itself. A seat in the answer marks recruiter_status active. 422 contract_not_offered lists the rows on offer in context.offered; 422 contract_not_selectable means the row lacks an urn the Select needs. On success recruiter_seat_id and recruiter_contract_id are stamped from LinkedIn's answer; when it carried no seat the browser is still bound and the next premium check with checks: ['recruiter'] stamps the pair. Switching contracts switches the Recruiter inbox the sync reads: a reset of recruiter_conversations after a switch is the operator's call.
 
         Contract:
         - MCP tool `select_linkedin_account_recruiter_contract`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.recruiter`.
@@ -9327,7 +9327,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -9849,7 +9849,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -10687,6 +10687,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -10810,6 +10835,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -12011,7 +12037,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -12832,7 +12859,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -13416,7 +13443,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -13965,7 +13992,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -18558,7 +18585,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -19236,6 +19263,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -19359,6 +19411,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -19627,6 +19680,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -19750,6 +19828,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -20816,7 +20895,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -21380,7 +21459,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -21966,7 +22045,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -22477,7 +22556,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -22977,7 +23056,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -23494,7 +23573,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -24044,7 +24123,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -24557,7 +24636,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -25144,7 +25223,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -25701,7 +25780,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -26316,7 +26395,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -26979,7 +27058,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -27567,7 +27646,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -28067,7 +28146,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -28626,7 +28705,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -32835,7 +32914,8 @@ components:
                       - message
                       - inmail
                       - connection_note
-                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                      - system
+                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
                   type:
                     type: string
                     enum:
@@ -33159,7 +33239,8 @@ components:
                       - message
                       - inmail
                       - connection_note
-                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                      - system
+                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
                   type:
                     type: string
                     enum:
@@ -33483,7 +33564,8 @@ components:
                       - message
                       - inmail
                       - connection_note
-                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                      - system
+                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
                   type:
                     type: string
                     enum:
@@ -35038,7 +35120,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -36110,6 +36193,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -36233,6 +36341,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -36691,7 +36800,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -37574,6 +37683,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -37697,6 +37831,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -37930,6 +38065,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -38053,6 +38213,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -45435,6 +45596,31 @@ components:
                         - allowed_ips
                         - allowed_countries
                     description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+                  vendor_profile_shares:
+                    type: array
+                    nullable: true
+                    items:
+                      type: object
+                      properties:
+                        email:
+                          type: string
+                        role:
+                          type: string
+                        shared_at:
+                          type: string
+                          nullable: true
+                        shared_by:
+                          type: string
+                          nullable: true
+                        vendor_share_id:
+                          type: string
+                          nullable: true
+                      required:
+                        - email
+                        - role
+                        - shared_at
+                        - shared_by
+                        - vendor_share_id
                   created_by:
                     type: object
                     properties:
@@ -45558,6 +45744,7 @@ components:
                   - custom_proxy
                   - proxy_5g
                   - cloud_browser_access
+                  - vendor_profile_shares
                   - created_by
                   - deleted_by
                   - created_at
@@ -50147,7 +50334,7 @@ components:
                   recruiter_session_expires_at:
                     type: string
                     nullable: true
-                    description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+                    description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
                   full_name:
                     type: string
                     nullable: true
@@ -53461,6 +53648,17 @@ components:
                 is_null:
                   type: boolean
               additionalProperties: false
+            is_group:
+              type: object
+              properties:
+                eq:
+                  type: boolean
+                ne:
+                  type: boolean
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: A group chat (2026-09-24). is_null:true finds threads synced before the flag existed, which read as 1:1 until their next sync.
             unread_count:
               type: object
               properties:
@@ -54181,14 +54379,16 @@ components:
                     - message
                     - inmail
                     - connection_note
-                  description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                    - system
+                  description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
                 ne:
                   type: string
                   enum:
                     - message
                     - inmail
                     - connection_note
-                  description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                    - system
+                  description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
                 in:
                   type: array
                   items:
@@ -54197,7 +54397,8 @@ components:
                       - message
                       - inmail
                       - connection_note
-                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                      - system
+                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
                 nin:
                   type: array
                   items:
@@ -54206,7 +54407,8 @@ components:
                       - message
                       - inmail
                       - connection_note
-                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                      - system
+                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
               additionalProperties: false
             type:
               type: object
@@ -54529,7 +54731,8 @@ components:
                       - message
                       - inmail
                       - connection_note
-                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                      - system
+                    description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
                   type:
                     type: string
                     enum:
@@ -54802,7 +55005,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -55543,6 +55746,11 @@ components:
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
           description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send. An item whose file_type is video/* is delivered as a playable video in the thread; any other type arrives as a generic file attachment.
+        stop_if_replied_after:
+          type: string
+          nullable: true
+          format: date-time
+          description: "ISO 8601 UTC moment. When given, the thread is read from LinkedIn before the send and the send is refused with 409 replied if the person wrote after this moment (context.linkedin_message_sid names their message: read it before you send again); 503 reply_check_unavailable when that read fails, nothing sent, retry after retry_after. Omit or null to send regardless."
         client_reference:
           type: string
           nullable: true
@@ -55591,7 +55799,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -55845,6 +56054,11 @@ components:
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
           description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send. An item whose file_type is video/* is delivered as a playable video in the thread; any other type arrives as a generic file attachment.
+        stop_if_replied_after:
+          type: string
+          nullable: true
+          format: date-time
+          description: "ISO 8601 UTC moment. When given, the thread is read from LinkedIn before the send and the send is refused with 409 replied if the person wrote after this moment (context.linkedin_message_sid names their message: read it before you send again); 503 reply_check_unavailable when that read fails, nothing sent, retry after retry_after. Omit or null to send regardless."
         client_reference:
           type: string
           nullable: true
@@ -55892,7 +56106,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -56192,7 +56407,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -56488,7 +56704,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -56759,7 +56976,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -57021,7 +57239,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -57603,7 +57821,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -58205,7 +58423,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -58757,7 +58975,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -59565,7 +59783,8 @@ components:
                 - message
                 - inmail
                 - connection_note
-              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note."
+                - system
+              description: "Channel sub-kind: regular DM / premium InMail / system-seeded connection note / a notice LinkedIn posted into the thread on someone's action (system: a rename, a member added or removed, a member leaving; the body is LinkedIn's own sentence, the sender the acting member; not a message: it takes no reaction and no recall, draw it as history)."
             type:
               type: string
               enum:
@@ -59943,6 +60162,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -60066,6 +60310,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -61271,7 +61516,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -61828,7 +62073,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -62878,6 +63123,31 @@ components:
                   - allowed_ips
                   - allowed_countries
               description: The smart links minted on this browser; the key itself only for a caller holding can_manage_cloud_browser_external_links, null otherwise (2026-09-16). Each console open used to leave a throwaway entry here; minting now sweeps entries that expired over 24h ago, so this is the live link list rather than a log.
+            vendor_profile_shares:
+              type: array
+              nullable: true
+              items:
+                type: object
+                properties:
+                  email:
+                    type: string
+                  role:
+                    type: string
+                  shared_at:
+                    type: string
+                    nullable: true
+                  shared_by:
+                    type: string
+                    nullable: true
+                  vendor_share_id:
+                    type: string
+                    nullable: true
+                required:
+                  - email
+                  - role
+                  - shared_at
+                  - shared_by
+                  - vendor_share_id
             created_by:
               type: object
               properties:
@@ -63001,6 +63271,7 @@ components:
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
+            - vendor_profile_shares
             - created_by
             - deleted_by
             - created_at
@@ -63395,7 +63666,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
@@ -64168,7 +64439,7 @@ components:
             recruiter_session_expires_at:
               type: string
               nullable: true
-              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read from the antidetect vendor's cookie store by the premium check (the clock, never the value). LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
             full_name:
               type: string
               nullable: true
