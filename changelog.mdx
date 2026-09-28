@@ -3,6 +3,38 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-09-28" description="Recruiter: a seat that was never signed in is not a sign-out">
+  **`recruiter_status` tells the truth about a seat that never signed in.** A Recruiter seat whose
+  browser has never been signed in to Recruiter used to read `active` and then flip to `signed_out`
+  and back on every check, with a "LinkedIn Recruiter signed your account out" email on each flip.
+  Now the seat read is the verdict: a seat in LinkedIn's answer is `active`, a refused talent call
+  is `signed_out`, and no seat in the answer on an account that never held one is `signed_out` with
+  a new webhook `reason`, `session_unconfirmed`. That case gets its own email, **Sign in to LinkedIn
+  Recruiter to switch it on**, instead of a sign-out notice. The account's page shows **Sign in to
+  Recruiter** for such a seat, and the row's Recruiter mark wears the warn tone. Both Recruiter
+  emails are now sent at most once a day per account.
+
+  **The premium check no longer opens LinkedIn's contract chooser by itself.** From the platform's
+  browser the chooser's list is refused by LinkedIn on every account so far, a live session
+  included, so each attempt was a failed row on the sender's activity screen twice a day and the
+  refusal was read as a lost session. `get_linkedin_account_my_recruiter_contracts` and
+  `select_linkedin_account_recruiter_contract` stay, pass LinkedIn's answer through verbatim, and
+  never change `recruiter_status` on a refusal; a Select that answers a seat marks the account
+  `active`. The working way to a bound seat is the sign-in through the cloud browser, where
+  LinkedIn shows its own chooser.
+
+  **`recruiter_session_expires_at` is read from the account's own browser.** The clock used to come
+  from the antidetect vendor's cookie store, which for a profile you connected from your own
+  GoLogin account is not the browser's jar at all (nothing the platform runs writes to it). It is
+  now read from the running browser first, so the clock is the one the Recruiter calls are served
+  under.
+
+  **The background premium check paces itself.** A full check is up to eight calls on the account
+  against a cap of ten a minute; it used to fail on the cap and start over from the first call,
+  which on a busy account filled every following minute with the same calls until the day's
+  self-sync budget ran out. It now waits out the cap between calls instead.
+</Update>
+
 <Update label="2026-09-24" description="Post search: page_size stops at 50, and the API says why">
   **`scrape_linkedin_search_posts`.** `page_size` now takes 1..50 instead of 1..100, and a larger value
   is refused with 422 `page_size_above_linkedin_max` instead of being sent through. The bound is
