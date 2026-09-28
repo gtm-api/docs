@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 203 reasons across 4 services.
+reason is thrown without a sentence). 204 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -58,6 +58,7 @@ reason is thrown without a sentence). 203 reasons across 4 services.
 | `channel_unavailable` | The channel service did not answer; retry in a minute. | id |
 | `channel_unreachable` | The channel service could not be reached; retry in a minute. | id |
 | `comment_not_deleted` | LinkedIn did not delete this comment: it is not this account's, or it is already gone. | linkedin |
+| `commit_in_progress` | This commit_token is being committed by another request right now; wait a moment and send the same commit again, it answers the run that request created. | orchestration |
 | `commit_token_expired` | commit_token has expired; run the preview again and commit with the new token. | orchestration |
 | `company_anchor_not_numeric` | source_input.anchor_company_ln_id must be the numeric LinkedIn company id, not a slug or a URL. | linkedin |
 | `confirmation_count_mismatch` | confirmation_count does not match the number of accounts the filter matched; re-read the count and confirm again. | id |
