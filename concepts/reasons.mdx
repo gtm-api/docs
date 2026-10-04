@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 204 reasons across 4 services.
+reason is thrown without a sentence). 205 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -40,6 +40,7 @@ reason is thrown without a sentence). 204 reasons across 4 services.
 | `auto_scrape_not_active` | This auto-scrape is not active; resume it before running. | linkedin |
 | `automation_server_in_maintenance` | This automation server is in maintenance and takes no browsers. | linkedin |
 | `automation_server_mismatch` | The browser is registered on a different automation server than the caller; the fleet reconciles this on its own. | linkedin |
+| `billing_change_unconfirmed` | The billing provider did not confirm this change, and it may have gone through; check the subscription before trying again. | id |
 | `body_fetch_failed` | The message body could not be fetched from the provider (see context.detail); a sync refreshes its locator. | email |
 | `bounded_scan_required` | _the field_ must narrow the search with eq or in; a search of this table across the whole workspace is refused. | linkedin |
 | `browser_already_bound` | This browser is already bound to a different LinkedIn member; unbind it, or use another browser. | linkedin |
