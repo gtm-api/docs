@@ -459,7 +459,7 @@ paths:
       operationId: update_api_key
       summary: Update API key
       description: |-
-        Partial update of name / permissions / account_sids (the key's identity and secret are untouched; use rotate_api_key to change the secret). Each list is a FULL replacement, clamped to the STORED issuer's current authority on its axis (403, reason grant_exceeds_ceiling): permissions inside their token set, account_sids inside their slice (null = all accounts, grantable only under an unrestricted issuer slice). At least one field is required.
+        Partial update of name / permissions / account_sids (the key's identity and secret are untouched; use rotate_api_key to change the secret). Each list is a FULL replacement, clamped to the STORED issuer's current authority on its axis (403, reason grant_exceeds_ceiling): permissions inside their token set, account_sids inside their slice (null = all accounts, grantable only under an unrestricted issuer slice). At least one field is required. A change takes effect at once: id tells every channel service to forget the key's cached verdict (a peer the fan-out cannot reach falls back to its 5-minute cache).
 
         Contract:
         - MCP tool `update_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
@@ -510,7 +510,7 @@ paths:
       operationId: delete_api_key
       summary: Revoke API key
       description: |-
-        Revoke a key (simple soft-delete): status=revoked, deleted_at set. Verify rejects it from the next request (cache invalidated). Irreversible: a revoked key never re-activates; issue a fresh one. Idempotent: re-deleting → already_deleted.
+        Revoke a key (simple soft-delete): status=revoked, deleted_at set. The key stops verifying at once: id tells every channel service to forget its cached verdict (a peer the fan-out cannot reach falls back to its 5-minute cache). Irreversible: a revoked key never re-activates; issue a fresh one. Idempotent: re-deleting → already_deleted.
 
         Contract:
         - MCP tool `delete_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
@@ -981,7 +981,7 @@ paths:
       operationId: add_billing_subscription_addon
       summary: Add subscription add-on
       description: |-
-        Add a recurring add-on item to the SAME subscription (one Paddle PATCH, one prorated charge). DANGEROUS: money moves; server-side confirm gate applies. The proration rides the subscription's own next invoice (prorated_next_billing_period) so the buyer sees one charge on one date, except while a cancel or pause is scheduled, where Paddle refuses a next-period mode and the prorated amount is charged immediately instead. result.proration_mode reports which of the two was used. Idempotent per request_id: a retry with the same token does not re-charge. Requires billing.manage.
+        Add a recurring add-on item to the SAME subscription (one Paddle PATCH, one prorated charge). DANGEROUS: money moves; server-side confirm gate applies. The proration rides the subscription's own next invoice (prorated_next_billing_period) so the buyer sees one charge on one date, except while a cancel or pause is scheduled, where Paddle refuses a next-period mode and the prorated amount is charged immediately instead. result.proration_mode reports which of the two was used. Not idempotent: every call buys quantity more units. When Paddle's answer to the change is lost, or it answers 5xx, the service reads the subscription back: the call succeeds when Paddle carries the change, and anything else is 409 billing_change_unconfirmed, which is not a retry: read the subscription again before buying more. Requires billing.manage.
 
         Contract:
         - MCP tool `add_billing_subscription_addon`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
@@ -1327,7 +1327,7 @@ paths:
       operationId: remove_billing_subscription_addon
       summary: Remove subscription add-on
       description: |-
-        Remove add-on units from the subscription, effective next period (no refund, no immediate charge). Pass quantity to give back part of the line, or omit it to drop the whole line; result.remaining_quantity reports what is left (0 means the line is gone). The price_sid must be a live item on this subscription (422 addon_not_on_subscription otherwise). Works while a cancel or pause is scheduled. DANGEROUS state change (server-side confirm gate). Requires billing.manage.
+        Remove add-on units from the subscription, effective next period (no refund, no immediate charge). Pass quantity to give back part of the line, or omit it to drop the whole line; result.remaining_quantity reports what is left (0 means the line is gone). The price_sid must be a live item on this subscription (422 addon_not_on_subscription otherwise). Works while a cancel or pause is scheduled. A give-back Paddle did not confirm (its answer lost, or a 5xx) is 409 billing_change_unconfirmed: read the subscription again before repeating it. DANGEROUS state change (server-side confirm gate). Requires billing.manage.
 
         Contract:
         - MCP tool `remove_billing_subscription_addon`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
@@ -3696,14 +3696,9 @@ components:
           type: integer
           minimum: 1
           description: Units of the add-on.
-        request_id:
-          type: string
-          maxLength: 64
-          description: Client idempotency token; a retry with the same token does not re-charge.
       required:
         - price_sid
         - quantity
-        - request_id
     AddBillingSubscriptionAddonResponse:
       type: object
       properties:
@@ -5720,6 +5715,7 @@ components:
               - can_edit_schedule
               - can_manage_smart_limits
               - can_manage_cloud_browser_external_links
+              - can_share_vendor_profiles
               - can_act_linkedin_custom_requests
               - can_view_mass_actions
               - can_manage_mass_actions
@@ -20733,6 +20729,7 @@ components:
               - can_edit_schedule
               - can_manage_smart_limits
               - can_manage_cloud_browser_external_links
+              - can_share_vendor_profiles
               - can_act_linkedin_custom_requests
               - can_view_mass_actions
               - can_manage_mass_actions
