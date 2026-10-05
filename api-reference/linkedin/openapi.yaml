@@ -10717,7 +10717,48 @@ components:
               type: array
               items:
                 type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts to the person that a build keeping no key made in the last 48 hours and that may be this invitation, by activity-log sid in the order the answer ranks them; activity_log_sid is the first. What a person looks at, and what their word may name."
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts to the person that a build keeping no key made in the last 48 hours and that may be this invitation, by activity-log sid, newest first; activity_log_sid is the first. What a person looks at, and what their word may name."
+            unkeyed_attempts:
+              type: array
+              items:
+                type: object
+                properties:
+                  activity_log_sid:
+                    type: string
+                    description: "The attempt (ln_al_...): what a person's word names."
+                  action_type:
+                    type: string
+                    description: "Its verb, as the activity log names it: send_connection_request."
+                  created_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601: when the attempt started."
+                  place:
+                    type: object
+                    nullable: true
+                    properties:
+                      ln_member_id:
+                        type: string
+                      ln_id:
+                        type: string
+                      sn_id:
+                        type: string
+                      recruiter_id:
+                        type: string
+                      entity_type:
+                        type: string
+                      entity_urn:
+                        type: string
+                    description: "The place the attempt recorded when it was sent, only the fields it set: the person's ids (ln_member_id, ln_id, sn_id). Null when it recorded none."
+                  nickname:
+                    type: string
+                    description: The person's slug, when the attempt kept one.
+                required:
+                  - activity_log_sid
+                  - action_type
+                  - created_at
+                  - place
+              description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the person it recorded, so a person knows where to look."
           required:
             - outcome
             - reason
@@ -10989,7 +11030,48 @@ components:
               type: array
               items:
                 type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts that a build keeping no key made in the last 48 hours and that may be this message, by activity-log sid in the order the answer ranks them (asked with a place, those that recorded it first); activity_log_sid is the first. Such a build recorded no place for some sends (a group, a Recruiter thread), and those stand for the keys whose place it could not record. What a person looks at, and what their word may name."
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts that a build keeping no key made in the last 48 hours and that may be this message, by activity-log sid: newest first when the key is asked alone; asked with a place, those that recorded it first. activity_log_sid is the first. An attempt that recorded no place stands only where it may have gone (a group send for a group thread, a Recruiter send for a Recruiter thread or a person asked by member id). What a person looks at, and what their word may name."
+            unkeyed_attempts:
+              type: array
+              items:
+                type: object
+                properties:
+                  activity_log_sid:
+                    type: string
+                    description: "The attempt (ln_al_...): what a person's word names."
+                  action_type:
+                    type: string
+                    description: "Its verb, as the activity log names it: send_message, send_voice_message, send_inmail, send_sales_message, send_recruiter_initial_message, send_recruiter_message_in_conversation or start_group_conversation."
+                  created_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601: when the attempt started."
+                  place:
+                    type: object
+                    nullable: true
+                    properties:
+                      ln_member_id:
+                        type: string
+                      ln_id:
+                        type: string
+                      sn_id:
+                        type: string
+                      recruiter_id:
+                        type: string
+                      entity_type:
+                        type: string
+                      entity_urn:
+                        type: string
+                    description: "The place the attempt recorded when it was sent, only the fields it set: the person's ids (ln_member_id, ln_id, sn_id, recruiter_id) or the thread (entity_type conversation, entity_urn its hash). Null when it recorded none."
+                  nickname:
+                    type: string
+                    description: The person's slug, when the attempt kept one.
+                required:
+                  - activity_log_sid
+                  - action_type
+                  - created_at
+                  - place
+              description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the place it recorded, so a person knows where to look."
           required:
             - outcome
             - reason
@@ -11148,7 +11230,48 @@ components:
               type: array
               items:
                 type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts of the verb that a build keeping no key made in the last 48 hours and that may be this send, by activity-log sid in the order the answer ranks them (asked with a place, those that recorded it first); activity_log_sid is the first. Such a build kept no place for a post or a repost, so those stand for any post or repost key of the account. What a person looks at, and what their word may name."
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts of the verb that a build keeping no key made in the last 48 hours and that may be this send, by activity-log sid: newest first when the key is asked alone; asked with a place, those that recorded it first. activity_log_sid is the first. Such a build kept no place for a post or a repost, so those stand for any post or repost key of the account. What a person looks at, and what their word may name."
+            unkeyed_attempts:
+              type: array
+              items:
+                type: object
+                properties:
+                  activity_log_sid:
+                    type: string
+                    description: "The attempt (ln_al_...): what a person's word names."
+                  action_type:
+                    type: string
+                    description: "Its verb, as the activity log names it: comment_post, create_post, create_repost_with_thoughts or create_instant_repost."
+                  created_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601: when the attempt started."
+                  place:
+                    type: object
+                    nullable: true
+                    properties:
+                      ln_member_id:
+                        type: string
+                      ln_id:
+                        type: string
+                      sn_id:
+                        type: string
+                      recruiter_id:
+                        type: string
+                      entity_type:
+                        type: string
+                      entity_urn:
+                        type: string
+                    description: "The place the attempt recorded when it was sent, only the fields it set: the post a comment went to, or the comment a reply answers (entity_type and entity_urn). Null when it recorded none, as for every post and repost of such a build."
+                  nickname:
+                    type: string
+                    description: The person's slug, when the attempt kept one.
+                required:
+                  - activity_log_sid
+                  - action_type
+                  - created_at
+                  - place
+              description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the place it recorded, so a person knows where to look."
           required:
             - outcome
             - reason
