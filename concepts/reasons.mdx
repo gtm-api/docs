@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 215 reasons across 4 services.
+reason is thrown without a sentence). 220 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -88,6 +88,10 @@ reason is thrown without a sentence). 215 reasons across 4 services.
 | `handover_in_flight` | A handover of this account is already in progress; wait for it to finish. | id |
 | `handover_in_progress` | Another handover of this account is still in progress; finish or cancel it first. | linkedin |
 | `handover_payload_mismatch` | The handover rows do not carry the role this step expects; the handover is out of order. | linkedin |
+| `header_not_allowed` | A send may set X-* headers, List-Unsubscribe and Reply-To, each named in printable ASCII with no space or colon; drop or rename the header _the field_ names. | email |
+| `header_reserved` | X-Gtm-Message-Sid is the mark the platform stamps on every send, by which check-sent and the Sent-folder sync find it, so a send cannot set it; drop it. | email |
+| `header_set_by_platform` | This send carries the platform's own one-click List-Unsubscribe, which records an unsubscribe on the stop-list, so it cannot carry another; send without the header, or with track_opens and track_clicks off and no unsubscribe link in the body. | email |
+| `header_value_invalid` | A header value cannot hold a line break, and Reply-To takes one or more email addresses separated by commas; fix the value _the field_ names. | email |
 | `held_by_another_send` | Another send of the same mail to the same recipients is on its way or may already have gone out (context.blocking_activity_log_sid names its attempt, context.blocking_email_message_sid its row, when known), so this one was not sent; ask again after context.retry_after. | email |
 | `holder_team_unavailable` | The receiving workspace does not exist or is not active. | id |
 | `idempotency_key_busy` | A send with this idempotency_key is in progress; ask again after context.retry_after. | email |
@@ -216,6 +220,7 @@ reason is thrown without a sentence). 215 reasons across 4 services.
 | `team_already_has_subscription` | This workspace already has a subscription applied; cancel or replace it first. | id |
 | `team_partner_managed` | This workspace is managed by a partner; billing changes come through the partner. | id |
 | `team_unavailable` | That workspace does not exist or was deleted. | id |
+| `too_many_recipients` | A send reaches at most 50 recipients across to, cc and bcc together; split it into several sends. | email |
 | `too_many_splits` | group_by would produce more than 500 groups; narrow the filter or split on a field with fewer values. | linkedin, id, orchestration |
 | `tool_busy` | The shadowban checker is at its daily budget; retry after retry_after. | linkedin |
 | `tool_disabled` | The shadowban checker is switched off right now. | linkedin |
