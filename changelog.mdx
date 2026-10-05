@@ -3,6 +3,28 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-05" description="Mass actions: each message gets a key of its own">
+  **A run's `client_reference` is now a tag.** A mass action sends each message under a key of its
+  own, so a step that runs again or is retried is answered with what the first send came to and
+  never goes out twice. A target's own `client_reference` is still used as given when the plan sends
+  with that tool once. A `client_reference` T in a send step's `args` used to go out unchanged on
+  every message of the run. Now each message carries `T:{item sid}:{step id}`, and a run with no key
+  puts `{item sid}:{step id}` on the messages that carried none.
+
+  **If you matched T exactly.** A search for T no longer finds the run's messages. Find them by each
+  item's `created_object_sid`, or by their exact keys with `eq` or `in`. There is no prefix search on
+  `client_reference`, and a webhook subscriber matches the `T:` prefix in its own code. Never create
+  the run again because T matched nothing: that sends every message twice.
+
+  **Sending once.** Every LinkedIn message send endpoint now answers a repeat of the same key to the
+  same place with what the first send came to, names `error.context.send_outcome` on every error, and
+  has `check-sent` (`check_linkedin_message_sent` over MCP) to ask without sending. A send step whose
+  answer was lost waits with `wait_reason: send_outcome_unknown` and asks before anything goes again,
+  and a retry by item `sid` can carry a person's word with `resend_unverified`.
+  [Sending once](/concepts/sending-once) and [Run a mass action](/guides/run-a-mass-action) have the
+  details.
+</Update>
+
 <Update label="2026-10-05" description="A browser nobody signs in on is deleted after 30 days">
   **An unused browser no longer holds a seat for good.** A browser takes a seat of the plan from
   the moment it is created. One that no LinkedIn account ever signed in on, a sign-in link nobody
