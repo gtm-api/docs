@@ -31,6 +31,7 @@
             "group": "Concepts",
             "pages": [
               "concepts/envelopes-and-errors",
+              "concepts/sending-once",
               "concepts/reasons",
               "concepts/pagination-and-filtering"
             ]

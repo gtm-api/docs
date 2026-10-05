@@ -1,0 +1,141 @@
+---
+title: "Sending once"
+description: "One key per message. A repeated send is answered with what the first one came to, and nothing goes out twice."
+---
+
+A send can lose its answer. The request times out, the connection drops, a proxy returns an error page, and by then the message may or may not be on LinkedIn. Only the platform can look into the conversation and tell, so the send endpoints are built to make guessing unnecessary: you give every message a key, every answer says what came of it, and a repeat under the same key is answered instead of sent.
+
+This page covers the LinkedIn message endpoints under `/api/linkedin-messages/`: `send`, `send-voice`, `send-inmail`, `send-sales-nav`, `send-recruiter` and `start-group`.
+
+## The key
+
+`client_reference` is your own id for one message. It takes up to 255 characters and is compared byte for byte. Mint one per message (your task id, your outbox row id) and use the same key every time you send that message again.
+
+A key and its place make one message. The place is the conversation the send names or the one the person resolves to, else the person. For `start-group` it is the set of attendees.
+
+- A repeat to the same place is the same message, whatever its text says. If the first send went out and its row is stored, the repeat answers `200` with that row and `result.idempotent_replay: true`, plus `result.content_differs: true` when the repeat said something else (a re-rendered template, an edited draft). Nothing is sent.
+- The same key at another place is another message. That is how a bulk run can tag all of its messages with one value.
+- A send without a key gets a weaker net. One that matches an earlier send's text and place is held while that send is on its way or in doubt, and answered with it for an hour after it went out. To send the same words twice on purpose, use two keys.
+
+## Four outcomes
+
+What a send came to is one of four values. Every error of a send endpoint carries it in `error.context.send_outcome`, the request's own `422` included.
+
+| `send_outcome` | What it means | What to do |
+|---|---|---|
+| `sent` | The message is on LinkedIn. | Record it. Do not send it again. |
+| `not_sent` | Nothing went out, and there is proof: a refusal before the send, LinkedIn's own refusal, or two clean reads of the conversation after the send could no longer land. | Follow the error. Fix and resend, wait for `retry_after`, or give up. |
+| `in_flight` | The send is running now. | Ask again after `retry_after`. |
+| `unknown` | The answer was lost and the conversation has not shown the message yet. The platform keeps reading it on its own. | Keep the message pending and ask again after `retry_after`. |
+
+An answer with no `send_outcome` at all, such as a gateway page or a dropped connection, is `unknown` to you.
+
+## What a repeat is answered
+
+| The earlier send under the key | The repeat answers |
+|---|---|
+| is running | `409 concurrent_send_in_flight` with `send_outcome: in_flight`, `activity_log_sid` and `retry_after` |
+| is in doubt | `409 send_outcome_unknown` with `send_outcome: unknown`, `activity_log_sid`, `waiting_for` and `retry_after` |
+| went out, its row is stored | `200` with the row and `result.idempotent_replay: true` |
+| went out, its row is not stored yet | `409 concurrent_send_in_flight` with `send_outcome: sent` and `retry_after` |
+| is proven not sent, or there is none | the message goes out as a new attempt under the same key |
+
+One more `409` comes from the place. When another message to the same conversation or person is running or in doubt, yours waits: `409 concurrent_send_in_flight` with `send_outcome: not_sent`, the other attempt in `blocking_activity_log_sid`, and `retry_after`. Nothing of yours went out, so send the same request again at `retry_after`.
+
+`activity_log_sid` always names an attempt of your own message. Another message's attempt is only ever `blocking_activity_log_sid`.
+
+## Asking without sending
+
+`POST /api/linkedin-messages/check-sent` answers the same question and sends nothing. Ask by the key, by the key and a place (`linkedin_conversation_sid`, `ln_member_id` or `profile_urn`), or by the `activity_log_sid` an answer named. Over MCP it is the `check_linkedin_message_sent` tool.
+
+```json POST /linkedin/v4/api/linkedin-messages/check-sent
+{
+  "linkedin_account_sid": "ln_ac_YOUR_ACCOUNT",
+  "client_reference": "task-48213"
+}
+```
+
+```json
+{
+  "success": true,
+  "operation": "action",
+  "action": "check-sent",
+  "item": null,
+  "result": {
+    "outcome": "unknown",
+    "reason": "may_still_land",
+    "retry_after": "2026-10-05T09:14:30+00:00",
+    "activity_log_sid": "ln_al_Q8rT2vW4xY6z"
+  },
+  "meta": { "trace_id": "0198f2ab-7c11-7e32-9a41-d2b64f2a91c3" }
+}
+```
+
+`item` is the message once its row is stored. `result.reason` says why: `no_send_under_key`, `refused` or `not_in_thread` for `not_sent`, `may_still_land` or `thread_unreadable` while the send is in doubt, and a few more that the tool lists. When the last read of the conversation is old enough, check-sent reads it during the call, so it can take as long as an inbox read.
+
+A key that went to more than one place, such as a bulk run's tag, answers `422 place_required` when you ask by the key alone. `error.context.places` lists the places. Ask again with one of them.
+
+## A person's word
+
+The platform reads the conversation by itself for up to a day, and check-sent reads it on demand after that. If a send stays `unknown` longer than your process can wait, a person opens the conversation and looks. Their answer rides on the same send request and names the attempt they checked by its `activity_log_sid`.
+
+- `confirmed_not_sent`: the message is not there. It is accepted once the attempt can no longer land. Before that the request answers `409 send_outcome_unknown` with `waiting_for: may_still_land` and that moment in `retry_after`. Once accepted, the attempt is settled `not_sent` and your request goes out.
+- `confirmed_sent`: the message is there. The attempt is settled `sent` at once and nothing is sent. The answer is a `409` with `send_outcome: sent`, or a `200` with the row once the conversation brings it in.
+
+A request takes one of the two, and only for an attempt of the same message. Another message's sid answers `422 not_this_message`.
+
+## The rule for a caller
+
+1. Mint one key per message and keep it with the message.
+2. On `sent` or a `200`, record the message.
+3. On `not_sent`, follow the error. Send the same request again later, or give up.
+4. On anything else, no answer included, keep the message pending. Ask check-sent or send the same request after `retry_after`. It goes out again only once the answer is `not_sent`, and always under the same key.
+5. Past your own deadline, a person looks and gives their word.
+
+## Example
+
+A reply to a lead goes out under `task-48213`:
+
+```json POST /linkedin/v4/api/linkedin-messages/send
+{
+  "linkedin_account_sid": "ln_ac_YOUR_ACCOUNT",
+  "linkedin_conversation_sid": "ln_cv_YOUR_THREAD",
+  "text": "Thanks, Thursday at 3 works for me. I'll send the invite.",
+  "client_reference": "task-48213"
+}
+```
+
+Your client gives up after 90 seconds with no answer. A minute later you send the same request again, same key and all, and the platform answers for the first send:
+
+```json
+{
+  "success": false,
+  "error": {
+    "code": "conflict",
+    "message": "An earlier send of this message is in doubt: its answer never came back and LinkedIn's thread has not shown yet whether it landed (activity log ln_al_Q8rT2vW4xY6z). Nothing was sent now.",
+    "recoverable": true,
+    "context": {
+      "reason": "send_outcome_unknown",
+      "send_outcome": "unknown",
+      "activity_log_sid": "ln_al_Q8rT2vW4xY6z",
+      "linkedin_account_sid": "ln_ac_Hx7kQ3mN2pL4",
+      "waiting_for": "answer_lost",
+      "retry_after": "2026-10-05T09:14:30+00:00"
+    }
+  }
+}
+```
+
+A few minutes later the platform has read the conversation and found the message. It stores the row under `task-48213` and sends the `linkedin-messages.sent` webhook, and the same request now answers `200` with that row and `result.idempotent_replay: true`. The lead got one message.
+
+Had the conversation shown nothing after the send could no longer land, in two reads five minutes apart, the answer would have been `not_sent` and the same request would have sent the message once.
+
+## In a mass action
+
+Each message a bulk run sends goes out under a key of its own. A target's own `client_reference` is used as given when the plan sends with that tool once. A `client_reference` T in a send step's `args` is a tag: each message goes out under `T:{item sid}:{step id}`, so an exact search for T finds nothing. Find the run's messages by each item's `created_object_sid` or by their exact keys, and match the `T:` prefix in your own code when you read webhooks. Do not create the run again because T matched nothing. That sends every message twice.
+
+A send step whose answer was lost waits with `wait_reason: send_outcome_unknown` and asks check-sent under its key before anything goes again. The retry is in [Run a mass action](/guides/run-a-mass-action).
+
+## Not covered yet
+
+Connection requests, comments and reactions name `send_outcome` on every refusal, but a repeat is not answered by its key yet and there is no check-sent for them. After `unknown` on one of them, look before you repeat it: at the pending invitations, the post's comments or its reactions. A comment repeated after `unknown` posts a second comment.

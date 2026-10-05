@@ -84,6 +84,10 @@ Every failure, from any service, is the same shape:
 - `field_errors` appears only on `validation_failed`, keyed by field. Each entry's `rule` is the machine reason (`ln_member_id_not_numeric`, `resend_not_available`) and its `message` the sentence for it; the same reason appears as `error.context.reason` on a `conflict`, `rate_limited` or `service_unavailable`. Every reason and its sentence is listed on the [Reasons](/concepts/reasons) page, generated from the backends' own catalogs.
 - `delete_blocked` errors additionally carry `error.blockers[]`: each blocker names its `type`, a `hard` or `soft` severity, and the `resolution` that clears it.
 
+## Send endpoints name their outcome
+
+An error from an endpoint that sends something to LinkedIn (a message, an InMail, a voice note, a connection request, a comment, a reaction) also carries `error.context.send_outcome`. It is `not_sent` when nothing went out, `in_flight` while the send is running, `unknown` when it may have gone out, or `sent`. Read it before you retry. For a message, anything but `not_sent` is handled by sending the same request again under the same `client_reference` or by asking check-sent, never by sending the message as a new one. A connection request, a comment or a reaction has no such check yet, so look at the invitations, the comments or the reactions before you repeat one. [Sending once](/concepts/sending-once) has the whole rule.
+
 ## The 16 error codes
 
 | Code | HTTP | Meaning |
@@ -105,4 +109,4 @@ Every failure, from any service, is the same shape:
 | `internal_error` | 500 | A bug on our side; report the `trace_id` |
 | `service_unavailable` | 503 | A downstream dependency is down; retry with backoff |
 
-A practical mapping: retry `rate_limited` and `service_unavailable` with backoff, fix and resend `validation_failed` and `relation_not_found`, treat the 409 family as "re-read the current state first", and never auto-retry `not_implemented` or `internal_error`.
+A practical mapping: retry `rate_limited` and `service_unavailable` with backoff, fix and resend `validation_failed` and `relation_not_found`, treat the 409 family as "re-read the current state first", and never auto-retry `not_implemented` or `internal_error`. On a send endpoint, read `error.context.send_outcome` before any of these.
