@@ -265,6 +265,7 @@ Paste this to your coding agent to read the whole fleet at once:
 | `linkedin-account-block-log.recorded` | A target was confirmed to be blocking an account |
 | `linkedin-accounts.logged-out` | LinkedIn signed a sender out; `antidetect-browsers.logged-out` is the browser-level twin |
 | `linkedin-accounts.restricted` | Right after the logout, the sender's public profile no longer answered from another LinkedIn account: a restricted (or closed) account. Follows `.logged-out`, never replaces it; `antidetect-browsers.restricted` is the browser-level twin |
+| `linkedin-account-activity-log.task-failed` | A call the account dispatched ended `failed`, once per call: `failure_source` says what failed it, and on a send `send_outcome` says whether it may still be out ([the payload](/guides/receive-webhooks#6-read-the-payload)) |
 
 ## Related
 
