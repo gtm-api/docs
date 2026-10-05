@@ -3,6 +3,40 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-05" description="Invitations, comments, posts and reposts are sent once">
+  **Every LinkedIn send is sent once now.** Connection requests, comments, replies, posts and
+  reposts follow the rule the message sends got earlier today. Give each one a
+  `client_reference`: the key and its place are one send, so a repeat is answered with what the
+  first send came to and never goes out twice. The place of an invitation is the person, of a
+  comment the post (named by any of its urns), of a reply the comment it answers, of a post where
+  it lands (your feed, a company page, a group), and of a repost the reposted post. A lost answer
+  is a `409 send_outcome_unknown` with `send_decisive_at`, the moment it can no longer land, where
+  it used to be a `503` that said to retry shortly, and the platform reads LinkedIn to settle it.
+
+  **Ask without sending.** `POST /api/linkedin-connection-requests/check-sent` and
+  `POST /api/linkedin-posting/check-sent` (`check_linkedin_connection_request_sent` and
+  `check_linkedin_posting_sent` over MCP) answer what an invitation, a comment, a post or a
+  repost came to, as the message check-sent does. All three name `send_decisive_at` for a send in
+  doubt, and `unkeyed_activity_log_sids` when an attempt of an older build, which kept no key, may
+  be the send. Every one of these send endpoints takes a person's word, `confirmed_not_sent` or
+  `confirmed_sent`.
+
+  **What changes for a caller.** A comment repeated after `unknown` no longer posts a second one.
+  `409 post_not_created` used to mean that nothing was published. It now means the post may be
+  out, so repeat the same request after `retry_after`, never as a new post. A post into a group
+  cannot be read back, so one in doubt waits for a person. A reaction stays outside the rule:
+  LinkedIn keeps one per account and post, so sending it again changes nothing. In a mass action a
+  comment step goes out under a key of its own, a connection request or a comment whose answer
+  was lost is asked about before anything goes again, and the step log no longer carries
+  `send_decisive_at`.
+
+  **A webhook for a call that failed.** `linkedin-account-activity-log.task-failed` fires once for
+  each call an account dispatched that ended failed, with `failure_source` and, on a send,
+  `send_outcome`: `unknown` means the send may be out, so ask check-sent before sending it again.
+  [Sending once](/concepts/sending-once) and [Receive webhooks](/guides/receive-webhooks) have the
+  details.
+</Update>
+
 <Update label="2026-10-05" description="Mass actions: each message gets a key of its own">
   **A run's `client_reference` is now a tag.** A mass action sends each message under a key of its
   own, so a step that runs again or is retried is answered with what the first send came to and
