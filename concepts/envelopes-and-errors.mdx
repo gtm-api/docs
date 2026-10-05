@@ -86,7 +86,7 @@ Every failure, from any service, is the same shape:
 
 ## Send endpoints name their outcome
 
-An error from an endpoint that sends something to LinkedIn (a message, an InMail, a voice note, a connection request, a comment, a reaction) also carries `error.context.send_outcome`. It is `not_sent` when nothing went out, `in_flight` while the send is running, `unknown` when it may have gone out, or `sent`. Read it before you retry. For a message, anything but `not_sent` is handled by sending the same request again under the same `client_reference` or by asking check-sent, never by sending the message as a new one. A connection request, a comment or a reaction has no such check yet, so look at the invitations, the comments or the reactions before you repeat one. [Sending once](/concepts/sending-once) has the whole rule.
+An error from an endpoint that sends something to LinkedIn (a message, an InMail, a voice note, a connection request, a comment, a post, a repost, a reaction) also carries `error.context.send_outcome`. It is `not_sent` when nothing went out, `in_flight` while the send is running, `unknown` when it may have gone out, or `sent`. Read it before you retry. Anything but `not_sent` is handled by sending the same request again under the same `client_reference` or by asking check-sent, never by sending it as a new one. A reaction is the exception: it takes no key, and the same reaction sent again changes nothing on LinkedIn. [Sending once](/concepts/sending-once) has the whole rule.
 
 ## The 16 error codes
 

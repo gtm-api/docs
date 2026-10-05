@@ -1,21 +1,37 @@
 ---
 title: "Sending once"
-description: "One key per message. A repeated send is answered with what the first one came to, and nothing goes out twice."
+description: "One key per send. A repeated send is answered with what the first one came to, and nothing goes out twice."
 ---
 
-A send can lose its answer. The request times out, the connection drops, a proxy returns an error page, and by then the message may or may not be on LinkedIn. Only the platform can look into the conversation and tell, so the send endpoints are built to make guessing unnecessary: you give every message a key, every answer says what came of it, and a repeat under the same key is answered instead of sent.
+A send can lose its answer. The request times out, the connection drops, a proxy returns an error page, and by then the message, the invitation or the comment may or may not be on LinkedIn. Only the platform can look and tell, so the send endpoints are built to make guessing unnecessary: you give every send a key, every answer says what came of it, and a repeat under the same key is answered instead of sent.
 
-This page covers the LinkedIn message endpoints under `/api/linkedin-messages/`: `send`, `send-voice`, `send-inmail`, `send-sales-nav`, `send-recruiter` and `start-group`.
+This page covers every LinkedIn endpoint that puts something in front of another person:
+
+- the message sends under `/api/linkedin-messages/`: `send`, `send-voice`, `send-inmail`, `send-sales-nav`, `send-recruiter` and `start-group`
+- the connection request, `POST /api/linkedin-connection-requests/send`
+- the posting verbs under `/api/linkedin-posting/`: `comment` (a comment or a reply), `create-post` and `repost`
+
+A reaction is the one write left outside the rule, for the reason given [below](#reactions).
 
 ## The key
 
-`client_reference` is your own id for one message. It takes up to 255 characters and is compared byte for byte. Mint one per message (your task id, your outbox row id) and use the same key every time you send that message again.
+`client_reference` is your own id for one send. It takes up to 255 characters and is compared byte for byte. Mint one per send (your task id, your outbox row id) and use the same key every time you send that one again.
 
-A key and its place make one message. The place is the conversation the send names or the one the person resolves to, else the person. For `start-group` it is the set of attendees.
+A key and its place make one send. The place depends on what is sent:
 
-- A repeat to the same place is the same message, whatever its text says. If the first send went out and its row is stored, the repeat answers `200` with that row and `result.idempotent_replay: true`, plus `result.content_differs: true` when the repeat said something else (a re-rendered template, an edited draft). Nothing is sent.
-- The same key at another place is another message. That is how a bulk run can tag all of its messages with one value.
-- A send without a key gets a weaker net. One that matches an earlier send's text and place is held while that send is on its way or in doubt, and answered with it for an hour after it went out. To send the same words twice on purpose, use two keys.
+| Send | Its place |
+|---|---|
+| A message | The conversation the send names or the one the person resolves to, else the person. For `start-group`, the set of attendees |
+| A connection request | The person: the member their profile URN decodes to |
+| A comment | The post, as LinkedIn files it, so any urn of the same post names the same place |
+| A reply | The comment it answers, in either of its forms |
+| A post | Where it lands: your own feed, the company page you post as, or the group you post into |
+| A repost | The post it reposts, as LinkedIn files it |
+
+- A repeat to the same place is the same send, whatever its text says. If the first send went out, the repeat answers `200` with what it made (the message or the connection request row, the comment, the post or the repost) and `result.idempotent_replay: true`, plus `result.content_differs: true` when the repeat said something else (a re-rendered template, an edited draft). Nothing is sent.
+- The same key at another place is another send. That is how a bulk run can tag all of its sends with one value.
+- The time of a scheduled post is not part of its place under a key: a retry that computes a new `scheduled_at` is the same post.
+- A send without a key gets a weaker net. One that matches an earlier send's words and place (for a post, its pictures or video too) is held while that send is on its way or in doubt, and answered with it for an hour after it went out. To send the same words twice on purpose, use two keys.
 
 ## Four outcomes
 
@@ -23,10 +39,10 @@ What a send came to is one of four values. Every error of a send endpoint carrie
 
 | `send_outcome` | What it means | What to do |
 |---|---|---|
-| `sent` | The message is on LinkedIn. | Record it. Do not send it again. |
-| `not_sent` | Nothing went out, and there is proof: a refusal before the send, LinkedIn's own refusal, or two clean reads of the conversation after the send could no longer land. | Follow the error. Fix and resend, wait for `retry_after`, or give up. |
+| `sent` | It is on LinkedIn. | Record it. Do not send it again. |
+| `not_sent` | Nothing went out, and there is proof: a refusal before the send, LinkedIn's own refusal, or two clean reads of LinkedIn after the send could no longer land. | Follow the error. Fix and resend, wait for `retry_after`, or give up. |
 | `in_flight` | The send is running now. | Ask again after `retry_after`. |
-| `unknown` | The answer was lost and the conversation has not shown the message yet. The platform keeps reading it on its own. | Keep the message pending and ask again after `retry_after`. |
+| `unknown` | The answer was lost and LinkedIn has not shown the send yet. The platform keeps reading on its own. | Keep the send pending and ask again after `retry_after`. |
 
 An answer with no `send_outcome` at all, such as a gateway page or a dropped connection, is `unknown` to you.
 
@@ -35,18 +51,29 @@ An answer with no `send_outcome` at all, such as a gateway page or a dropped con
 | The earlier send under the key | The repeat answers |
 |---|---|
 | is running | `409 concurrent_send_in_flight` with `send_outcome: in_flight`, `activity_log_sid` and `retry_after` |
-| is in doubt | `409 send_outcome_unknown` with `send_outcome: unknown`, `activity_log_sid`, `waiting_for` and `retry_after` |
-| went out, its row is stored | `200` with the row and `result.idempotent_replay: true` |
-| went out, its row is not stored yet | `409 concurrent_send_in_flight` with `send_outcome: sent` and `retry_after` |
-| is proven not sent, or there is none | the message goes out as a new attempt under the same key |
+| is in doubt | `409 send_outcome_unknown` with `send_outcome: unknown`, `activity_log_sid`, `waiting_for`, `retry_after` and `send_decisive_at`, the moment it can no longer land |
+| went out, and what it made is stored | `200` with it and `result.idempotent_replay: true` |
+| went out, and what it made is not stored yet | `409 concurrent_send_in_flight` with `send_outcome: sent` and `retry_after` |
+| is proven not sent, or there is none | the send goes out as a new attempt under the same key |
 
-One more `409` comes from the place. When another message to the same conversation or person is running or in doubt, yours waits: `409 concurrent_send_in_flight` with `send_outcome: not_sent`, the other attempt in `blocking_activity_log_sid`, and `retry_after`. Nothing of yours went out, so send the same request again at `retry_after`.
+One more `409` comes from the place. When another send to the same place is running or in doubt (another message to the conversation, another invitation to the person, another comment on the post), yours waits: `409 concurrent_send_in_flight` with `send_outcome: not_sent`, the other attempt in `blocking_activity_log_sid`, and `retry_after`. Nothing of yours went out, so send the same request again at `retry_after`.
 
-`activity_log_sid` always names an attempt of your own message. Another message's attempt is only ever `blocking_activity_log_sid`.
+`activity_log_sid` always names an attempt of your own send. Another send's attempt is only ever `blocking_activity_log_sid`.
+
+Two answers belong to one kind of send each:
+
+- A connection request meets LinkedIn's own rule of one pending invitation per person. When LinkedIn refuses an invitation because one of the account's is out to the person, the platform answers with that one: as the repeat of the same invitation, with a `409` naming it while it is in doubt, or with `422 resend_not_available` and `context.cause: "pending"` when another invitation of the account is pending. The person never gets two.
+- A post LinkedIn answered without naming one is `409 post_not_created` with `send_outcome: unknown`. The post may be out, so the platform reads LinkedIn for it. Repeat the same request after `retry_after`, never as a new post.
 
 ## Asking without sending
 
-`POST /api/linkedin-messages/check-sent` answers the same question and sends nothing. Ask by the key, by the key and a place (`linkedin_conversation_sid`, `ln_member_id` or `profile_urn`), or by the `activity_log_sid` an answer named. Over MCP it is the `check_linkedin_message_sent` tool.
+Three endpoints answer the same question and send nothing. Ask by the key, by the key and a place, or by the `activity_log_sid` an answer named.
+
+| Send | Endpoint | MCP tool | Place, next to the key |
+|---|---|---|---|
+| A message | `POST /api/linkedin-messages/check-sent` | `check_linkedin_message_sent` | `linkedin_conversation_sid`, `ln_member_id` or `profile_urn` |
+| A connection request | `POST /api/linkedin-connection-requests/check-sent` | `check_linkedin_connection_request_sent` | `profile_id` or `ln_member_id` |
+| A comment, a post, a repost | `POST /api/linkedin-posting/check-sent` | `check_linkedin_posting_sent` | `entity_urn` (the post of a comment or a repost, in any of its forms), `parent_comment_urn` (a reply) or `post_place` (a post). The key also needs its `verb`: `comment`, `create-post` or `repost` |
 
 ```json POST /linkedin/v4/api/linkedin-messages/check-sent
 {
@@ -65,31 +92,68 @@ One more `409` comes from the place. When another message to the same conversati
     "outcome": "unknown",
     "reason": "may_still_land",
     "retry_after": "2026-10-05T09:14:30+00:00",
-    "activity_log_sid": "ln_al_Q8rT2vW4xY6z"
+    "activity_log_sid": "ln_al_Q8rT2vW4xY6z",
+    "send_decisive_at": "2026-10-05T09:16:00+00:00"
   },
   "meta": { "trace_id": "0198f2ab-7c11-7e32-9a41-d2b64f2a91c3" }
 }
 ```
 
-`item` is the message once its row is stored. `result.reason` says why: `no_send_under_key`, `refused` or `not_in_thread` for `not_sent`, `may_still_land` or `thread_unreadable` while the send is in doubt, and a few more that the tool lists. When the last read of the conversation is old enough, check-sent reads it during the call, so it can take as long as an inbox read.
+A comment is asked about with its verb and, when the key went to more than one post, the post:
 
-A key that went to more than one place, such as a bulk run's tag, answers `422 place_required` when you ask by the key alone. `error.context.places` lists the places. Ask again with one of them.
+```json POST /linkedin/v4/api/linkedin-posting/check-sent
+{
+  "linkedin_account_sid": "ln_ac_YOUR_ACCOUNT",
+  "client_reference": "task-48214",
+  "verb": "comment",
+  "entity_urn": "urn:li:activity:7381234567890123456"
+}
+```
+
+`item` is what the send made once it is known: the message row, the connection request row, a comment's `comment_urn`, or a post's or a repost's urns and url. `result.reason` says why. For `not_sent` it is `no_send_under_key`, `refused`, or the read that proved it (`not_in_thread`, `not_in_invitations`, `not_on_linkedin`). While the send is in doubt it is `answer_lost`, `may_still_land`, `unprovable`, or a read that could not be done (`thread_unreadable` for a message, `unreadable` for the others). The tools list a few more. When the last read is old enough, check-sent reads LinkedIn during the call, so it can take as long as an inbox read.
+
+`post_place` is where a post landed: `feed:member` for your own feed, `feed:org:<id>` for a company page, `group:<id>` for a group (`group:<id>:org:<id>` when a page posted into it).
+
+A key that went to more than one place, such as a bulk run's tag, answers `422 place_required` when you ask by the key alone. `error.context.places` lists the places. Ask again with one of them. A place the platform cannot tell from the key's own (named in another form than the sends recorded, or a post LinkedIn could not be read for) answers `422 place_unmatched`, with the places too.
+
+### What LinkedIn shows, and what it cannot
+
+The platform settles a send in doubt by reading what LinkedIn shows, by the account and the words:
+
+| Send | What is read |
+|---|---|
+| A message | Its conversation |
+| A connection request | The account's sent invitations, then its connections, for an invitation accepted before any read saw it pending |
+| A comment | The post's comments |
+| A reply | The account's own comments |
+| A post on your feed, a repost | The account's own feed |
+| A scheduled post | The queue of scheduled posts, and once its time has come the feed it publishes to |
+| A company page's post | The page's feed. LinkedIn ranks it by relevance, so a read can find the post but never prove it absent |
+| A post into a group | Nothing: no read serves a group's feed |
+
+A post into a group whose answer was lost stays `unknown` until a person looks and gives their word, and so does a page post the page's feed has not shown.
+
+### Sends made before the keys
+
+An older build of the platform kept neither the key nor the words of an attempt. For 48 hours after such an attempt, a key with no attempt of its own may be answered `unknown` with `reason: "unkeyed_attempt_at_place"`, because that older attempt may be its send. `result.unkeyed_activity_log_sids` lists the attempts it may be, and `activity_log_sid` is the first of them. A person can look, and their word may name any of them.
 
 ## A person's word
 
-The platform reads the conversation by itself for up to a day, and check-sent reads it on demand after that. If a send stays `unknown` longer than your process can wait, a person opens the conversation and looks. Their answer rides on the same send request and names the attempt they checked by its `activity_log_sid`.
+The platform reads LinkedIn by itself for up to a day, and check-sent reads it on demand after that. If a send stays `unknown` longer than your process can wait, a person opens LinkedIn and looks. Their answer rides on the same send request and names the attempt they checked by its `activity_log_sid`.
 
-- `confirmed_not_sent`: the message is not there. It is accepted once the attempt can no longer land. Before that the request answers `409 send_outcome_unknown` with `waiting_for: may_still_land` and that moment in `retry_after`. Once accepted, the attempt is settled `not_sent` and your request goes out.
-- `confirmed_sent`: the message is there. The attempt is settled `sent` at once and nothing is sent. The answer is a `409` with `send_outcome: sent`, or a `200` with the row once the conversation brings it in.
+- `confirmed_not_sent`: it is not there. It is accepted once the attempt can no longer land. Before that the request answers `409 send_outcome_unknown` with `waiting_for: may_still_land` and that moment in `retry_after` and `send_decisive_at`. Once accepted, the attempt is settled `not_sent` and your request goes out.
+- `confirmed_sent`: it is there. The attempt is settled `sent` at once and nothing is sent. The answer is a `409` with `send_outcome: sent`, or a `200` once what it made is stored.
 
-A request takes one of the two, and only for an attempt of the same message. Another message's sid answers `422 not_this_message`.
+A request takes one of the two, and only for an attempt of the same send. Another send's sid answers `422 not_this_message`, and `confirmed_sent` naming an attempt already proven not sent answers `409 confirmed_sent_contradicts`.
+
+A word about an attempt from `unkeyed_activity_log_sids` works a little differently, since that attempt may be another key's send. `confirmed_sent` takes it for your key. `confirmed_not_sent` settles nothing: it only stops check-sent from naming that attempt for your key, and your request then goes through the usual checks, so a message may still wait behind that attempt.
 
 ## The rule for a caller
 
-1. Mint one key per message and keep it with the message.
-2. On `sent` or a `200`, record the message.
+1. Mint one key per send and keep it with the send.
+2. On `sent` or a `200`, record it.
 3. On `not_sent`, follow the error. Send the same request again later, or give up.
-4. On anything else, no answer included, keep the message pending. Ask check-sent or send the same request after `retry_after`. It goes out again only once the answer is `not_sent`, and always under the same key.
+4. On anything else, no answer included, keep the send pending. Ask check-sent or send the same request after `retry_after`. It goes out again only once the answer is `not_sent`, and always under the same key.
 5. Past your own deadline, a person looks and gives their word.
 
 ## Example
@@ -120,7 +184,8 @@ Your client gives up after 90 seconds with no answer. A minute later you send th
       "activity_log_sid": "ln_al_Q8rT2vW4xY6z",
       "linkedin_account_sid": "ln_ac_Hx7kQ3mN2pL4",
       "waiting_for": "answer_lost",
-      "retry_after": "2026-10-05T09:14:30+00:00"
+      "retry_after": "2026-10-05T09:14:30+00:00",
+      "send_decisive_at": "2026-10-05T09:16:00+00:00"
     }
   }
 }
@@ -132,10 +197,10 @@ Had the conversation shown nothing after the send could no longer land, in two r
 
 ## In a mass action
 
-Each message a bulk run sends goes out under a key of its own. A target's own `client_reference` is used as given when the plan sends with that tool once. A `client_reference` T in a send step's `args` is a tag: each message goes out under `T:{item sid}:{step id}`, so an exact search for T finds nothing. Find the run's messages by each item's `created_object_sid` or by their exact keys, and match the `T:` prefix in your own code when you read webhooks. Do not create the run again because T matched nothing. That sends every message twice.
+Each send a bulk run makes goes out under a key of its own: a message, a connection request, a comment. A target's own `client_reference` is used as given when the plan sends with that tool once. A `client_reference` T in a send step's `args` is a tag: each send goes out under `T:{item sid}:{step id}`, so an exact search for T finds nothing. Find the run's sends by each item's `created_object_sid` or by their exact keys, and match the `T:` prefix in your own code when you read webhooks. Do not create the run again because T matched nothing. That sends everything twice.
 
 A send step whose answer was lost waits with `wait_reason: send_outcome_unknown` and asks check-sent under its key before anything goes again. The retry is in [Run a mass action](/guides/run-a-mass-action).
 
-## Not covered yet
+## Reactions
 
-Connection requests, comments and reactions name `send_outcome` on every refusal, but a repeat is not answered by its key yet and there is no check-sent for them. After `unknown` on one of them, look before you repeat it: at the pending invitations, the post's comments or its reactions. A comment repeated after `unknown` posts a second comment.
+A reaction takes no key and has no check-sent. LinkedIn keeps one reaction per account and post, so sending the same reaction again changes nothing on LinkedIn. Every error of `react` still names `send_outcome`, and after `unknown` you can send the same reaction again.
