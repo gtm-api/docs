@@ -10717,7 +10717,7 @@ components:
               type: array
               items:
                 type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts to the person that a build keeping no key made in the last 48 hours and that may be this invitation, by activity-log sid, newest first; activity_log_sid is the first. What a person looks at, and what their word may name."
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts to the person that a build keeping no key made in the last 48 hours and that may be this invitation, by activity-log sid in the order the answer ranks them; activity_log_sid is the first. What a person looks at, and what their word may name."
           required:
             - outcome
             - reason
@@ -10989,7 +10989,7 @@ components:
               type: array
               items:
                 type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts that a build keeping no key made in the last 48 hours and that may be this message, by activity-log sid, those that recorded a place first, newest first; activity_log_sid is the first. A group or Recruiter send of such a build recorded no place, so it stands for a key asked at a group or Recruiter thread or alone. What a person looks at, and what their word may name."
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts that a build keeping no key made in the last 48 hours and that may be this message, by activity-log sid in the order the answer ranks them (asked with a place, those that recorded it first); activity_log_sid is the first. Such a build recorded no place for some sends (a group, a Recruiter thread), and those stand for the keys whose place it could not record. What a person looks at, and what their word may name."
           required:
             - outcome
             - reason
@@ -11148,7 +11148,7 @@ components:
               type: array
               items:
                 type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts of the verb that a build keeping no key made in the last 48 hours and that may be this send, by activity-log sid, those that recorded a place first, newest first; activity_log_sid is the first. Such a build kept no place for a post or a repost, so those stand for any post or repost key of the account. What a person looks at, and what their word may name."
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts of the verb that a build keeping no key made in the last 48 hours and that may be this send, by activity-log sid in the order the answer ranks them (asked with a place, those that recorded it first); activity_log_sid is the first. Such a build kept no place for a post or a repost, so those stand for any post or repost key of the account. What a person looks at, and what their word may name."
           required:
             - outcome
             - reason
