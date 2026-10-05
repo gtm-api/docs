@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 205 reasons across 4 services.
+reason is thrown without a sentence). 212 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -58,6 +58,7 @@ reason is thrown without a sentence). 205 reasons across 4 services.
 | `channel_no_cross_cluster` | The two workspaces live on different clusters and this channel cannot hand an account across clusters. | id |
 | `channel_unavailable` | The channel service did not answer; retry in a minute. | id |
 | `channel_unreachable` | The channel service could not be reached; retry in a minute. | id |
+| `client_reference_frozen` | This message was already sent (or tried) under its client_reference, which its repeat and check-sent find it by; the client_reference cannot be set, changed or cleared now. | email |
 | `comment_not_deleted` | LinkedIn did not delete this comment: it is not this account's, or it is already gone. | linkedin |
 | `commit_in_progress` | This commit_token is being committed by another request right now; wait a moment and send the same commit again, it answers the run that request created. | orchestration |
 | `commit_token_expired` | commit_token has expired; run the preview again and commit with the new token. | orchestration |
@@ -69,7 +70,7 @@ reason is thrown without a sentence). 205 reasons across 4 services.
 | `daily_limit_exceeded` | This account has used its daily sending budget; pass scheduled_at and the queue sends when budget allows. | email |
 | `degree_indeterminate` | LinkedIn did not expose a network distance for this profile (the account itself, a hidden profile, or a page that carries none), so no degree can be recorded. | linkedin |
 | `disconnect_in_progress` | This cloud browser is disconnecting; wait for it to finish. | linkedin |
-| `dispatch_in_flight` | This message is being sent right now; retry once it reaches a terminal status. | email |
+| `dispatch_in_flight` | A send of this message is on its way (context.send_outcome in_flight), or it went out and its row is not stored (sent); ask again after context.retry_after, or ask check-sent. A sent answer without context.retry_after is final: the mail went out and no row will come. | email |
 | `dns_resolvers_unavailable` | The DNS resolvers did not answer, so the domain could not be verified; retry in a minute. | email |
 | `domain_active_in_another_team` | This domain has an active certificate in another workspace. | id |
 | `domain_already_active` | This domain already has an active certificate. | id |
@@ -86,8 +87,9 @@ reason is thrown without a sentence). 205 reasons across 4 services.
 | `handover_in_flight` | A handover of this account is already in progress; wait for it to finish. | id |
 | `handover_in_progress` | Another handover of this account is still in progress; finish or cancel it first. | linkedin |
 | `handover_payload_mismatch` | The handover rows do not carry the role this step expects; the handover is out of order. | linkedin |
+| `held_by_another_send` | Another send of the same mail to the same recipients is on its way or may already have gone out (context.blocking_activity_log_sid names its attempt, context.blocking_email_message_sid its row, when known), so this one was not sent; ask again after context.retry_after. | email |
 | `holder_team_unavailable` | The receiving workspace does not exist or is not active. | id |
-| `idempotency_key_busy` | A send with this idempotency_key is in progress; wait for it to finish. | email |
+| `idempotency_key_busy` | A send with this idempotency_key is in progress; ask again after context.retry_after. | email |
 | `idempotency_key_reused` | This idempotency_key was used for a different send; use a new key for a new message. | email |
 | `infrastructure_maintenance` | The automation fleet is in maintenance; browsers cannot be started until it ends. | linkedin |
 | `infrastructure_unavailable` | The automation infrastructure did not answer; retry in a minute. | linkedin |
@@ -115,6 +117,7 @@ reason is thrown without a sentence). 205 reasons across 4 services.
 | `mass_action_incompatible` | The mass action targets an entity this auto-scrape's results cannot feed; pick a run whose target_entity matches the result kind. | linkedin |
 | `mass_action_registry_unavailable` | The mass-action service did not answer; retry in a minute. | linkedin |
 | `message_already_recalled` | This message is already recalled; a second recall would spend a call to be told nothing. | linkedin |
+| `message_not_outbound` | Only a message this mailbox sent can be checked for having gone out; this one was received. | email |
 | `message_not_reactable` | This message no longer exists on our side (a reset removed it), so it cannot be reacted to. | linkedin |
 | `message_not_recallable` | This message no longer exists on our side (a reset removed it), so it cannot be recalled. | linkedin |
 | `message_too_old_to_recall` | LinkedIn allows a recall within 60 minutes of sending, and this message is older; it stays. | linkedin |
@@ -133,6 +136,7 @@ reason is thrown without a sentence). 205 reasons across 4 services.
 | `no_recognised_filter_members` | None of the keys in source_input.filters is a filter this search understands; use the keys the tool lists. | linkedin |
 | `not_a_login_session` | This session is not a login session, so it has no login result to confirm. | linkedin |
 | `not_connected` | The target is not a 1st-degree connection of this account, and this action needs one; send a connection request first, or act from an account that is connected. | linkedin |
+| `not_this_message` | _the field_ names the activity_log_sid of an earlier attempt of this same message (the same client_reference and recipients, or without a key the same content and recipients) that is in doubt; this one is not. | email |
 | `oauth_app_failed` | This OAuth app is not verified (see context); fix its credentials and probe it again. | email |
 | `oauth_app_probe_rate_limited` | The OAuth app was probed too often; retry after retry_after. | email |
 | `oauth_grant_invalid` | The provider refused this refresh token (revoked, expired, or from a mailbox that changed); connect the account again with a fresh consent. | email |
@@ -151,6 +155,7 @@ reason is thrown without a sentence). 205 reasons across 4 services.
 | `period_inverted` | period.from is after period.to; swap them. | linkedin, orchestration |
 | `period_start_must_be_monday` | period_start must be the Monday that opens the ISO week. | linkedin |
 | `period_too_wide` | The period spans more than 90 days; narrow period.from / period.to. | linkedin, id, orchestration, email |
+| `place_required` | This client_reference names sends to more than one set of recipients; ask with the recipients of the send you mean (to, cc, bcc). context.places lists them. | email |
 | `plugin_unavailable` | The browser plugin did not answer; retry once the browser is running. | linkedin |
 | `post_not_created` | LinkedIn did not publish this post: its answer named no post, so nothing was spent. A company-page post (author_organization_id) needs an account that administers that page; check the page role, then retry. | linkedin |
 | `post_not_deleted` | LinkedIn did not delete this post: it is not this account's, or it is already gone. | linkedin |
@@ -190,6 +195,8 @@ reason is thrown without a sentence). 205 reasons across 4 services.
 | `scheduled_change_is_not_cancel` | The scheduled change on this subscription is not a cancellation, so there is no cancellation to undo. | id |
 | `scheduled_post_not_deleted` | LinkedIn did not delete this scheduled post: it is not this account's, or it was already published or removed. | linkedin |
 | `send_as_denied` | from_email is not an address this account owns or is allowed to send as. | email |
+| `send_outcome_settled` | confirmed_sent names an attempt that was already proven not sent (context.activity_log_sid, why in context.check_reason), so the word cannot be taken; nothing was sent. | email |
+| `send_outcome_unknown` | This message may already have gone out (the provider gave no verdict), so it is not sent again until the mailbox shows whether it left; ask again after context.retry_after, or ask check-sent (context.activity_log_sid names the attempt). | email |
 | `session_already_disconnected` | This session is already disconnected. | linkedin |
 | `shadowban_check_not_pending` | This check is not pending, so its send cannot be confirmed. | linkedin |
 | `share_not_active` | This share is not active, so it cannot be recalled or returned. | id |
