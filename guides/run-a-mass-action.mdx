@@ -89,6 +89,19 @@ Control verbs while it runs: `POST /api/mass-actions/{sid}/pause` and `/resume`,
 
 ## 4. Retry failures
 
-`POST /api/mass-action-items/retry` re-enters failed items at their current step. Completed steps are never re-executed, so there are no duplicate creates and no double sends. Target exactly one of a single item `sid` or a `filter` (pass `mass_action_sid` in the filter unless you mean every run). Only `status: failed` rows match; a retry matching nothing returns `retried_count: 0`, not an error.
+`POST /api/mass-action-items/retry` re-enters failed items at their current step. Completed steps are never re-executed, so there are no duplicate creates and no double sends. Target exactly one of a single item `sid` or a `filter` (pass `mass_action_sid` in the filter unless you mean every run). Only `status: failed` rows match, and a retry matching nothing returns `retried_count: 0`, not an error.
 
-One caveat from the description worth repeating: an `item_timeout:` failure means the outbound call may have landed. Check the target before retrying a non-idempotent step such as a send.
+Two guards hold whatever you pass. An item is retried at most 10 times, and an item of a deleted run, or a cancelled one, is never retried. By `sid` these answer `422 retry_limit_exceeded` and `409 cancelled_cannot_retry`. A filter leaves such items alone and reports the first kind in `left_at_retry_limit_count`.
+
+A send is not sent again on a guess. Each message of a run goes out under a key of its own ([Sending once](/concepts/sending-once) explains the keys), and a send whose answer was lost waits with `wait_reason: send_outcome_unknown` while the run asks the owning service what came of it. It goes again only when the answer is `not_sent`. If nobody can tell within 24 hours, the item fails with `send_unconfirmed:` in its `error_message`, and a plain retry asks again for another day. An `item_timeout:` failure on a send step is asked about the same way. To send it anyway, look at the conversation first. If the message is not there, retry that one item with your word:
+
+```json POST /orchestration/v4/api/mass-action-items/retry
+{
+  "sid": "ma_im_YOUR_ITEM",
+  "resend_unverified": true
+}
+```
+
+The step goes again naming the attempt in doubt, and the owning service still holds it while that attempt could land. `resend_unverified` vouches for one send, so it takes a `sid` and never a `filter` (`422 resend_unverified_needs_sid`). A send that carries no key, such as a comment, cannot be asked about. A plain retry leaves it failed with a note and counts it in `left_unconfirmed_count`, and only `resend_unverified` sends it again.
+
+On a step that is not a send, an `item_timeout:` failure still means the outbound call may have landed: check the target before retrying a step that is not safe to repeat.
