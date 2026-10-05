@@ -3,6 +3,21 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-05" description="A browser nobody signs in on is deleted after 30 days">
+  **An unused browser no longer holds a seat for good.** A browser takes a seat of the plan from
+  the moment it is created. One that no LinkedIn account ever signed in on, a sign-in link nobody
+  opened or a sign-in left half done, used to keep its seat, its proxy and its profile with no end.
+  Now the platform deletes such a browser 30 days after the last chance anyone had to sign in on it:
+  its creation, its last start, the last cloud-browser session opened on it, or the moment its last
+  sign-in link expired, whichever came last. The seat and the proxy are freed. A profile you brought
+  from your own GoLogin account stays in your GoLogin account; only the browser on our side goes.
+
+  Browsers with a connected LinkedIn account are never deleted this way, even while the account is
+  signed out. `create_antidetect_browser` says so in its description, and
+  [Antidetect browsers and proxies](/kb/antidetect-browsers-and-proxies#browser-lifecycle) has the
+  details.
+</Update>
+
 <Update label="2026-09-28" description="Recruiter: a seat that was never signed in is not a sign-out">
   **`recruiter_status` tells the truth about a seat that never signed in.** A Recruiter seat whose
   browser has never been signed in to Recruiter used to read `active` and then flip to `signed_out`

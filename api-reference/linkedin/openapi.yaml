@@ -259,7 +259,7 @@ paths:
       operationId: create_antidetect_browser
       summary: Create antidetect browser
       description: |-
-        Provision ONE antidetect browser for the team. The main flow mints a fresh vendor (GoLogin) profile and pushes the resolved proxy into it, so supply exactly one proxy source: proxy_country_code is the default, custom_proxy_config routes that minted profile through a proxy the caller supplies (probed first, 422 custom_proxy_unreachable_* when dead, never with proxy_5g). Pick the branch yourself, never ask an end user for a sid. Bind an existing vendor_profile_id for the BYO-PROFILE path instead, with no proxy source: that profile carries its own. DANGEROUS: creates real vendor + proxy infrastructure. For SEVERAL browsers under ONE approval, do not call this per browser: author a mass action on /mcp/orchestration/mass-actions with scope {kind:"generate", count:N} and a plan of antidetect-browsers.create (+ antidetect-browsers.generate-cloud-browser-access-key), then read the connect links off each row when it finishes.
+        Provision ONE antidetect browser for the team. The main flow mints a fresh vendor (GoLogin) profile and pushes the resolved proxy into it, so supply exactly one proxy source: proxy_country_code is the default, custom_proxy_config routes that minted profile through a proxy the caller supplies (probed first, 422 custom_proxy_unreachable_* when dead, never with proxy_5g). Pick the branch yourself, never ask an end user for a sid. Bind an existing vendor_profile_id for the BYO-PROFILE path instead, with no proxy source: that profile carries its own. If no LinkedIn account signs in on it for 30 days, it is deleted and its seat freed. DANGEROUS: creates real vendor + proxy infrastructure. For SEVERAL browsers under ONE approval, do not call this per browser: author a mass action on /mcp/orchestration/mass-actions with scope {kind:"generate", count:N} and a plan of antidetect-browsers.create (+ antidetect-browsers.generate-cloud-browser-access-key), then read the connect links off each row when it finishes.
 
         Contract:
         - MCP tool `create_antidetect_browser`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -14497,7 +14497,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - company
             - data_request
@@ -14789,7 +14789,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - posts
             - data_request
@@ -14961,7 +14961,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - company
             - data_request
@@ -15077,7 +15077,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - public_identifier
             - data_request
@@ -15191,7 +15191,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - activity_urn
             - data_request
@@ -15376,7 +15376,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - profile
             - data_request
@@ -15518,7 +15518,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - certifications
             - data_request
@@ -15709,7 +15709,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - comments
             - paging
@@ -15868,7 +15868,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - contact_info
             - data_request
@@ -16015,7 +16015,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - educations
             - data_request
@@ -16192,7 +16192,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - experience
             - data_request
@@ -16347,7 +16347,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - featured
             - data_request
@@ -16601,7 +16601,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - profile
             - data_request
@@ -16796,7 +16796,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - tab
             - interests
@@ -16924,7 +16924,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - languages
             - data_request
@@ -17065,7 +17065,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - profile
             - data_request
@@ -17348,7 +17348,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - posts
             - data_request
@@ -17546,7 +17546,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - reactions
             - paging
@@ -17719,7 +17719,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - recommendations
             - data_request
@@ -17867,7 +17867,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - services
             - data_request
@@ -18019,7 +18019,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - skills
             - data_request
@@ -18283,7 +18283,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call.
+              description: 'The kind="enrich" DataRequest journal row (status / served_from_cache / cached_from_sid). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back.'
           required:
             - post
             - data_request
@@ -20471,6 +20471,7 @@ components:
                 - type: array
                   items: {}
                 - {}
+              description: "The stored result payload (inline object/array, or a string pointer). Null on the receipt a scrape / enrich response embeds as result.data_request: that response carries the data as rows / the item, and get_data_request by sid reads the stored payload back."
             error_code:
               type: string
               nullable: true
@@ -38650,7 +38651,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -38847,7 +38848,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -39051,7 +39052,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
             post:
               type: object
               properties:
@@ -39247,7 +39248,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
             post:
               type: object
               properties:
@@ -39437,7 +39438,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
             post:
               type: object
               properties:
@@ -39602,7 +39603,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -39757,7 +39758,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -39924,7 +39925,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -40145,7 +40146,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -40360,7 +40361,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -40560,7 +40561,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -40750,7 +40751,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -41027,7 +41028,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -41317,7 +41318,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
             commercial_use_limit_hit:
               type: boolean
               description: LinkedIn’s people-search commercial-use-limit upsell fired (wire wasStrike), so rows may be truncated; switch to the SN engine or wait for the monthly reset.
@@ -41607,7 +41608,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -41829,7 +41830,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -42651,7 +42652,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
             search_history_id:
               type: string
               nullable: true
@@ -43115,7 +43116,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -43702,7 +43703,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -43892,7 +43893,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -44123,7 +44124,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -44298,7 +44299,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -44483,7 +44484,7 @@ components:
             data_request:
               type: object
               properties: {}
-              description: The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
           required:
             - rows
             - paging
@@ -46950,6 +46951,7 @@ components:
                       - type: array
                         items: {}
                       - {}
+                    description: "The stored result payload (inline object/array, or a string pointer). Null on the receipt a scrape / enrich response embeds as result.data_request: that response carries the data as rows / the item, and get_data_request by sid reads the stored payload back."
                   error_code:
                     type: string
                     nullable: true
