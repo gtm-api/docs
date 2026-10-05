@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 212 reasons across 4 services.
+reason is thrown without a sentence). 215 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -52,6 +52,7 @@ reason is thrown without a sentence). 212 reasons across 4 services.
 | `browser_unreachable` | The browser is not reachable right now (stopped, restarting, or its host is down); start it and retry. | linkedin |
 | `bucket_saturated` | This account has used its budget for this action type; retry after retry_after. | linkedin |
 | `callback_host_registry_unavailable` | The identity service did not answer the callback-host lookup; retry in a minute. | email |
+| `cancelled_cannot_retry` | This item's run was deleted (see context.status): a deleted run stays stopped and its items are not retried. Create a new run to reach this target again. | orchestration |
 | `cannot_issue_deleted_certificate` | This certificate was deleted; add the domain again to issue a new one. | id |
 | `cannot_rotate_inactive_key` | Only an active API key can be rotated; this one is revoked or expired. | id |
 | `channel_busy` | The channel is handling its maximum number of handovers; retry this call unchanged in a minute. | id |
@@ -184,7 +185,9 @@ reason is thrown without a sentence). 212 reasons across 4 services.
 | `reply_check_unavailable` | The thread could not be read from LinkedIn right now, and stop_if_replied_after asks for that read before the send; nothing was sent, retry after retry_after. | linkedin |
 | `report_end_not_supported` | Only a share reports its end; a transfer completes on its own. | id |
 | `requester_has_no_email` | The requester's account has no email to reply to; add one before opening a support request. | id |
+| `resend_unverified_needs_sid` | resend_unverified is your word that one send nobody could confirm did not arrive: give it with the sid of the item you checked, never with a filter. | orchestration |
 | `resolver_unavailable` | The subject profile could not be resolved right now; retry later. | linkedin |
+| `retry_limit_exceeded` | This item has been retried 10 times, the most one item takes; check why its step keeps failing (error_message), then create a new run for this target if it should still go. | orchestration |
 | `run_in_progress` | A run of this auto-scrape is still in flight; wait for it to finish or stop it. | linkedin |
 | `run_not_active` | This run does not take new items (see context.detail: it is paused or deleted); resume it, or create a new run. | orchestration |
 | `run_not_failed` | Only a failed provisioning run can be retried; this one has not failed. | orchestration |
