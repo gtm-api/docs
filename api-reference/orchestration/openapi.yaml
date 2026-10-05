@@ -49,7 +49,7 @@ paths:
       operationId: retry_mass_action_items
       summary: Retry mass-action items
       description: |-
-        Re-enter FAILED items of a mass action AT their current_step: completed steps are never re-executed, so no duplicate creates and no double sends; their step_log entries and minted objects survive untouched. Target EXACTLY ONE of sid (ma_im_…) or filter; both or neither is a 422 on the sid field. The filter arm re-enqueues every matching failed item in one call and is not parent-scoped, so pass mass_action_sid unless you mean every run. Per item: status becomes pending, retry_count++, error_message and finished_at cleared; the failed step's log entry is overwritten by the next attempt. Every affected parent un-settles (settled_at cleared) and settles again when its items drain. Only status=failed rows match: succeeded, skipped, cancelled and in-flight are left alone, so a retry matching nothing returns retried_count 0, not an error. An "item_timeout:" failure is retryable, but that message means the outbound call MAY have landed: check the target before retrying a non-idempotent step such as a send.
+        Re-enter FAILED items of a mass action AT their current_step: completed steps never run again, their step_log entries and minted objects stay. Target EXACTLY ONE of sid (ma_im_…) or filter (both or neither: 422 sid_xor_filter_required); the filter arm is not parent-scoped, so pass mass_action_sid unless you mean every run. Per item: status pending, retry_count++, the error, timings and wait_reason cleared; parents settle again when drained. Only failed items match (retried_count 0 is not an error), 10 retries each at most, never an item of a deleted run or a cancelled one: by sid 422 retry_limit_exceeded and 409 cancelled_cannot_retry, by filter left alone. A send is never sent again blind: one failed send_unconfirmed or item_timeout is asked about under its key first; one with no key stays failed (left_unconfirmed_count) until a person checks the channel and retries it by sid with resend_unverified.
 
         Contract:
         - MCP tool `retry_mass_action_items`, registry package `mcp.orchestration/mass_action_items`, mount `orchestration.mass_actions`.
@@ -90,7 +90,7 @@ paths:
       operationId: search_mass_action_items
       summary: Search mass-action items
       description: |-
-        Per-target drill-down of a mass action: one row per target with current_step, the object cursor (object_type / object_sid, on a generative run what the row created) and step_log[], one entry per plan step with status (running / deferred / succeeded / failed / skipped), executor_ref for async steps, created_object_sid for steps that minted one, and error_message. The last step_log entry says what failed and why, earlier ones what completed: a failed item keeps the effects of its finished steps (fail-forward), created_object_sid is the cleanup surface. Filter by mass_action_sid, then narrow by status / current_step / wait_reason; object_sid is parent-scoped, so always pair it with mass_action_sid (unpaired it degrades to a full team scan). Sort defaults to position asc (insertion order; position 1 is the canary); page_size 0 returns pagination.total_count alone. No include[] and no counts block; run-level aggregation lives on the parent, mass-actions metrics.
+        Per-target drill-down of a mass action: one row per target with current_step, the object cursor (object_type / object_sid, on a generative run what the row created) and step_log[], one entry per plan step with status (running / deferred / succeeded / failed / skipped), executor_ref (the key a send step went out under, next to its doubt fields), created_object_sid for steps that minted one, and error_message. The last step_log entry says what failed and why, earlier ones what completed: a failed item keeps the effects of its finished steps (fail-forward), created_object_sid is the cleanup surface. Filter by mass_action_sid, then narrow by status / current_step / wait_reason; object_sid is parent-scoped, so always pair it with mass_action_sid (unpaired it degrades to a full team scan). Sort defaults to position asc (insertion order; position 1 is the canary); page_size 0 returns pagination.total_count alone. No include[] and no counts block; run-level aggregation lives on the parent, mass-actions metrics.
 
         Contract:
         - MCP tool `search_mass_action_items`, registry package `mcp.orchestration/mass_action_items`, mount `orchestration.mass_actions`.
@@ -1626,7 +1626,7 @@ components:
                     additionalProperties: {}
                   minItems: 1
                   maxItems: 100
-                  description: "1..100 payload-kind identities (send-class) plus per-item params (note, text, client_reference). A person is named by ln_id (a profile URN, ACoAA...) or sn_id (a Sales Navigator id, ACwAA...); profile_id takes either. ln_member_id is the decoded member NUMBER (digits), never a slug or a URN, and alone cannot be dispatched by a send verb; a vanity slug goes in nickname (or public_identifier). One person named twice is one item: the run dedups by member id."
+                  description: "1..100 payload-kind identities (send-class) plus per-item params (note, text, client_reference). A person is named by ln_id (a profile URN, ACoAA...) or sn_id (a Sales Navigator id, ACwAA...); profile_id takes either. ln_member_id is the decoded member NUMBER (digits), never a slug or a URN, and alone cannot be dispatched by a send verb; a vanity slug goes in nickname (or public_identifier). One person named twice is one item: the run dedups by member id. A target's client_reference is the key of its message, sent as given when the plan sends with that tool once; a plan that sends with one tool twice tags each step's key with it ('{key}:{item sid}:{step id}'), since two messages cannot share a key."
               required:
                 - kind
                 - targets
@@ -1688,7 +1688,7 @@ components:
                   args:
                     type: object
                     additionalProperties: {}
-                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). One arg is worth stating explicitly because its default is silent and not what a bulk hand-out usually wants: on 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share'. A relogin link ends in a confirm that re-binds the browser to the account; a share link just lets the visitor drive it. The two links look identical, so an omitted `purpose` mints N re-login links without complaining."
+                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). Two args are worth stating explicitly. On 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share': a relogin link ends in a confirm that re-binds the browser to the account, a share link just lets the visitor drive it, and the two look identical, so an omitted `purpose` mints N re-login links without complaining. On a keyed send step (a connection request, a message, an email), `client_reference` T is a run tag, never one message's key: each message goes out under 'T:{item sid}:{step id}' (a run without one under '{item sid}:{step id}'), so an exact match on T finds no row. Find the rows by each item's created_object_sid or by the exact keys (eq / in, there is no prefix search; a webhook subscriber matches the 'T:' prefix in its own code), and never create the run again because T matched nothing: that sends every message twice."
                 required:
                   - tool
               minItems: 1
@@ -1981,6 +1981,7 @@ components:
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
+              - linkedin-accounts.heartbeat-restored
               - linkedin-accounts.subscription-hold-applied
               - linkedin-accounts.subscription-hold-released
               - linkedin-account-block-log.recorded
@@ -1989,6 +1990,7 @@ components:
               - linkedin-account-smart-limits.limit-reached
               - linkedin-account-smart-limits.limit-released
               - linkedin-account-smart-limits.smart-limit-recomputed
+              - linkedin-account-smart-limits.updated
               - linkedin-account-smart-limits.ceiling-learned
               - linkedin-connection-requests.sent
               - linkedin-connection-requests.accepted
@@ -4002,7 +4004,7 @@ components:
                     additionalProperties: {}
                   minItems: 1
                   maxItems: 100
-                  description: "1..100 payload-kind identities (send-class) plus per-item params (note, text, client_reference). A person is named by ln_id (a profile URN, ACoAA...) or sn_id (a Sales Navigator id, ACwAA...); profile_id takes either. ln_member_id is the decoded member NUMBER (digits), never a slug or a URN, and alone cannot be dispatched by a send verb; a vanity slug goes in nickname (or public_identifier). One person named twice is one item: the run dedups by member id."
+                  description: "1..100 payload-kind identities (send-class) plus per-item params (note, text, client_reference). A person is named by ln_id (a profile URN, ACoAA...) or sn_id (a Sales Navigator id, ACwAA...); profile_id takes either. ln_member_id is the decoded member NUMBER (digits), never a slug or a URN, and alone cannot be dispatched by a send verb; a vanity slug goes in nickname (or public_identifier). One person named twice is one item: the run dedups by member id. A target's client_reference is the key of its message, sent as given when the plan sends with that tool once; a plan that sends with one tool twice tags each step's key with it ('{key}:{item sid}:{step id}'), since two messages cannot share a key."
               required:
                 - kind
                 - targets
@@ -4065,7 +4067,7 @@ components:
                   args:
                     type: object
                     additionalProperties: {}
-                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). One arg is worth stating explicitly because its default is silent and not what a bulk hand-out usually wants: on 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share'. A relogin link ends in a confirm that re-binds the browser to the account; a share link just lets the visitor drive it. The two links look identical, so an omitted `purpose` mints N re-login links without complaining."
+                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). Two args are worth stating explicitly. On 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share': a relogin link ends in a confirm that re-binds the browser to the account, a share link just lets the visitor drive it, and the two look identical, so an omitted `purpose` mints N re-login links without complaining. On a keyed send step (a connection request, a message, an email), `client_reference` T is a run tag, never one message's key: each message goes out under 'T:{item sid}:{step id}' (a run without one under '{item sid}:{step id}'), so an exact match on T finds no row. Find the rows by each item's created_object_sid or by the exact keys (eq / in, there is no prefix search; a webhook subscriber matches the 'T:' prefix in its own code), and never create the run again because T matched nothing: that sends every message twice."
                 required:
                   - tool
               minItems: 1
@@ -4479,6 +4481,7 @@ components:
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
+              - linkedin-accounts.heartbeat-restored
               - linkedin-accounts.subscription-hold-applied
               - linkedin-accounts.subscription-hold-released
               - linkedin-account-block-log.recorded
@@ -4487,6 +4490,7 @@ components:
               - linkedin-account-smart-limits.limit-reached
               - linkedin-account-smart-limits.limit-released
               - linkedin-account-smart-limits.smart-limit-recomputed
+              - linkedin-account-smart-limits.updated
               - linkedin-account-smart-limits.ceiling-learned
               - linkedin-connection-requests.sent
               - linkedin-connection-requests.accepted
@@ -5152,13 +5156,14 @@ components:
                 eq:
                   type: string
                   enum:
-                    - task_pending
                     - maintenance
                     - rate_limited
+                    - send_outcome_unknown
+                    - send_blocked
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window; eq:'rate_limited' the ones parked by the owning service's rate limit (a smart-limit hold or spent budget, a LinkedIn lock, the per-minute guard), due again at scheduled_at.
+              description: eq:'maintenance' selects the items parked by a planned maintenance window; eq:'rate_limited' the ones parked by the owning service's rate limit (a smart-limit hold or spent budget, a LinkedIn lock, the per-minute guard); eq:'send_outcome_unknown' the sends in doubt; eq:'send_blocked' the sends another message holds back. All due again at scheduled_at.
             retry_count:
               type: object
               properties:
@@ -5257,6 +5262,9 @@ components:
                   type: string
               additionalProperties: false
           description: "Bulk mode: every failed item matching this filter is re-entered. Mutually exclusive with sid."
+        resend_unverified:
+          type: boolean
+          description: "A person's word that the one send they checked did not arrive (its step failed send_unconfirmed). With sid only: with a filter it is 422 resend_unverified_needs_sid. The step goes again naming the attempt in doubt as confirmed_not_sent, and the owning service still waits while that attempt may land (the item waits with it); a send with no key goes as a new message. Any other failed item ignores it."
     RetryMassActionItemsResponse:
       type: object
       properties:
@@ -5279,6 +5287,20 @@ components:
               type: integer
               minimum: 0
               description: How many failed items were re-entered. 0 means nothing matched, not an error.
+            resend_unverified_count:
+              type: integer
+              minimum: 0
+              description: "Only with resend_unverified: how many of the re-entered items kept the word (a send nobody could confirm)."
+            left_unconfirmed_count:
+              type: integer
+              minimum: 0
+              exclusiveMinimum: true
+              description: "Only when above 0: failed items left failed because their send carries no key, so nobody can be asked whether it went out. Each got a note in error_message; only a retry by sid with resend_unverified sends it."
+            left_at_retry_limit_count:
+              type: integer
+              minimum: 0
+              exclusiveMinimum: true
+              description: "Only when above 0: failed items left failed because they were retried 10 times already."
           required:
             - retried_count
         meta:
@@ -5610,13 +5632,14 @@ components:
                 eq:
                   type: string
                   enum:
-                    - task_pending
                     - maintenance
                     - rate_limited
+                    - send_outcome_unknown
+                    - send_blocked
                 is_null:
                   type: boolean
               additionalProperties: false
-              description: eq:'task_pending' selects the items deferred on an async task; eq:'maintenance' the ones parked by a planned maintenance window; eq:'rate_limited' the ones parked by the owning service's rate limit (a smart-limit hold or spent budget, a LinkedIn lock, the per-minute guard), due again at scheduled_at.
+              description: eq:'maintenance' selects the items parked by a planned maintenance window; eq:'rate_limited' the ones parked by the owning service's rate limit (a smart-limit hold or spent budget, a LinkedIn lock, the per-minute guard); eq:'send_outcome_unknown' the sends in doubt; eq:'send_blocked' the sends another message holds back. All due again at scheduled_at.
             retry_count:
               type: object
               properties:
@@ -5819,19 +5842,19 @@ components:
                             - skipped
                         started_at:
                           type: string
-                          description: ISO 8601 UTC. Committed BEFORE the outbound call (started-marker).
+                          description: ISO 8601 UTC. Committed BEFORE the outbound call (started-marker). A send in doubt keeps the moment its doubt began across runs.
                         finished_at:
                           type: string
                           nullable: true
-                          description: Terminal commit of this step; null while running or deferred.
+                          description: "When the step ended (succeeded, failed, skipped); null while running or deferred: a parked step is not finished."
                         duration_ms:
                           type: integer
                           nullable: true
-                          description: Wall clock for the step, defer waits included.
+                          description: "started_at to finished_at: the run that ended the step, or for a send that was in doubt, from the moment its doubt began. Null while running or deferred; entries written before 2026-10-04 carry 0."
                         executor_ref:
                           type: string
                           nullable: true
-                          description: "Async steps: sid of the dispatched task. The poll handle for a deferred item; null on sync steps."
+                          description: "A keyed send step: the client_reference its message went out under, on every entry it writes (the started-marker included). Null on every other step, and on a send nobody could confirm that has no key."
                         created_object_type:
                           type: string
                           nullable: true
@@ -5843,7 +5866,32 @@ components:
                         error_message:
                           type: string
                           nullable: true
-                          description: Step-local failure cause. The item-level error_message repeats it behind a 'step {k} {tool}:' prefix.
+                          description: Step-local failure cause, or a parked step's note. The item-level error_message repeats a failure behind a 'step {k} {tool}:' prefix.
+                        activity_log_sid:
+                          type: string
+                          nullable: true
+                          description: "The owning service's attempt in doubt (ln_al_ or em_al_), as its check-sent or a refusal named it: what a person's word names. Never another message's blocking attempt."
+                        resend_unverified:
+                          type: boolean
+                          description: "A person's word, set by retry_mass_action_items with resend_unverified: the step's next run repeats the send naming activity_log_sid as confirmed_not_sent."
+                        send_vouched_at:
+                          type: string
+                          nullable: true
+                          description: "ISO 8601 UTC: when the owning service first answered that the send went out with no row for it. Such a send is never sent again and ends as sent."
+                        send_decisive_at:
+                          type: string
+                          nullable: true
+                          description: "ISO 8601 UTC: an invitation in doubt may still land until this moment, and it is not repeated before it."
+                        send_unconfirmed:
+                          type: boolean
+                          description: "Marks the failed entry of a send nobody could confirm within 24 h: with executor_ref a retry asks the owning service again; without one only a retry by sid with resend_unverified sends it."
+                        blocked_since:
+                          type: string
+                          nullable: true
+                          description: "ISO 8601 UTC: when another message's attempt to the same place began holding this send back (wait_reason send_blocked)."
+                        send_in_doubt:
+                          type: boolean
+                          description: "Marks a park of a send whose outcome nobody knows yet: its next run asks the owning service (check-sent) before anything goes again."
                       required:
                         - step_id
                         - status
@@ -5854,6 +5902,13 @@ components:
                         - created_object_type
                         - created_object_sid
                         - error_message
+                        - activity_log_sid
+                        - resend_unverified
+                        - send_vouched_at
+                        - send_decisive_at
+                        - send_unconfirmed
+                        - blocked_since
+                        - send_in_doubt
                     description: "One entry per plan step of the CURRENT attempt, ≤3. Read the last entry for the failure, the earlier ones for what already completed (fail-forward: their effects stand)."
                   scheduled_at:
                     type: string
@@ -5863,10 +5918,11 @@ components:
                     type: string
                     nullable: true
                     enum:
-                      - task_pending
                       - maintenance
                       - rate_limited
-                    description: Why the item is deferred mid-cascade. Null when it is not waiting; a parent-level pause leaves this null.
+                      - send_outcome_unknown
+                      - send_blocked
+                    description: "Why the item is deferred mid-cascade, due again at scheduled_at: maintenance, rate_limited, send_outcome_unknown (a send in doubt, asked about under its key before it goes again) or send_blocked (another message to the same place holds the send back; nothing of this one went out). Null when it is not waiting; a parent-level pause leaves this null."
                   error_message:
                     type: string
                     nullable: true
@@ -7556,6 +7612,7 @@ components:
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
+              - linkedin-accounts.heartbeat-restored
               - linkedin-accounts.subscription-hold-applied
               - linkedin-accounts.subscription-hold-released
               - linkedin-account-block-log.recorded
@@ -7564,6 +7621,7 @@ components:
               - linkedin-account-smart-limits.limit-reached
               - linkedin-account-smart-limits.limit-released
               - linkedin-account-smart-limits.smart-limit-recomputed
+              - linkedin-account-smart-limits.updated
               - linkedin-account-smart-limits.ceiling-learned
               - linkedin-connection-requests.sent
               - linkedin-connection-requests.accepted
