@@ -135,7 +135,38 @@ A post into a group whose answer was lost stays `unknown` until a person looks a
 
 ### Sends made before the keys
 
-An older build of the platform kept neither the key nor the words of an attempt. For 48 hours after such an attempt, a key with no attempt of its own may be answered `unknown` with `reason: "unkeyed_attempt_at_place"`, because that older attempt may be its send. `result.unkeyed_activity_log_sids` lists the attempts it may be, and `activity_log_sid` is the first of them. A person can look, and their word may name any of them.
+An older build of the platform kept neither the key nor the words of an attempt. For 48 hours after such an attempt, a key with no attempt of its own may be answered `unknown` with `reason: "unkeyed_attempt_at_place"`, because that older attempt may be its send. `result.unkeyed_activity_log_sids` lists the attempts it may be, and `activity_log_sid` is the first of them.
+
+`result.unkeyed_attempts` names each of them, in the same order: its `activity_log_sid`, its verb (`action_type`), when it started (`created_at`), and the `place` it recorded when it was sent, with whichever of `ln_member_id`, `ln_id`, `sn_id`, `recruiter_id`, `entity_type` and `entity_urn` it kept, or `null` when it kept none. A `nickname` comes with it when the attempt kept the person's slug. Asked by the key alone the list is newest first. Asked with a place, the attempts that recorded that place come first.
+
+```json
+{
+  "success": true,
+  "operation": "action",
+  "action": "check-sent",
+  "item": null,
+  "result": {
+    "outcome": "unknown",
+    "reason": "unkeyed_attempt_at_place",
+    "retry_after": "2026-10-06T08:12:00+00:00",
+    "activity_log_sid": "ln_al_Dk3pR7sV1wX9",
+    "send_decisive_at": "2026-10-06T08:40:00+00:00",
+    "unkeyed_activity_log_sids": ["ln_al_Dk3pR7sV1wX9"],
+    "unkeyed_attempts": [
+      {
+        "activity_log_sid": "ln_al_Dk3pR7sV1wX9",
+        "action_type": "send_message",
+        "created_at": "2026-10-06T07:38:12+00:00",
+        "place": { "ln_member_id": "811042339", "ln_id": "ACoAAAdbzRUBAAAAAAAAAAAAAAAAAAAAAAAAAAA" },
+        "nickname": "jane-doe"
+      }
+    ]
+  },
+  "meta": { "trace_id": "0198f2ab-7c11-7e32-9a41-d2b64f2a91c3" }
+}
+```
+
+A person can look where each of them went, and their word may name any of them.
 
 ## A person's word
 
