@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 187 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 189 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -3954,6 +3954,47 @@ paths:
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
       x-gtm-paced-bucket: networking_general
+  /api/linkedin-connection-requests/check-sent:
+    post:
+      operationId: check_linkedin_connection_request_sent
+      summary: Check whether a LinkedIn connection request went out
+      description: |-
+        Ask what a LinkedIn connection request came to, without sending: by the client_reference it went out under (optionally for one person: profile_id or ln_member_id), or by the activity_log_sid a 409 named. result.outcome: sent (item is the request, or null with reason request_row_pending or caller_confirmed), in_flight, unknown (the answer was lost and the sent invitations have not shown it yet; retry_after, send_decisive_at), or not_sent (no_send_under_key, refused, not_in_invitations, caller_confirmed). Send the same request again only on not_sent, under the same key. result.activity_log_sid is the attempt a person's word names (confirmed_not_sent / confirmed_sent on the send); reason unkeyed_attempt_at_place lists in unkeyed_activity_log_sids the attempts of a build that kept no key that may be this one. An invitation in doubt has the sent invitations read now when the last look is old enough, so a call can take as long as a head read. A key sent to several persons is 422 place_required (context.places).
+
+        Contract:
+        - MCP tool `check_linkedin_connection_request_sent`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - linkedin_connection_requests
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckLinkedinConnectionRequestSentRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckLinkedinConnectionRequestSentResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: check_linkedin_connection_request_sent
+      x-gtm-mcp-mount: linkedin.network
+      x-gtm-entity: linkedin_connection_requests
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: complex
   /api/linkedin-connection-requests/get-my-latest:
     post:
       operationId: get_my_latest_linkedin_connection_requests
@@ -4083,7 +4124,7 @@ paths:
       operationId: send_linkedin_connection_request
       summary: Send connection request
       description: |-
-        Send one outbound LinkedIn connection request (outward action). Address the person by profile_id (the URN, ln_id OR sn_id) or by public_identifier (a vanity slug or linkedin.com/in/ URL, resolved server-side). Server-side checks run first: the daily send limit, the premium-aware note cap (200 free / 300 premium), and the 21-day resend cooldown. Fire-on-success: a row is created only when LinkedIn confirms the send. NOT idempotent by key yet: a person with a request on record is refused 422 resend_not_available, context.cause pending, accepted, cooldown (resend_available_at) or sync_reset. Every refusal names error.context.send_outcome: not_sent (nothing went out), unknown (the invitation may be out: read get_my_latest_linkedin_connection_requests before sending again) or sent (it went out and its row was not written).
+        Send one outbound LinkedIn connection request (outward action). Address the person by profile_id (the URN, ln_id OR sn_id) or by public_identifier (a vanity slug or linkedin.com/in/ URL, resolved server-side). Server-side checks run first: the daily send limit, the premium-aware note cap (200 free / 300 premium), and the 21-day resend cooldown. Fire-on-success: a row is created only when LinkedIn confirms the send. Sends once per client_reference and person: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. A person with a request on record under another key or none is refused 422 resend_not_available, context.cause pending, accepted, cooldown (resend_available_at) or sync_reset; LinkedIn refusing a second invitation while one of the account's is out is answered by that one, never as a refusal of this send. check_linkedin_connection_request_sent asks what an invitation came to without sending.
 
         Contract:
         - MCP tool `send_linkedin_connection_request`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
@@ -6389,7 +6430,7 @@ paths:
       operationId: check_linkedin_message_sent
       summary: Check whether a LinkedIn message went out
       description: |-
-        Ask what a LinkedIn message send came to, without sending: by the client_reference it went out under (optionally at one place: linkedin_conversation_sid, ln_member_id or profile_urn), or by the activity_log_sid a 409 named. result.outcome: sent (item is the message, or null with reason message_row_pending or caller_confirmed), in_flight, unknown (its answer was lost and the thread has not shown it yet; retry_after), or not_sent (no_send_under_key, refused, not_in_thread, caller_confirmed). Send the same request again only on not_sent, under the same key. result.activity_log_sid is the attempt a person's word names (confirmed_not_sent / confirmed_sent on the send tools). A send in doubt has its thread read now when the last look is old enough, so a call can take as long as a head read. A key sent to several places is 422 place_required, a place given in another form than the sends recorded 422 place_unmatched (context.places lists them). Invitations, comments and reactions have no check yet.
+        Ask what a LinkedIn message send came to, without sending: by the client_reference it went out under (optionally at one place: linkedin_conversation_sid, ln_member_id or profile_urn), or by the activity_log_sid a 409 named. result.outcome: sent (item is the message, or null with reason message_row_pending or caller_confirmed), in_flight, unknown (the thread has not shown it yet; retry_after, send_decisive_at), or not_sent (no_send_under_key, refused, not_in_thread, caller_confirmed). Send the same request again only on not_sent, under the same key. result.activity_log_sid is the attempt a person's word names (confirmed_not_sent / confirmed_sent on the send tools). A send in doubt has its thread read now when a look is due, so a call can be slow. A key sent to several places is 422 place_required, a place in another form than the sends recorded 422 place_unmatched (context.places). Invitations: check_linkedin_connection_request_sent; comments, posts, reposts: check_linkedin_posting_sent.
 
         Contract:
         - MCP tool `check_linkedin_message_sent`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -7069,12 +7110,53 @@ paths:
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
       x-gtm-paced-bucket: messaging_general
+  /api/linkedin-posting/check-sent:
+    post:
+      operationId: check_linkedin_posting_sent
+      summary: Check whether a LinkedIn comment, post or repost went out
+      description: |-
+        Ask what a LinkedIn comment, post or repost came to, without sending: by the client_reference it went out under and its verb (comment, create-post, repost), optionally at one place (entity_urn: the post a comment or a repost went to, in any of its forms, or the comment a reply answers; parent_comment_urn for a reply; post_place for a post), or by the activity_log_sid a 409 named. result.outcome: sent (item is what it made, or null with reason result_pending or caller_confirmed), in_flight, unknown (LinkedIn has not shown it yet; retry_after, send_decisive_at), or not_sent (no_send_under_key, refused, not_on_linkedin, caller_confirmed). Send the same request again only on not_sent, under the same key. result.activity_log_sid is the attempt a person's word names (confirmed_not_sent / confirmed_sent on the send). A send in doubt has LinkedIn read now when the last look is old enough. A key sent to several places is 422 place_required, a place LinkedIn could not be read for 422 place_unmatched (context.places).
+
+        Contract:
+        - MCP tool `check_linkedin_posting_sent`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CheckLinkedinPostingSentRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CheckLinkedinPostingSentResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: check_linkedin_posting_sent
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: complex
   /api/linkedin-posting/comment:
     post:
       operationId: create_linkedin_comment
       summary: Create LinkedIn comment
       description: |-
-        Leave ONE outbound comment on any LinkedIn post (wire create-comment): entity_urn takes a post urn in any family or a post URL carrying one, and the comment is written on the post's social thread (see entity_urn). Outward and fire-on-success: the post does NOT need to be tracked or owned by us; nothing is persisted here. Identity-bound: linkedin_account_sid REQUIRED, spends the comment_posts bucket (30/day at a 360 s floor), saturation returns 429. Reply to an existing comment via parent_comment_urn. mentions turns exact substrings of text into clickable profile links ({profile_id, name} pairs; a name missing or out of order is a 422 with no dispatch spent). Returns the created comment ref plus the activity-log row. Every refusal names error.context.send_outcome: after unknown the comment may be on the post, so read its comments (the scraping get-post-comments tool) before commenting again: a repeat posts a second one. To react use react_linkedin_post; to resolve a post URL use get_activity_urn_by_url.
+        Leave ONE outbound comment on any LinkedIn post (wire create-comment): entity_urn takes a post urn in any family or a post URL carrying one, and the comment is written on the post's social thread (see entity_urn). Outward and fire-on-success: the post does NOT need to be tracked or owned by us. Identity-bound: linkedin_account_sid REQUIRED, spends the comment_posts bucket (30/day at a 360 s floor), saturation returns 429. Reply to an existing comment via parent_comment_urn. mentions turns exact substrings of text into clickable profile links ({profile_id, name} pairs; a name missing or out of order is a 422 with no dispatch spent). Returns the created comment ref plus the activity-log row. Sends once per client_reference and place (the post as LinkedIn files it, or the comment a reply answers): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. To react use react_linkedin_post; to resolve a post URL use get_activity_urn_by_url.
 
         Contract:
         - MCP tool `create_linkedin_comment`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7116,7 +7198,7 @@ paths:
       operationId: create_linkedin_post
       summary: Create LinkedIn post
       description: |-
-        Publish ONE feed post - as the member, AS a company page it administers (author_organization_id), or INTO a group (group_id) - now or scheduled (scheduled_at) - wire create-post. Public; retract with delete_linkedin_post, or delete a scheduled draft with delete_linkedin_scheduled_post. Identity-bound: linkedin_account_sid REQUIRED, spends the posting bucket (20/day in series of 3 at a 1200 s pause; free plan 4), saturation returns 429. text is REQUIRED as a key but may be an EMPTY string when media is attached; no text, images or video at all is a 422. Media: up to 20 images XOR one video, each base64 or an https url (see request_media_upload), 35 MB total. Body and alt text publish byte for byte, blank lines included. mentions makes spans of text clickable profile links (positions in UTF-16 code units); brand_partnership adds the "Brand partnership" flag; group_id excludes visibility. Nothing is stored here: the response carries the published post (urn, url, time, body) plus the activity-log row.
+        Publish ONE feed post - as the member, AS a company page it administers (author_organization_id), or INTO a group (group_id) - now or scheduled (scheduled_at) - wire create-post. Public; retract with delete_linkedin_post, or delete a scheduled draft with delete_linkedin_scheduled_post. Identity-bound: linkedin_account_sid REQUIRED, spends the posting bucket (20/day in series of 3 at a 1200 s pause; free plan 4), saturation returns 429. text is REQUIRED as a key but may be an EMPTY string when media is attached; no text, images or video at all is a 422. Media: up to 20 images XOR one video, each base64 or an https url, 35 MB total. Answers the published post (urn, url, time, body) and the activity-log row. Sends once per client_reference and place (your feed, the page or the group; a new scheduled_at is the same post): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. 409 post_not_created is send_outcome unknown: repeat after retry_after.
 
         Contract:
         - MCP tool `create_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7326,7 +7408,7 @@ paths:
       operationId: react_linkedin_post
       summary: React to LinkedIn post
       description: |-
-        Leave OUR reaction on any LinkedIn post OR comment (wire create-reaction): entity_urn takes a post urn in any family, a post URL carrying one, or a comment urn; a post is reacted on at its social thread (see entity_urn). The social-selling counterpart of create_linkedin_comment. Outward and fire-on-success: the post does NOT need to be tracked, nothing is persisted here. Identity-bound: linkedin_account_sid REQUIRED, spends the react_posts bucket (30/day at a 360 s floor), saturation returns 429. Returns reaction_urn (the reaction's key, naming the entity it landed on; null on drift or when LinkedIn ignored it) plus the activity-log row. interested is the EVENT-post reaction: ordinary posts silently ignore it (success envelope, null reaction_urn, nothing lands - verified live). Every refusal names error.context.send_outcome: after unknown the reaction may have landed, so read who reacted (the scraping get-post-reactors tool) before reacting again. To comment use create_linkedin_comment.
+        Leave OUR reaction on any LinkedIn post OR comment (wire create-reaction): entity_urn takes a post urn in any family, a post URL carrying one, or a comment urn; a post is reacted on at its social thread (see entity_urn). The social-selling counterpart of create_linkedin_comment. Outward and fire-on-success: the post does NOT need to be tracked, nothing is persisted here. Identity-bound: linkedin_account_sid REQUIRED, spends the react_posts bucket (30/day at a 360 s floor), saturation returns 429. Returns reaction_urn (the reaction's key, naming the entity it landed on; null on drift or when LinkedIn ignored it) plus the activity-log row. interested is the EVENT-post reaction: ordinary posts silently ignore it (success envelope, null reaction_urn, nothing lands - verified live). Takes no key: LinkedIn keeps one reaction per account and post, so repeating the same reaction changes nothing; every refusal still names error.context.send_outcome. To comment use create_linkedin_comment.
 
         Contract:
         - MCP tool `react_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7368,7 +7450,7 @@ paths:
       operationId: repost_linkedin_post
       summary: Repost LinkedIn post
       description: |-
-        Repost a LinkedIn post from one of the team accounts (wire create-instant-repost / create-repost-with-thoughts): ONE tool, the body picks which. Without text it is the plain repost (the feed's Repost button) and nothing else may be sent. With text it is a repost with your thoughts, a share of your own above the reposted post, which takes visibility, allowed_commenters_scope and mentions exactly as create_linkedin_post does. post_urn is the post being reposted as urn:li:activity, urn:li:share or urn:li:ugcPost (a group post cannot be reposted). Public and outward; retract with delete_linkedin_post on the answered activity_urn. Spends the posting bucket.
+        Repost a LinkedIn post from one of the team accounts (wire create-instant-repost / create-repost-with-thoughts): ONE tool, the body picks which. Without text it is the plain repost (the feed's Repost button) and nothing else may be sent. With text it is a repost with your thoughts, a share of your own above the reposted post, which takes visibility, allowed_commenters_scope and mentions exactly as create_linkedin_post does. post_urn is the post being reposted as urn:li:activity, urn:li:share or urn:li:ugcPost (a group post cannot be reposted). Public and outward; retract with delete_linkedin_post on the answered activity_urn. Spends the posting bucket. Sends once per client_reference and reposted post (as LinkedIn files it, whichever of its urns you name): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. A plain repost has no deadline on LinkedIn's side, so one whose answer was lost stays in doubt for an hour.
 
         Contract:
         - MCP tool `repost_linkedin_post`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -10492,6 +10574,190 @@ components:
         - item
         - result
         - meta
+    CheckLinkedinConnectionRequestSentRequest:
+      type: object
+      description: Request body of `check_linkedin_connection_request_sent`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: The account that sent (ln_ac_…). A key is looked up on this account only.
+        client_reference:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 255
+          description: "The key the invitation went out under, byte for byte. Exactly one of client_reference / activity_log_sid. Found at any age: an invitation in doubt never ages out of its key."
+        activity_log_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: The attempt a 409 or an earlier check named (ln_al_…); it takes no person. An attempt of another account, or one that is no invitation, is 404.
+        profile_id:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: "The person, next to client_reference: the URN the send was given (ln_id ACoAA… or sn_id ACwAA…). At most one of profile_id / ln_member_id."
+        ln_member_id:
+          type: string
+          nullable: true
+          maxLength: 64
+          description: "The person, next to client_reference: their member id (digits)."
+      required:
+        - linkedin_account_sid
+    CheckLinkedinConnectionRequestSentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            linkedin_account_sid:
+              type: string
+            ln_member_id:
+              type: string
+            ln_id:
+              type: string
+              nullable: true
+            sn_id:
+              type: string
+              nullable: true
+            nickname:
+              type: string
+              nullable: true
+            note:
+              type: string
+              nullable: true
+            client_reference:
+              type: string
+              nullable: true
+            sent_at:
+              type: string
+              nullable: true
+            invitation_id:
+              type: string
+              nullable: true
+            resend_available_at:
+              type: string
+              nullable: true
+            last_check_at:
+              type: string
+              nullable: true
+            removal_kind:
+              type: string
+              nullable: true
+              enum:
+                - accepted
+                - withdrawn
+                - expired
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - linkedin_account_sid
+            - ln_member_id
+            - ln_id
+            - sn_id
+            - nickname
+            - note
+            - client_reference
+            - sent_at
+            - invitation_id
+            - resend_available_at
+            - last_check_at
+            - removal_kind
+            - created_at
+            - updated_at
+            - deleted_at
+        result:
+          type: object
+          properties:
+            outcome:
+              type: string
+              description: sent | not_sent | in_flight | unknown. Send the same request again only on not_sent; on in_flight or unknown ask again after retry_after.
+            reason:
+              type: string
+              nullable: true
+              description: "Why. sent: null (item is the request), request_row_pending (it went out, its row comes later), caller_confirmed (a person said so; no row). not_sent: no_send_under_key, refused, not_in_invitations, caller_confirmed. unknown: answer_lost, may_still_land, unreadable, unexplained, unkeyed_attempt_at_place."
+            retry_after:
+              type: string
+              description: "ISO 8601: for an invitation in doubt, when the sent invitations are read next."
+            activity_log_sid:
+              type: string
+              description: "The attempt the answer is about (in flight, in doubt or landed): what confirmed_not_sent / confirmed_sent name on send_linkedin_connection_request."
+            send_decisive_at:
+              type: string
+              description: "ISO 8601: the moment an invitation in doubt can no longer land; a person's confirmed_not_sent is taken from then on."
+            unkeyed_activity_log_sids:
+              type: array
+              items:
+                type: string
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts to the person that a build keeping no key made in the last 48 hours and that may be this invitation, by activity-log sid, newest first; activity_log_sid is the first. What a person looks at, and what their word may name."
+          required:
+            - outcome
+            - reason
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     CheckLinkedinMessageSentRequest:
       type: object
       description: Request body of `check_linkedin_message_sent`.
@@ -10709,13 +10975,180 @@ components:
             reason:
               type: string
               nullable: true
-              description: "Why. sent: null (item is the row), message_row_pending (it went out, its row comes later), caller_confirmed (a person said so; no row). not_sent: no_send_under_key, refused, not_in_thread, caller_confirmed. unknown: answer_lost, may_still_land, thread_unreadable, unexplained_message, unprovable."
+              description: "Why. sent: null (item is the row), message_row_pending (it went out, its row comes later), caller_confirmed (a person said so; no row). not_sent: no_send_under_key, refused, not_in_thread, caller_confirmed. unknown: answer_lost, may_still_land, thread_unreadable, unexplained_message, unprovable, unkeyed_attempt_at_place."
             retry_after:
               type: string
               description: "ISO 8601: for a send in doubt, when its thread is read next or the moment it can no longer land."
             activity_log_sid:
               type: string
               description: "The attempt the answer is about (in flight, in doubt or landed): what confirmed_not_sent / confirmed_sent name on the send tools."
+            send_decisive_at:
+              type: string
+              description: "ISO 8601: the moment a send in doubt can no longer land; a person's confirmed_not_sent is taken from then on."
+            unkeyed_activity_log_sids:
+              type: array
+              items:
+                type: string
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts that a build keeping no key made in the last 48 hours and that may be this message, by activity-log sid, those that recorded a place first, newest first; activity_log_sid is the first. A group or Recruiter send of such a build recorded no place, so it stands for a key asked at a group or Recruiter thread or alone. What a person looks at, and what their word may name."
+          required:
+            - outcome
+            - reason
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    CheckLinkedinPostingSentRequest:
+      type: object
+      description: Request body of `check_linkedin_posting_sent`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: The account that sent (ln_ac_…). A key is looked up on this account only.
+        client_reference:
+          type: string
+          nullable: true
+          minLength: 1
+          maxLength: 255
+          description: "The key the send went out under, byte for byte. Exactly one of client_reference / activity_log_sid. Found at any age: a send in doubt never ages out of its key."
+        activity_log_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: The attempt a 409 or an earlier check named (ln_al_…); it takes no verb and no place. An attempt of another account, or one that is no comment, post or repost, is 404.
+        verb:
+          type: string
+          nullable: true
+          enum:
+            - comment
+            - create-post
+            - repost
+          description: "Required with client_reference: the verb the key was sent by (create_linkedin_comment, create_linkedin_post, repost_linkedin_post). A key is one send per verb."
+        entity_urn:
+          type: string
+          nullable: true
+          maxLength: 512
+          description: "Place, next to client_reference: the post a comment or a repost went to, as the send took it or in any other of its forms (it is read for its thread, on the post-details cache), or a comment urn for a reply. Not with create-post."
+        parent_comment_urn:
+          type: string
+          nullable: true
+          maxLength: 512
+          description: "Place, next to client_reference and verb comment: the comment a reply answers, in either of its forms."
+        post_place:
+          type: string
+          nullable: true
+          maxLength: 128
+          pattern: ^(?:feed:member|feed:org:\d+|group:\d+(?::org:\d+)?)(?::scheduled:\d+)?$
+          description: "Place, next to client_reference and verb create-post: where the post landed: feed:member (your own feed), feed:org:<id> (a company page it was posted as), group:<id> (a group; group:<id>:org:<id> when a page posted into it), optionally :scheduled:<unix ms> after it. A key is read at the feed, page or group whatever its slot."
+      required:
+        - linkedin_account_sid
+    CheckLinkedinPostingSentResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            comment_urn:
+              type: string
+              nullable: true
+              description: "A comment or a reply: the comment it made."
+            kind:
+              type: string
+              description: "A repost: instant or with_thoughts."
+            activity_urn:
+              type: string
+              nullable: true
+              description: "A post or a repost: its feed entry."
+            post_urn:
+              type: string
+              nullable: true
+              description: "A post or a repost: the publication."
+            url:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              nullable: true
+            text:
+              type: string
+            parent_post_urn:
+              type: string
+              nullable: true
+              description: "A repost: the post it reposted."
+          description: "What the send made, in the shape its own verb answers: a comment the comment_urn; a post its urns, url, time and body; a repost its kind, urns, url, time, body and the reposted post."
+        result:
+          type: object
+          properties:
+            outcome:
+              type: string
+              description: sent | not_sent | in_flight | unknown. Send the same request again only on not_sent; on in_flight or unknown ask again after retry_after.
+            reason:
+              type: string
+              nullable: true
+              description: "Why. sent: null (item is what it made), result_pending (it went out, what it made is read later), caller_confirmed (a person said so; no item). not_sent: no_send_under_key, refused, not_on_linkedin, caller_confirmed. unknown: answer_lost, may_still_land, unreadable, unexplained, unprovable (a group post, or a page post its page has not shown: no read can prove either absent), unkeyed_attempt_at_place."
+            retry_after:
+              type: string
+              description: "ISO 8601: for a send in doubt, when LinkedIn is read for it next."
+            activity_log_sid:
+              type: string
+              description: "The attempt the answer is about (in flight, in doubt or landed): what confirmed_not_sent / confirmed_sent name on the comment, post and repost tools."
+            send_decisive_at:
+              type: string
+              description: "ISO 8601: the moment a send in doubt can no longer land; a person's confirmed_not_sent is taken from then on. A plain repost carries no deadline of its own, so it is an hour after its answer was lost."
+            unkeyed_activity_log_sids:
+              type: array
+              items:
+                type: string
+              description: "With reason unkeyed_attempt_at_place: the candidates, attempts of the verb that a build keeping no key made in the last 48 hours and that may be this send, by activity-log sid, those that recorded a place first, newest first; activity_log_sid is the first. Such a build kept no place for a post or a repost, so those stand for any post or repost key of the account. What a person looks at, and what their word may name."
           required:
             - outcome
             - reason
@@ -11512,7 +11945,7 @@ components:
           type: string
           minLength: 1
           maxLength: 512
-          description: "The post to comment on. A comment is written on the post's social thread, and LinkedIn refuses one sent to any other key (live 2026-09-16: the activity urn of a ugcPost company post answered linkedin_400, its ugcPost urn took the comment), so a post handle is re-addressed at its thread before the wire. urn:li:ugcPost:<id> and urn:li:groupPost:<groupId>-<postId> are the thread and go as is. urn:li:activity:<id> and urn:li:share:<id> cost one post read first (the read enrich_linkedin_post_details makes, on this account, cached 7 days): a share post is commented at its activity urn, a ugcPost post at its ugcPost urn, a repost without commentary at the original. A post the read returns null for (deleted, or not visible to the account) is refused 422 post_not_resolvable. To reply under a comment, pass parent_comment_urn (no post read then). A post URL works when the id is in it: the feed permalink, the /posts/<slug>-activity-<id>-<hash> share link, the -ugcPost-<id>- share link. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: call enrich_linkedin_get_activity_urn_by_url first. The post does NOT need to be tracked or owned by us. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
+          description: "The post to comment on. A comment is written on the post's social thread, and LinkedIn refuses one sent to any other key (live 2026-09-16: the activity urn of a ugcPost company post answered linkedin_400, its ugcPost urn took the comment), so a post handle is re-addressed at its thread before the wire. urn:li:ugcPost:<id> and urn:li:groupPost:<groupId>-<postId> are the thread and go as is. urn:li:activity:<id> and urn:li:share:<id> cost one post read first (the read enrich_linkedin_post_details makes, on this account, cached 7 days): a share post is commented at its activity urn, a ugcPost post at its ugcPost urn, a repost without commentary at the original. A post the read returns null for (deleted, or not visible to the account) is refused 422 post_not_resolvable. To reply under a comment, pass parent_comment_urn (no post read then); a comment urn given here is a reply under that comment too. A post URL works when the id is in it: the feed permalink, the /posts/<slug>-activity-<id>-<hash> share link, the -ugcPost-<id>- share link. A link WITHOUT an id (a shortlink, a bare slug URL) is refused 422 entity_urn_not_resolvable: call enrich_linkedin_get_activity_urn_by_url first. The post does NOT need to be tracked or owned by us. Renamed from activity_urn on 2026-07-30; the old name is no longer accepted."
         text:
           type: string
           minLength: 1
@@ -11540,6 +11973,25 @@ components:
               - profile_id
               - name
           description: Profile mentions (2026-08-21). Names are matched in text left to right in list order, each search starting after the previous mention. The node computes the character offsets itself.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: "Your key for this ONE comment (max 255, byte for byte): one key per comment, the same key on every repeat of it. The key and its place (the post as LinkedIn files it, named by any of its urns, or for a reply the comment it answers) are one comment whatever it says, and a repeat never goes out twice: it answers 200 with what the first send made (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another comment in doubt holds the place). The same key at another place is another comment. Without a key the same words at the same place count as a repeat for an hour after they went out. check_linkedin_posting_sent asks by it."
+        confirmed_not_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+        confirmed_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - entity_urn
@@ -11569,6 +12021,12 @@ components:
               type: object
               properties: {}
               description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+            idempotent_replay:
+              type: boolean
+              description: "true when this answers a repeat (under the key, or without one the same words at the same place) with what the first send made: nothing was sent now."
+            content_differs:
+              type: boolean
+              description: "With idempotent_replay: true when this request's words (or a post's pictures or video) differ from those of the send that made it."
           required:
             - comment_urn
             - activity_log
@@ -11643,7 +12101,7 @@ components:
         text:
           type: string
           maxLength: 3000
-          description: Post body, always present. Empty is legal ONLY alongside an image. 3000 is LinkedIn's own cap, refused here rather than burning a posting slot.
+          description: Post body, always present. Empty is legal ONLY alongside an image. 3000 is LinkedIn's own cap, refused here rather than burning a posting slot. Published byte for byte, blank lines included, and so is each image's alt_text.
         images:
           type: array
           items:
@@ -11677,7 +12135,7 @@ components:
                 nullable: true
                 description: Accessibility alt text; may be empty.
           maxItems: 20
-          description: Up to 20 images (the node's own cap; array order = carousel order). Mutually exclusive with video. The decoded bytes across ALL media must stay under 35 MB in total; over that is a 422, because a bigger body is refused by the node's JSON parser as a bare 413 with no response envelope. For 2+ images the backend supplies the account's own member id to the wire itself - no profile_id field exists here. Uploads are sequential node-side, so many large images make a SLOW synchronous call - the post can publish even if your client times out first, so do not blind-retry a timeout (a duplicate public post is the cost).
+          description: "Up to 20 images (the node's own cap; array order = carousel order). Mutually exclusive with video. The decoded bytes across ALL media must stay under 35 MB in total; over that is a 422, because a bigger body is refused by the node's JSON parser as a bare 413 with no response envelope. For 2+ images the backend supplies the account's own member id to the wire itself - no profile_id field exists here. Uploads are sequential node-side, so many large images make a SLOW synchronous call: the post can publish after your client times out, so repeat it only as the same request under the same client_reference, which is answered with the post (or held while LinkedIn is read), never published twice."
         visibility:
           type: string
           enum:
@@ -11717,10 +12175,10 @@ components:
               nullable: true
               minLength: 1
               maxLength: 255
-          description: "ONE video, image-shaped minus alt_text. Mutually exclusive with images (LinkedIn does not mix them in a share - 422 here). Shares the 35 MB media budget. The upload is a single large PUT through the browser and is SLOW: the synchronous call can outlive your client timeout while the post still publishes - do not blind-retry."
+          description: "ONE video, image-shaped minus alt_text. Mutually exclusive with images (LinkedIn does not mix them in a share - 422 here). Shares the 35 MB media budget. The upload is a single large PUT through the browser and is SLOW: the synchronous call can outlive your client timeout while the post still publishes, so repeat it only under the same client_reference."
         scheduled_at:
           type: string
-          description: "Schedule the post instead of publishing now: ISO 8601 with timezone, must be in the future (a strictly-past time is a 422; within a minute of now is passed through for LinkedIn to judge). A SCHEDULED share legitimately answers with null activity_urn/url - post_urn is the handle. Read and clean the queue with get_linkedin_scheduled_posts / delete_linkedin_scheduled_post. Scheduling is LinkedIn-side: the draft lives in ITS queue, nothing is stored here."
+          description: "Schedule the post instead of publishing now: ISO 8601 with timezone, must be in the future (a strictly-past time is a 422; within a minute of now is passed through for LinkedIn to judge). A SCHEDULED share legitimately answers with null activity_urn/url - post_urn is the handle. Read and clean the queue with get_linkedin_scheduled_posts / delete_linkedin_scheduled_post. Scheduling is LinkedIn-side: the draft lives in ITS queue, nothing is stored here. The slot is no part of a key: a retry under the same client_reference that computes a new scheduled_at is the same post. Without a key the slot tells two posts apart."
         mentions:
           type: array
           items:
@@ -11753,7 +12211,26 @@ components:
         group_id:
           type: string
           pattern: ^\d+$
-          description: "Post INTO a group: the bare numeric group id. Mutually exclusive with visibility - a group post sets container visibility, not member-feed visibility."
+          description: "Post INTO a group: the bare numeric group id. Mutually exclusive with visibility - a group post sets container visibility, not member-feed visibility. No read serves a group's feed, so a group post whose answer was lost stays in doubt until a person gives their word."
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: "Your key for this ONE post (max 255, byte for byte): one key per post, the same key on every repeat of it. The key and its place (where it lands: your own feed, the company page of author_organization_id or the group of group_id) are one post whatever it says, and a repeat never goes out twice: it answers 200 with what the first send made (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another post in doubt holds the place). The same key at another place is another post. Without a key the same words and pictures or video at the same place and slot count as a repeat for an hour after they went out. check_linkedin_posting_sent asks by it."
+        confirmed_not_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+        confirmed_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - text
@@ -11798,6 +12275,12 @@ components:
               type: object
               properties: {}
               description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+            idempotent_replay:
+              type: boolean
+              description: "true when this answers a repeat (under the key, or without one the same words at the same place) with what the first send made: nothing was sent now."
+            content_differs:
+              type: boolean
+              description: "With idempotent_replay: true when this request's words (or a post's pictures or video) differ from those of the send that made it."
           required:
             - activity_urn
             - post_urn
@@ -36761,6 +37244,25 @@ components:
               - start
               - length
           description: "With text only: profile mentions as ready positions over text, as create_linkedin_post takes them."
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: "Your key for this ONE repost (max 255, byte for byte): one key per repost, the same key on every repeat of it. The key and its place (the post it reposts, as LinkedIn files it) are one repost whatever it says, and a repeat never goes out twice: it answers 200 with what the first send made (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another repost in doubt holds the place). The same key at another place is another repost. Without a key a repost of the same post with the same words count as a repeat for an hour after they went out. check_linkedin_posting_sent asks by it."
+        confirmed_not_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+        confirmed_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - post_urn
@@ -36816,6 +37318,12 @@ components:
               type: object
               properties: {}
               description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+            idempotent_replay:
+              type: boolean
+              description: "true when this answers a repeat (under the key, or without one the same words at the same place) with what the first send made: nothing was sent now."
+            content_differs:
+              type: boolean
+              description: "With idempotent_replay: true when this request's words (or a post's pictures or video) differ from those of the send that made it."
           required:
             - kind
             - activity_urn
@@ -55844,7 +56352,21 @@ components:
           type: string
           nullable: true
           maxLength: 255
-          description: Your own key for this send (a task id, an idempotency token; max 255), stored as given on the row and searchable, so you can ask whether the send landed before repeating it.
+          description: "Your key for this ONE invitation (max 255, byte for byte): one key per invitation, the same key on every repeat of it. The key and the person (the member the URN decodes to) are one invitation whatever its note says, and a repeat never goes out twice: it answers 200 with the request the first send stored (result.idempotent_replay, result.content_differs when this note differs) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another invitation to the person is on its way or in doubt). Without a key the same note to the same person counts as a repeat for an hour after it went out. Stored on the row and searchable; check_linkedin_connection_request_sent asks by it."
+        confirmed_not_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS invitation is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_connection_request_sent, given only after someone looked at the account's sent invitations. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another invitation's sid is 422 not_this_message."
+        confirmed_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS invitation IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the request once it is stored. Another invitation's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
     SendLinkedinConnectionRequestResponse:
@@ -56062,21 +56584,21 @@ components:
           type: string
           nullable: true
           maxLength: 255
-          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
+          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
         confirmed_not_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - subject
@@ -56384,21 +56906,21 @@ components:
           type: string
           nullable: true
           maxLength: 255
-          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
+          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
         confirmed_not_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - text
@@ -56698,21 +57220,21 @@ components:
           type: string
           nullable: true
           maxLength: 255
-          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
+          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
         confirmed_not_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - subject
@@ -57010,21 +57532,21 @@ components:
           type: string
           nullable: true
           maxLength: 255
-          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
+          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
         confirmed_not_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - text
@@ -57296,21 +57818,21 @@ components:
           type: string
           nullable: true
           maxLength: 255
-          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
+          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the thread, else the person) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
         confirmed_not_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - audio
@@ -60116,21 +60638,21 @@ components:
           type: string
           nullable: true
           maxLength: 255
-          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the attendee set) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
+          description: "Your key for this ONE message (max 255, byte for byte): one key per message, the same key on every repeat of it. The key and its place (the attendee set) are one message whatever it says, and a repeat never goes out twice: it answers 200 with the row the first send stored (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another message holds the place). The same key at another place is another message. Without a key the same words to the same place count as a repeat for an hour after they went out. Stored on the row and searchable; check_linkedin_message_sent asks by it."
         confirmed_not_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - attendees

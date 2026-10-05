@@ -1688,7 +1688,7 @@ components:
                   args:
                     type: object
                     additionalProperties: {}
-                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). Two args are worth stating explicitly. On 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share': a relogin link ends in a confirm that re-binds the browser to the account, a share link just lets the visitor drive it, and the two look identical, so an omitted `purpose` mints N re-login links without complaining. On a keyed send step (a connection request, a message, an email), `client_reference` T is a run tag, never one message's key: each message goes out under 'T:{item sid}:{step id}' (a run without one under '{item sid}:{step id}'), so an exact match on T finds no row. Find the rows by each item's created_object_sid or by the exact keys (eq / in, there is no prefix search; a webhook subscriber matches the 'T:' prefix in its own code), and never create the run again because T matched nothing: that sends every message twice."
+                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). Two args are worth stating explicitly. On 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share': a relogin link ends in a confirm that re-binds the browser to the account, a share link just lets the visitor drive it, and the two look identical, so an omitted `purpose` mints N re-login links without complaining. On a keyed send step (a connection request, a comment, a message, an email), `client_reference` T is a run tag, never one message's key: each message goes out under 'T:{item sid}:{step id}' (a run without one under '{item sid}:{step id}'), so an exact match on T finds no row. Find the rows by each item's created_object_sid or by the exact keys (eq / in, there is no prefix search; a webhook subscriber matches the 'T:' prefix in its own code), and never create the run again because T matched nothing: that sends every message twice."
                 required:
                   - tool
               minItems: 1
@@ -1984,6 +1984,7 @@ components:
               - linkedin-accounts.heartbeat-restored
               - linkedin-accounts.subscription-hold-applied
               - linkedin-accounts.subscription-hold-released
+              - linkedin-account-activity-log.task-failed
               - linkedin-account-block-log.recorded
               - linkedin-account-snapshot.captured
               - linkedin-account-quota-hits.recorded
@@ -4067,7 +4068,7 @@ components:
                   args:
                     type: object
                     additionalProperties: {}
-                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). Two args are worth stating explicitly. On 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share': a relogin link ends in a confirm that re-binds the browser to the account, a share link just lets the visitor drive it, and the two look identical, so an omitted `purpose` mints N re-login links without complaining. On a keyed send step (a connection request, a message, an email), `client_reference` T is a run tag, never one message's key: each message goes out under 'T:{item sid}:{step id}' (a run without one under '{item sid}:{step id}'), so an exact match on T finds no row. Find the rows by each item's created_object_sid or by the exact keys (eq / in, there is no prefix search; a webhook subscriber matches the 'T:' prefix in its own code), and never create the run again because T matched nothing: that sends every message twice."
+                    description: "The verb's own arguments, EXCLUDING the target: the target is injected per item from the object cursor or the item payload. Shared across every item of the run, and sent verbatim: the platform renders no merge fields, so a {{first_name}} in a note or body goes out as those braces to every recipient (preview_mass_action warns about it). Two args are worth stating explicitly. On 'antidetect-browsers.generate-cloud-browser-access-key', `purpose` is 'relogin' unless you pass 'share': a relogin link ends in a confirm that re-binds the browser to the account, a share link just lets the visitor drive it, and the two look identical, so an omitted `purpose` mints N re-login links without complaining. On a keyed send step (a connection request, a comment, a message, an email), `client_reference` T is a run tag, never one message's key: each message goes out under 'T:{item sid}:{step id}' (a run without one under '{item sid}:{step id}'), so an exact match on T finds no row. Find the rows by each item's created_object_sid or by the exact keys (eq / in, there is no prefix search; a webhook subscriber matches the 'T:' prefix in its own code), and never create the run again because T matched nothing: that sends every message twice."
                 required:
                   - tool
               minItems: 1
@@ -4484,6 +4485,7 @@ components:
               - linkedin-accounts.heartbeat-restored
               - linkedin-accounts.subscription-hold-applied
               - linkedin-accounts.subscription-hold-released
+              - linkedin-account-activity-log.task-failed
               - linkedin-account-block-log.recorded
               - linkedin-account-snapshot.captured
               - linkedin-account-quota-hits.recorded
@@ -5295,7 +5297,7 @@ components:
               type: integer
               minimum: 0
               exclusiveMinimum: true
-              description: "Only when above 0: failed items left failed because their send carries no key, so nobody can be asked whether it went out. Each got a note in error_message; only a retry by sid with resend_unverified sends it."
+              description: "Only when above 0: failed items left failed because their send carries no key (an entry written before its tool carried one, such as a comment before 2026-10-05), so nobody can be asked whether it went out. Each got a note in error_message; only a retry by sid with resend_unverified sends it."
             left_at_retry_limit_count:
               type: integer
               minimum: 0
@@ -5878,10 +5880,6 @@ components:
                           type: string
                           nullable: true
                           description: "ISO 8601 UTC: when the owning service first answered that the send went out with no row for it. Such a send is never sent again and ends as sent."
-                        send_decisive_at:
-                          type: string
-                          nullable: true
-                          description: "ISO 8601 UTC: an invitation in doubt may still land until this moment, and it is not repeated before it."
                         send_unconfirmed:
                           type: boolean
                           description: "Marks the failed entry of a send nobody could confirm within 24 h: with executor_ref a retry asks the owning service again; without one only a retry by sid with resend_unverified sends it."
@@ -5905,7 +5903,6 @@ components:
                         - activity_log_sid
                         - resend_unverified
                         - send_vouched_at
-                        - send_decisive_at
                         - send_unconfirmed
                         - blocked_since
                         - send_in_doubt
@@ -7615,6 +7612,7 @@ components:
               - linkedin-accounts.heartbeat-restored
               - linkedin-accounts.subscription-hold-applied
               - linkedin-accounts.subscription-hold-released
+              - linkedin-account-activity-log.task-failed
               - linkedin-account-block-log.recorded
               - linkedin-account-snapshot.captured
               - linkedin-account-quota-hits.recorded
