@@ -93,7 +93,7 @@ Control verbs while it runs: `POST /api/mass-actions/{sid}/pause` and `/resume`,
 
 Two guards hold whatever you pass. An item is retried at most 10 times, and an item of a deleted run, or a cancelled one, is never retried. By `sid` these answer `422 retry_limit_exceeded` and `409 cancelled_cannot_retry`. A filter leaves such items alone and reports the first kind in `left_at_retry_limit_count`.
 
-A send is not sent again on a guess. Each message of a run goes out under a key of its own ([Sending once](/concepts/sending-once) explains the keys), and a send whose answer was lost waits with `wait_reason: send_outcome_unknown` while the run asks the owning service what came of it. It goes again only when the answer is `not_sent`. If nobody can tell within 24 hours, the item fails with `send_unconfirmed:` in its `error_message`, and a plain retry asks again for another day. An `item_timeout:` failure on a send step is asked about the same way. To send it anyway, look at the conversation first. If the message is not there, retry that one item with your word:
+A send is not sent again on a guess. Each send of a run (a message, a connection request, a comment) goes out under a key of its own ([Sending once](/concepts/sending-once) explains the keys), and a send whose answer was lost waits with `wait_reason: send_outcome_unknown` while the run asks the owning service what came of it. It goes again only when the answer is `not_sent`. If nobody can tell within 24 hours, the item fails with `send_unconfirmed:` in its `error_message`, and a plain retry asks again for another day. An `item_timeout:` failure on a send step is asked about the same way. To send it anyway, look on LinkedIn first: the conversation, the person's invitations, the post's comments. If it is not there, retry that one item with your word:
 
 ```json POST /orchestration/v4/api/mass-action-items/retry
 {
@@ -102,6 +102,6 @@ A send is not sent again on a guess. Each message of a run goes out under a key 
 }
 ```
 
-The step goes again naming the attempt in doubt, and the owning service still holds it while that attempt could land. `resend_unverified` vouches for one send, so it takes a `sid` and never a `filter` (`422 resend_unverified_needs_sid`). A send that carries no key, such as a comment, cannot be asked about. A plain retry leaves it failed with a note and counts it in `left_unconfirmed_count`, and only `resend_unverified` sends it again.
+The step goes again naming the attempt in doubt, and the owning service still holds it while that attempt could land. `resend_unverified` vouches for one send, so it takes a `sid` and never a `filter` (`422 resend_unverified_needs_sid`). A comment carries a key since 2026-10-05 like every other send. A send step that began before its key existed, such as a comment of a run that was already going, cannot be asked about: a plain retry leaves it failed with a note and counts it in `left_unconfirmed_count`, and only `resend_unverified` sends it again.
 
 On a step that is not a send, an `item_timeout:` failure still means the outbound call may have landed: check the target before retrying a step that is not safe to repeat.
