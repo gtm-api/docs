@@ -133,44 +133,6 @@ The platform settles a send in doubt by reading what LinkedIn shows, by the acco
 
 A post into a group whose answer was lost stays `unknown` until a person looks and gives their word, and so does a page post the page's feed has not shown.
 
-### Sends made before the keys
-
-An older build of the platform kept neither the key nor the words of an attempt. For 48 hours after such an attempt, a key with no attempt of its own may be answered `unknown` with `reason: "unkeyed_attempt_at_place"`, because that older attempt may be its send. `result.unkeyed_activity_log_sids` lists the attempts it may be, and `activity_log_sid` is the first of them.
-
-`result.unkeyed_attempts` names each of them, in the same order: its `activity_log_sid`, its verb (`action_type`), when it started (`created_at`), and the `place` it recorded when it was sent, with whichever of `ln_member_id`, `ln_id`, `sn_id`, `recruiter_id`, `entity_type` and `entity_urn` it kept, or `null` when it kept none. A `nickname` comes with it when the attempt kept the person's slug. Asked by the key alone the list is newest first. Asked with a place, the attempts that recorded that place come first.
-
-The platform reads a limited number of those older attempts, 500 by default. When it had to stop there, `result.unkeyed_attempts_capped` is `true`, because the attempts past the cut may be your send too. A cut read that found no candidate still answers `unknown` with `reason: "unkeyed_attempt_at_place"` and empty lists, never `no_send_under_key`, so ask again after `retry_after`.
-
-```json
-{
-  "success": true,
-  "operation": "action",
-  "action": "check-sent",
-  "item": null,
-  "result": {
-    "outcome": "unknown",
-    "reason": "unkeyed_attempt_at_place",
-    "retry_after": "2026-10-06T08:12:00+00:00",
-    "activity_log_sid": "ln_al_Dk3pR7sV1wX9",
-    "send_decisive_at": "2026-10-06T08:40:00+00:00",
-    "unkeyed_activity_log_sids": ["ln_al_Dk3pR7sV1wX9"],
-    "unkeyed_attempts": [
-      {
-        "activity_log_sid": "ln_al_Dk3pR7sV1wX9",
-        "action_type": "send_message",
-        "created_at": "2026-10-06T07:38:12+00:00",
-        "place": { "ln_member_id": "811042339", "ln_id": "ACoAAAdbzRUBAAAAAAAAAAAAAAAAAAAAAAAAAAA" },
-        "nickname": "jane-doe"
-      }
-    ],
-    "unkeyed_attempts_capped": false
-  },
-  "meta": { "trace_id": "0198f2ab-7c11-7e32-9a41-d2b64f2a91c3" }
-}
-```
-
-A person can look where each of them went, and their word may name any of them.
-
 ## A person's word
 
 The platform reads LinkedIn by itself for up to a day, and check-sent reads it on demand after that. If a send stays `unknown` longer than your process can wait, a person opens LinkedIn and looks. Their answer rides on the same send request and names the attempt they checked by its `activity_log_sid`.
@@ -179,8 +141,6 @@ The platform reads LinkedIn by itself for up to a day, and check-sent reads it o
 - `confirmed_sent`: it is there. The attempt is settled `sent` at once and nothing is sent. The answer is a `409` with `send_outcome: sent`, or a `200` once what it made is stored.
 
 A request takes one of the two, and only for an attempt of the same send. Another send's sid answers `422 not_this_message`, and `confirmed_sent` naming an attempt already proven not sent answers `409 confirmed_sent_contradicts`.
-
-A word about an attempt from `unkeyed_activity_log_sids` works a little differently, since that attempt may be another key's send. `confirmed_sent` takes it for your key. `confirmed_not_sent` settles nothing: it only stops check-sent from naming that attempt for your key, and your request then goes through the usual checks, so a message may still wait behind that attempt.
 
 ## The rule for a caller
 

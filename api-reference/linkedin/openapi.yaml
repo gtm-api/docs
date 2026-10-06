@@ -3959,7 +3959,7 @@ paths:
       operationId: check_linkedin_connection_request_sent
       summary: Check whether a LinkedIn connection request went out
       description: |-
-        Ask what a LinkedIn connection request came to, without sending: by the client_reference it went out under (optionally for one person: profile_id or ln_member_id), or by the activity_log_sid a 409 named. result.outcome: sent (item is the request, or null with reason request_row_pending or caller_confirmed), in_flight, unknown (the answer was lost and the sent invitations have not shown it yet; retry_after, send_decisive_at), or not_sent (no_send_under_key, refused, not_in_invitations, caller_confirmed). Send the same request again only on not_sent, under the same key. result.activity_log_sid is the attempt a person's word names (confirmed_not_sent / confirmed_sent on the send); reason unkeyed_attempt_at_place lists in unkeyed_activity_log_sids the attempts of a build that kept no key that may be this one. An invitation in doubt has the sent invitations read now when the last look is old enough, so a call can take as long as a head read. A key sent to several persons is 422 place_required (context.places).
+        Ask what a LinkedIn connection request came to, without sending: by the client_reference it went out under (optionally for one person: profile_id or ln_member_id), or by the activity_log_sid a 409 named. result.outcome: sent (item is the request, or null with reason request_row_pending or caller_confirmed), in_flight, unknown (the answer was lost and the sent invitations have not shown it yet; retry_after, send_decisive_at), or not_sent (no_send_under_key, refused, not_in_invitations, caller_confirmed). Send the same request again only on not_sent, under the same key. result.activity_log_sid is the attempt a person's word names (confirmed_not_sent / confirmed_sent on the send). An invitation in doubt has the sent invitations read now when the last look is old enough, so a call can take as long as a head read. A key sent to several persons is 422 place_required (context.places).
 
         Contract:
         - MCP tool `check_linkedin_connection_request_sent`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
@@ -10703,7 +10703,7 @@ components:
             reason:
               type: string
               nullable: true
-              description: "Why. sent: null (item is the request), request_row_pending (it went out, its row comes later), caller_confirmed (a person said so; no row). not_sent: no_send_under_key, refused, not_in_invitations, caller_confirmed. unknown: answer_lost, may_still_land, unreadable, unexplained, unkeyed_attempt_at_place."
+              description: "Why. sent: null (item is the request), request_row_pending (it went out, its row comes later), caller_confirmed (a person said so; no row). not_sent: no_send_under_key, refused, not_in_invitations, caller_confirmed. unknown: answer_lost, may_still_land, unreadable, unexplained."
             retry_after:
               type: string
               description: "ISO 8601: for an invitation in doubt, when the sent invitations are read next."
@@ -10713,55 +10713,6 @@ components:
             send_decisive_at:
               type: string
               description: "ISO 8601: the moment an invitation in doubt can no longer land; a person's confirmed_not_sent is taken from then on."
-            unkeyed_activity_log_sids:
-              type: array
-              items:
-                type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts to the person that a build keeping no key made in the last 48 hours and that may be this invitation, by activity-log sid, newest first; activity_log_sid is the first. What a person looks at, and what their word may name."
-            unkeyed_attempts:
-              type: array
-              items:
-                type: object
-                properties:
-                  activity_log_sid:
-                    type: string
-                    description: "The attempt (ln_al_...): what a person's word names."
-                  action_type:
-                    type: string
-                    description: "Its verb, as the activity log names it: send_connection_request."
-                  created_at:
-                    type: string
-                    nullable: true
-                    description: "ISO 8601: when the attempt started."
-                  place:
-                    type: object
-                    nullable: true
-                    properties:
-                      ln_member_id:
-                        type: string
-                      ln_id:
-                        type: string
-                      sn_id:
-                        type: string
-                      recruiter_id:
-                        type: string
-                      entity_type:
-                        type: string
-                      entity_urn:
-                        type: string
-                    description: "The place the attempt recorded when it was sent, only the fields it set: the person's ids (ln_member_id, ln_id, sn_id). Null when it recorded none."
-                  nickname:
-                    type: string
-                    description: The person's slug, when the attempt kept one.
-                required:
-                  - activity_log_sid
-                  - action_type
-                  - created_at
-                  - place
-              description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the person it recorded, so a person knows where to look."
-            unkeyed_attempts_capped:
-              type: boolean
-              description: "With reason unkeyed_attempt_at_place: true when the read of the account's old attempts was cut at its limit (500 by default), so attempts past the cut may be this send too. A cut read that leaves no candidate answers unknown with both lists empty and no activity_log_sid, never no_send_under_key: ask again after retry_after."
           required:
             - outcome
             - reason
@@ -11019,7 +10970,7 @@ components:
             reason:
               type: string
               nullable: true
-              description: "Why. sent: null (item is the row), message_row_pending (it went out, its row comes later), caller_confirmed (a person said so; no row). not_sent: no_send_under_key, refused, not_in_thread, caller_confirmed. unknown: answer_lost, may_still_land, thread_unreadable, unexplained_message, unprovable, unkeyed_attempt_at_place."
+              description: "Why. sent: null (item is the row), message_row_pending (it went out, its row comes later), caller_confirmed (a person said so; no row). not_sent: no_send_under_key, refused, not_in_thread, caller_confirmed. unknown: answer_lost, may_still_land, thread_unreadable, unexplained_message, unprovable."
             retry_after:
               type: string
               description: "ISO 8601: for a send in doubt, when its thread is read next or the moment it can no longer land."
@@ -11029,55 +10980,6 @@ components:
             send_decisive_at:
               type: string
               description: "ISO 8601: the moment a send in doubt can no longer land; a person's confirmed_not_sent is taken from then on."
-            unkeyed_activity_log_sids:
-              type: array
-              items:
-                type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts that a build keeping no key made in the last 48 hours and that may be this message, by activity-log sid: newest first when the key is asked alone; asked with a place, those that recorded it first. activity_log_sid is the first. An attempt that recorded no place stands only where it may have gone (a group send for a group thread, a Recruiter send for a Recruiter thread or a person asked by member id). What a person looks at, and what their word may name."
-            unkeyed_attempts:
-              type: array
-              items:
-                type: object
-                properties:
-                  activity_log_sid:
-                    type: string
-                    description: "The attempt (ln_al_...): what a person's word names."
-                  action_type:
-                    type: string
-                    description: "Its verb, as the activity log names it: send_message, send_voice_message, send_inmail, send_sales_message, send_recruiter_initial_message, send_recruiter_message_in_conversation or start_group_conversation."
-                  created_at:
-                    type: string
-                    nullable: true
-                    description: "ISO 8601: when the attempt started."
-                  place:
-                    type: object
-                    nullable: true
-                    properties:
-                      ln_member_id:
-                        type: string
-                      ln_id:
-                        type: string
-                      sn_id:
-                        type: string
-                      recruiter_id:
-                        type: string
-                      entity_type:
-                        type: string
-                      entity_urn:
-                        type: string
-                    description: "The place the attempt recorded when it was sent, only the fields it set: the person's ids (ln_member_id, ln_id, sn_id, recruiter_id) or the thread (entity_type conversation, entity_urn its hash). Null when it recorded none."
-                  nickname:
-                    type: string
-                    description: The person's slug, when the attempt kept one.
-                required:
-                  - activity_log_sid
-                  - action_type
-                  - created_at
-                  - place
-              description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the place it recorded, so a person knows where to look."
-            unkeyed_attempts_capped:
-              type: boolean
-              description: "With reason unkeyed_attempt_at_place: true when the read of the account's old attempts was cut at its limit (500 by default), so attempts past the cut may be this send too. A cut read that leaves no candidate answers unknown with both lists empty and no activity_log_sid, never no_send_under_key: ask again after retry_after."
           required:
             - outcome
             - reason
@@ -11222,7 +11124,7 @@ components:
             reason:
               type: string
               nullable: true
-              description: "Why. sent: null (item is what it made), result_pending (it went out, what it made is read later), caller_confirmed (a person said so; no item). not_sent: no_send_under_key, refused, not_on_linkedin, caller_confirmed. unknown: answer_lost, may_still_land, unreadable, unexplained, unprovable (a group post, or a page post its page has not shown: no read can prove either absent), unkeyed_attempt_at_place."
+              description: "Why. sent: null (item is what it made), result_pending (it went out, what it made is read later), caller_confirmed (a person said so; no item). not_sent: no_send_under_key, refused, not_on_linkedin, caller_confirmed. unknown: answer_lost, may_still_land, unreadable, unexplained, unprovable (a group post, or a page post its page has not shown: no read can prove either absent)."
             retry_after:
               type: string
               description: "ISO 8601: for a send in doubt, when LinkedIn is read for it next."
@@ -11232,55 +11134,6 @@ components:
             send_decisive_at:
               type: string
               description: "ISO 8601: the moment a send in doubt can no longer land; a person's confirmed_not_sent is taken from then on. A plain repost carries no deadline of its own, so it is an hour after its answer was lost."
-            unkeyed_activity_log_sids:
-              type: array
-              items:
-                type: string
-              description: "With reason unkeyed_attempt_at_place: the candidates, attempts of the verb that a build keeping no key made in the last 48 hours and that may be this send, by activity-log sid: newest first when the key is asked alone; asked with a place, those that recorded it first. activity_log_sid is the first. Such a build kept no place for a post or a repost, so those stand for any post or repost key of the account. What a person looks at, and what their word may name."
-            unkeyed_attempts:
-              type: array
-              items:
-                type: object
-                properties:
-                  activity_log_sid:
-                    type: string
-                    description: "The attempt (ln_al_...): what a person's word names."
-                  action_type:
-                    type: string
-                    description: "Its verb, as the activity log names it: comment_post, create_post, create_repost_with_thoughts or create_instant_repost."
-                  created_at:
-                    type: string
-                    nullable: true
-                    description: "ISO 8601: when the attempt started."
-                  place:
-                    type: object
-                    nullable: true
-                    properties:
-                      ln_member_id:
-                        type: string
-                      ln_id:
-                        type: string
-                      sn_id:
-                        type: string
-                      recruiter_id:
-                        type: string
-                      entity_type:
-                        type: string
-                      entity_urn:
-                        type: string
-                    description: "The place the attempt recorded when it was sent, only the fields it set: the post a comment went to, or the comment a reply answers (entity_type and entity_urn). Null when it recorded none, as for every post and repost of such a build."
-                  nickname:
-                    type: string
-                    description: The person's slug, when the attempt kept one.
-                required:
-                  - activity_log_sid
-                  - action_type
-                  - created_at
-                  - place
-              description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the place it recorded, so a person knows where to look."
-            unkeyed_attempts_capped:
-              type: boolean
-              description: "With reason unkeyed_attempt_at_place: true when the read of the account's old attempts was cut at its limit (500 by default), so attempts past the cut may be this send too. A cut read that leaves no candidate answers unknown with both lists empty and no activity_log_sid, never no_send_under_key: ask again after retry_after."
           required:
             - outcome
             - reason
@@ -12116,14 +11969,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - entity_urn
@@ -12355,14 +12208,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - text
@@ -37387,14 +37240,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - post_urn
@@ -56491,14 +56344,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS invitation is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_connection_request_sent, given only after someone looked at the account's sent invitations. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks. Moot when the attempt is no longer in doubt; another invitation's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS invitation is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_connection_request_sent, given only after someone looked at the account's sent invitations. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another invitation's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS invitation IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the request once it is stored. Another invitation's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS invitation IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the request once it is stored. Another invitation's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
     SendLinkedinConnectionRequestResponse:
@@ -56723,14 +56576,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - subject
@@ -57045,14 +56898,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - text
@@ -57359,14 +57212,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - subject
@@ -57671,14 +57524,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - text
@@ -57957,14 +57810,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - audio
@@ -60777,14 +60630,14 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. An attempt check-sent named in unkeyed_activity_log_sids is not settled: the word counts for this key only, check-sent stops naming it, and the request goes through the usual checks (it may still wait behind that attempt, 409 not_sent). Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
+          description: "A person's word that an earlier attempt of THIS message is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_message_sent, given only after someone looked at the conversation. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another message's sid is 422 not_this_message."
         confirmed_sent:
           type: string
           nullable: true
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent (an attempt check-sent named in unkeyed_activity_log_sids takes this key) and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+          description: "A person's word that an earlier attempt of THIS message IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent, or 200 with the row once it is stored. Another message's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
       required:
         - linkedin_account_sid
         - attendees
