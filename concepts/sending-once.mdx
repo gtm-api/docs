@@ -139,6 +139,8 @@ An older build of the platform kept neither the key nor the words of an attempt.
 
 `result.unkeyed_attempts` names each of them, in the same order: its `activity_log_sid`, its verb (`action_type`), when it started (`created_at`), and the `place` it recorded when it was sent, with whichever of `ln_member_id`, `ln_id`, `sn_id`, `recruiter_id`, `entity_type` and `entity_urn` it kept, or `null` when it kept none. A `nickname` comes with it when the attempt kept the person's slug. Asked by the key alone the list is newest first. Asked with a place, the attempts that recorded that place come first.
 
+The platform reads a limited number of those older attempts, 500 by default. When it had to stop there, `result.unkeyed_attempts_capped` is `true`, because the attempts past the cut may be your send too. A cut read that found no candidate still answers `unknown` with `reason: "unkeyed_attempt_at_place"` and empty lists, never `no_send_under_key`, so ask again after `retry_after`.
+
 ```json
 {
   "success": true,
@@ -160,7 +162,8 @@ An older build of the platform kept neither the key nor the words of an attempt.
         "place": { "ln_member_id": "811042339", "ln_id": "ACoAAAdbzRUBAAAAAAAAAAAAAAAAAAAAAAAAAAA" },
         "nickname": "jane-doe"
       }
-    ]
+    ],
+    "unkeyed_attempts_capped": false
   },
   "meta": { "trace_id": "0198f2ab-7c11-7e32-9a41-d2b64f2a91c3" }
 }
