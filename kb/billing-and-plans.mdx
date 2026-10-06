@@ -68,9 +68,10 @@ Two more Sandbox behaviors worth planning around:
 
 - **Sync cadence is relaxed.** Each sync surface refreshes at most once every 24 hours,
   and realtime message push is off. Initial backfills after connecting are exempt.
-- **Idle accounts are parked after 30 days** without user-driven activity, and the
-  browser profile is deleted. Reconnecting means logging into LinkedIn again, because
-  the session cookies are gone.
+- **An account signed out of LinkedIn for more than 30 days is parked.** That covers an
+  account LinkedIn logged out and one it restricted. The browser profile is deleted, so
+  coming back means connecting the account and logging into LinkedIn again. An account
+  that stays signed in is never parked, however little you use it.
 
 Account health keeps syncing on Sandbox regardless, so smart limits and warmup
 stay accurate.

@@ -3,6 +3,15 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-06" description="Sandbox parks only accounts signed out for 30 days">
+  **A Sandbox account that stays signed in to LinkedIn is never parked.** The 30-day sweep used to
+  park an account with no user-driven activity, even one that was signed in and synced every day.
+  Now it parks only an account LinkedIn has logged out or restricted, and only after 30 days in
+  that state. The browser profile of such an account is deleted, so coming back means connecting
+  it and logging into LinkedIn again. [Billing and plans](/kb/billing-and-plans) has the Sandbox
+  details.
+</Update>
+
 <Update label="2026-10-05" description="Invitations, comments, posts and reposts are sent once">
   **Every LinkedIn send is sent once now.** Connection requests, comments, replies, posts and
   reposts follow the rule the message sends got earlier today. Give each one a
