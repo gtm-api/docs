@@ -3,13 +3,18 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
-<Update label="2026-10-06" description="Sandbox parks only accounts signed out for 30 days">
+<Update label="2026-10-06" description="Only accounts signed out for 30 days lose their browser profile">
   **A Sandbox account that stays signed in to LinkedIn is never parked.** The 30-day sweep used to
   park an account with no user-driven activity, even one that was signed in and synced every day.
   Now it parks only an account LinkedIn has logged out or restricted, and only after 30 days in
   that state. The browser profile of such an account is deleted, so coming back means connecting
-  it and logging into LinkedIn again. [Billing and plans](/kb/billing-and-plans) has the Sandbox
-  details.
+  it and logging into LinkedIn again.
+
+  **Held profiles follow the same rule.** After a downgrade, an account parked over the plan's
+  limit used to lose its browser profile on day 28 of the hold. Now the profile is deleted only
+  once LinkedIn has logged the account out or restricted it for more than 30 days, with the
+  warning email a week before. A parked account that stays signed in waits for the upgrade.
+  [Billing and plans](/kb/billing-and-plans) has the details.
 </Update>
 
 <Update label="2026-10-05" description="Invitations, comments, posts and reposts are sent once">
