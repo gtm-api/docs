@@ -158,7 +158,7 @@ reason is thrown without a sentence). 225 reasons across 4 services.
 | `paid_subscription_applied` | A paid subscription is applied to this workspace; unapply and cancel it before deleting the workspace. | id |
 | `partner_sentinel_missing` | The partner-managed workspace has no internal subscription row; provisioning did not finish. | id |
 | `password_already_set` | This account already has a password; use the reset flow to change it. | id |
-| `payload_too_large` | The webhook payload exceeds 64 KB after encoding and cannot be delivered. | orchestration |
+| `payload_too_large` | The webhook envelope exceeds 65536 bytes once encoded and cannot be delivered; the emitting service keeps an event under the platform cap (gtm.lib.common WebhookPayloadCap). | orchestration |
 | `period_inverted` | period.from is after period.to; swap them. | linkedin, orchestration |
 | `period_start_must_be_monday` | period_start must be the Monday that opens the ISO week. | linkedin |
 | `period_too_wide` | The period spans more than 90 days; narrow period.from / period.to. | linkedin, id, orchestration, email |
