@@ -10759,6 +10759,9 @@ components:
                   - created_at
                   - place
               description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the person it recorded, so a person knows where to look."
+            unkeyed_attempts_capped:
+              type: boolean
+              description: "With reason unkeyed_attempt_at_place: true when the read of the account's old attempts was cut at its limit (500 by default), so attempts past the cut may be this send too. A cut read that leaves no candidate answers unknown with both lists empty and no activity_log_sid, never no_send_under_key: ask again after retry_after."
           required:
             - outcome
             - reason
@@ -11072,6 +11075,9 @@ components:
                   - created_at
                   - place
               description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the place it recorded, so a person knows where to look."
+            unkeyed_attempts_capped:
+              type: boolean
+              description: "With reason unkeyed_attempt_at_place: true when the read of the account's old attempts was cut at its limit (500 by default), so attempts past the cut may be this send too. A cut read that leaves no candidate answers unknown with both lists empty and no activity_log_sid, never no_send_under_key: ask again after retry_after."
           required:
             - outcome
             - reason
@@ -11272,6 +11278,9 @@ components:
                   - created_at
                   - place
               description: "With reason unkeyed_attempt_at_place, in the order of unkeyed_activity_log_sids: each candidate with its verb, when it started and the place it recorded, so a person knows where to look."
+            unkeyed_attempts_capped:
+              type: boolean
+              description: "With reason unkeyed_attempt_at_place: true when the read of the account's old attempts was cut at its limit (500 by default), so attempts past the cut may be this send too. A cut read that leaves no candidate answers unknown with both lists empty and no activity_log_sid, never no_send_under_key: ask again after retry_after."
           required:
             - outcome
             - reason
