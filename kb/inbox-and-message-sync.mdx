@@ -69,10 +69,10 @@ older history stays outside the platform: `POST /api/linkedin-messages/get-my-la
 the newest page of up to **100 messages** and stops there.
 </Warning>
 
-During onboarding the `self_account_sync` daily budget is raised from **200 to 3000 calls per
-day**; the first profile snapshot taken after onboarding completes recomputes it back down to
-200. A first-time backfill runs to completion whatever hours are configured; only recurring
-syncs wait for the window: an inbox sync spends that budget and nothing else.
+During onboarding the `self_account_sync` daily budget is raised from **1000 to 3000 calls per
+day**, and it drops back to 1000 the moment onboarding completes. A first-time backfill runs to
+completion whatever hours are configured; only recurring syncs wait for the window: an inbox
+sync spends that budget and nothing else.
 
 ## How often each surface re-syncs
 
@@ -153,7 +153,7 @@ never emits `linkedin-conversations.sync-completed`, so it does not postpone the
 
 <Note>
 Every head refresh page and every background message pull spends one call from the account's
-`self_account_sync` budget: **200 calls per day**, paced about **one call a second**. When it
+`self_account_sync` budget: **1000 calls per day**, paced about **one call a second**. When it
 is spent, reads answer `429 rate_limited` with `limit_type:
 "self_account_sync"` and a `retry_after`, and parked runs resume at the next daily reset or
 when the limit is raised. See [smart limits and warmup](/kb/smart-limits-and-warmup).
@@ -169,6 +169,8 @@ newer than stored means the thread is already flagged and the next run drains it
    refreshes answer `429 rate_limited` with `context.reason: "initial_sync_pending"`.
 2. **A sync is already running for that surface.** A second one does not queue: it answers
    `429 rate_limited` with `reason: "sync_in_progress"` and the working `sync_run_sid` to poll.
+   Only a run that is reading counts: one waiting for its window, a browser or a limit does not,
+   and a head refresh of one thread never waits for the inbox sync.
 3. **The sync budget is spent or held.** The run shows a `wait_reason` starting with `limit:`
    (`limit:daily_saturation`, `limit:held`, `limit:linkedin_quota_hit`, `limit:delay_not_elapsed`).
    Raise the Self account sync limit on **Smart Limits** with reset hold to resume them all now.

@@ -3,6 +3,25 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-07" description="Your calls no longer wait on the account's own sync">
+  **Your calls have a budget of their own.** Each LinkedIn account takes up to 30 of your calls
+  a minute and 5 at once. The platform's own work on the account (its syncs, checks and jobs)
+  runs on a separate budget and no longer counts against yours. Both used to share 10 a minute
+  and 3 at once, so a sync catching up could refuse a send with `429 rate_limited` and
+  `reason: "account_rate_exceeded"`. That refusal now carries `retry_after`, the moment a place
+  frees, so wait for it rather than guess.
+
+  **Inbox reads have room.** The daily `self_account_sync` budget that every head refresh and
+  every background message pull spends is 1000 calls, up from 200. A busy integration polling
+  its inbox no longer spends it for the day and stops the account's sync with it.
+
+  **A waiting sync no longer refuses a head refresh.** `get-my-latest` used to answer
+  `sync_in_progress` for as long as a run of the same kind existed, even one that only waited for
+  its sync window or its browser, for hours. Now only a run that is reading counts, and a head
+  refresh of one thread never waits for the inbox sync.
+  [Inbox and message sync](/kb/inbox-and-message-sync) has the details.
+</Update>
+
 <Update label="2026-10-06" description="Only accounts signed out for 30 days lose their browser profile">
   **A Sandbox account that stays signed in to LinkedIn is never parked.** The 30-day sweep used to
   park an account with no user-driven activity, even one that was signed in and synced every day.
