@@ -3,6 +3,25 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-07" description="A failure that says retry later runs again under its key">
+  **Retrying under the same `idempotency_key` works.** A scraping or enrichment call that failed
+  with a `503` or a `429` and `retry_after` used to answer every repeat under its key with the
+  same stored failure, for good. Now the key returns that failure only until `retry_after`; a
+  repeat after it runs the call again, and the key then names the new run. Every other outcome (a
+  completed run, a refusal of the input, a final failure) answers the key as before.
+
+  **No `task-failed` for a Sales Navigator call that went through.** When LinkedIn refuses a Sales
+  Navigator call with `SALES_SEAT_REQUIRED` while the seat is live, the platform reopens the
+  session and runs the call again. The refused first attempt no longer fires
+  `linkedin-account-activity-log.task-failed`, and a Sales Navigator message sent on the retry no
+  longer fires `linkedin-messages.send-failed` first.
+
+  **A GoLogin profile that comes back empty says so.** A browser whose GoLogin profile loaded with
+  no data used to show "An unexpected error occurred. Press Run to fix it." It now says what
+  happened and what to do: close the profile wherever else it is open and press Run, and restore
+  or rebind it if it keeps failing.
+</Update>
+
 <Update label="2026-10-07" description="Your calls no longer wait on the account's own sync">
   **Your calls have a budget of their own.** Each LinkedIn account takes up to 30 of your calls
   a minute and 5 at once. The platform's own work on the account (its syncs, checks and jobs)

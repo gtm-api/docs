@@ -65,7 +65,7 @@ Every enrichment runs on one of your own connected accounts.
 |---|---|
 | `linkedin_account_sid` (`ln_ac_` + 12 chars) | Runs on that account only, spending that account's `enrichment` daily budget. `executed_on: "own_account"` |
 | Nothing | The service picks one of your connected accounts with remaining capacity and runs there. Accounts out of budget, on hold or LinkedIn rate-limited are skipped before the pick |
-| `idempotency_key` (max 128 chars) | Replay guard scoped to (team, key). A repeat returns the stored row, with no re-execution |
+| `idempotency_key` (max 128 chars) | Replay guard scoped to (team, key). A repeat returns the stored row, with no re-execution. One exception: a failure that answered with `retry_after` answers the key only until that time, and a repeat after it runs again |
 
 | Auto-pick situation | Result |
 |---|---|
@@ -157,7 +157,7 @@ per day per connected account.
 | Scenario | HTTP | Code | What to do |
 |---|---|---|---|
 | Slug-only call on a method that needs a stored profile URN | 422 | `not_dispatchable` | Run `person-lite-profile` for that slug first: it stores the URN, and the sub-record methods work from then on |
-| The account's browser could not serve the call this time | 503 | `browser_starting`, `browser_unavailable`, `plugin_unavailable`, `browser_maintenance`, `infrastructure_maintenance` | Nothing is wrong with the input. Wait for `retry_after` and send the call again: 30 seconds while a browser is still starting, one to two minutes after a lost session or a page that did not load, five to ten minutes while the browser or the fleet is being updated. A repeat under the same `idempotency_key` returns the stored failed row, so retry with a new key |
+| The account's browser could not serve the call this time | 503 | `browser_starting`, `browser_unavailable`, `plugin_unavailable`, `browser_maintenance`, `infrastructure_maintenance` | Nothing is wrong with the input. Wait for `retry_after` and send the call again: 30 seconds while a browser is still starting, one to two minutes after a lost session or a page that did not load, five to ten minutes while the browser or the fleet is being updated. Retry under the same `idempotency_key`: before `retry_after` the repeat returns the stored failed row, after it the call runs again |
 | Terminal execution failure | 409 | `operation_blocked` | Do not retry as sent, change the input |
 | Method not implemented yet (`person-languages`, `post-details`) | 501 | `not_implemented` | Nothing is ledgered: no row, no budget spent |
 
