@@ -3,6 +3,20 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-08" description="Invite members to a LinkedIn event">
+  **`invite-to-event` invites up to 25 members to a LinkedIn event, in one call.** Send the
+  event's numeric id (`event_ln_id`, the one a `search-events` row carries and the number in the
+  event's `/events/<id>/` URL) and a list of people, each by member id (`ln_id`) or by nickname; a
+  nickname alone costs one profile read first, and a Sales Navigator id is not an address here.
+  The whole list goes out as one invitation batch from the account's open LinkedIn tab and spends
+  one `networking_general` unit. LinkedIn decides who may invite and who may be invited
+  (1st-degree connections, by the organizer or by a member LinkedIn offers its Invite button to):
+  the answer is one flag for the batch, and a refused batch is `409 event_invite_rejected` with
+  the ids that were sent. A member already invited counts as success; one who already accepted
+  is skipped. On MCP the tool is `invite_linkedin_members_to_event` on the `/mcp/linkedin/network`
+  mount, next to the other invitation verbs.
+</Update>
+
 <Update label="2026-10-08" description="A search URL from filters, Sales Navigator ids where text is ignored, two more company-search filters">
   **`build-search-url` returns the LinkedIn URL of a search.** Send the filters of a people or
   company search, regular or Sales Navigator, with each value as an id or as plain text, and get

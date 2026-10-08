@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 190 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 191 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -2574,6 +2574,59 @@ paths:
       x-gtm-schedule-required: false
       x-gtm-tool-class: trivial
       x-gtm-paced-bucket: self_account_sync
+  /api/linkedin-accounts/{sid}/invite-to-event:
+    post:
+      operationId: invite_linkedin_members_to_event
+      summary: Invite members to event
+      description: |-
+        Invite up to 25 members to a LinkedIn event, in ONE call: one invitation batch from the account's open LinkedIn tab, one browser round and one networking_general unit (40 a day, 180 s apart; 429 on saturation). event_ln_id is the digits of the event urn, the event_ln_id of a search_linkedin_events row (the number in /events/<id>/). A target is a member id (ln_id, preferred) or a nickname; a nickname alone costs one profile read first, and a Sales Navigator id is not an address here. LinkedIn decides who may invite and who may be invited: a member inviting 1st-degree connections to a public event it does not organize went through live, as LinkedIn's own Invite button allows. The answer is one flag for the batch; a false is 409 event_invite_rejected with the ids sent, without saying which member was refused or whether the others landed. A member already invited counts as success, one who already accepted is skipped. Writes nothing locally.
+
+        Contract:
+        - MCP tool `invite_linkedin_members_to_event`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.network`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `networking_general` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_accounts
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: LinkedIn account sid (ln_ac_…).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^ln_ac_
+            description: LinkedIn account sid (ln_ac_…).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/InviteLinkedinMembersToEventRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InviteLinkedinMembersToEventResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: invite_linkedin_members_to_event
+      x-gtm-mcp-mount: linkedin.network
+      x-gtm-entity: linkedin_accounts
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: networking_general
   /api/linkedin-accounts/{sid}/my-position:
     post:
       operationId: set_linkedin_account_my_position
@@ -34727,6 +34780,556 @@ components:
         result:
           type: object
           additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    InviteLinkedinMembersToEventRequest:
+      type: object
+      description: Request body of `invite_linkedin_members_to_event`.
+      properties:
+        event_ln_id:
+          type: string
+          pattern: ^[0-9]{1,32}$
+          description: "The event's numeric id: the digits of urn:li:fsd_professionalEvent:<id>, the event_ln_id of a search_linkedin_events row, the number in https://www.linkedin.com/events/<id>/ ."
+        targets:
+          type: array
+          items:
+            type: object
+            properties:
+              ln_id:
+                type: string
+                nullable: true
+                maxLength: 128
+                description: "LinkedIn member id (ACoAA...), sent as is in the batch. The address to prefer: it costs no lookup."
+              nickname:
+                type: string
+                nullable: true
+                maxLength: 100
+                description: Public profile slug, the vanity name in the profile URL. A nickname-ONLY target costs one profile read (self_account_sync) before the batch; next to ln_id it is ignored, the id is the address.
+            description: One person to invite; ln_id or nickname (a Sales Navigator id is not an address for an event invitation).
+          minItems: 1
+          maxItems: 25
+          description: 1 to 25 people, one batch. A member named twice is sent once.
+      required:
+        - event_ln_id
+        - targets
+    InviteLinkedinMembersToEventResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            antidetect_browser_sid:
+              type: string
+            status:
+              type: string
+              enum:
+                - new
+                - initial_syncing
+                - active
+                - sync_failed
+                - shared_out
+                - subscription_required
+              description: 'Platform lifecycle (onboarding phases and hold states), NOT health and NOT login state: a sender signed out of LinkedIn still reads "active" here. Login state lives on the bound browser, request include antidetect_browser and read its status (login_issue means signed out, restricted means signed out AND the public profile is gone from LinkedIn, so a re-login alone will not fix it).'
+            account_share_sid:
+              type: string
+              nullable: true
+            share_role:
+              type: string
+              nullable: true
+              enum:
+                - owner
+                - holder
+                - giver
+                - receiver
+            ln_id:
+              type: string
+              nullable: true
+            ln_member_id:
+              type: string
+              nullable: true
+            sn_id:
+              type: string
+              nullable: true
+            nickname:
+              type: string
+              nullable: true
+            recruiter_seat_id:
+              type: string
+              nullable: true
+              description: "The account's own LinkedIn Recruiter seat number (the talent ts_seat), stamped by the premium check when the recruiter probe says yes and cleared when it says no. Every recruiter sync / thread read / reply dispatches with it; null with recruiter_status set means the seat is not stamped yet: run check_linkedin_account_premium_subscription with checks: ['recruiter']."
+            recruiter_contract_id:
+              type: string
+              nullable: true
+              description: "The Recruiter contract (talent ts_contract number) the stamped seat belongs to, from the same seat read. A seat only means something inside its contract: hiring-project urns embed it, and a member on several contracts holds a different seat on each."
+            recruiter_session_expires_at:
+              type: string
+              nullable: true
+              description: "When the Recruiter (enterprise) session of the bound browser profile runs out (ISO 8601): the expiry of LinkedIn's li_a cookie, read by the premium check from the account's running browser (the plugin's own cookie jar; the antidetect vendor's cookie store is consulted only for a platform-owned profile whose browser did not answer), the clock, never the value. LinkedIn issues that session for 30 days when the seat holder enters the LinkedIn password on the Recruiter sign-in page. Past this clock the account's recruiter_status turns signed_out (the session sweep confirms it in the browser's cookie jar within 15 minutes) and every recruiter tool answers 409 recruiter_reauth_required, whose context.account_url is the account's page where the seat holder signs in again through the cloud browser. Null = no clock (not read, or the session cookie was not seen, which is not a verdict; recruiter_status is the verdict)."
+            full_name:
+              type: string
+              nullable: true
+            avatar_url:
+              type: string
+              nullable: true
+            label:
+              type: string
+              nullable: true
+            has_premium:
+              type: boolean
+            has_sn:
+              type: boolean
+            recruiter_status:
+              type: string
+              nullable: true
+              enum:
+                - active
+                - signed_out
+              description: "The account's LinkedIn Recruiter status. null = no Recruiter seat (the premium check's recruiter probe said no, or never ran). active = the seat's Recruiter (enterprise) session answers talent calls. signed_out = LinkedIn Recruiter asks the seat holder for the LinkedIn password again (about every 30 days): every recruiter tool answers 409 recruiter_reauth_required and the recruiter sync waits until the seat holder signs in through the cloud browser from the account's page (the 409's context.account_url); the status returns to active by itself once they have. Filter on it to find seats that need their holder."
+            smart_limits_enabled:
+              type: boolean
+            inmail_credits:
+              type: number
+              nullable: true
+              description: The Sales Navigator seat's InMail balance (the LSS_INMAIL grant), read only while the account holds a seat and cleared when the seat goes. Null = never read, the last read failed, or the seat was just lost; not zero.
+            premium_inmail_credits:
+              type: number
+              nullable: true
+              description: The Premium plan's own InMail balance (Premium Career / Business), read off LinkedIn's Premium page for a Premium account WITHOUT a Sales Navigator seat (a seat holder's linkedin.com InMail is the seat's grant above) and cleared when the plan goes. Null = never read or the last read could not be parsed; not zero.
+            recruiter_inmail_credits:
+              type: number
+              nullable: true
+              description: The Recruiter contract's own InMail balance (what Recruiter's Usage Overview shows as InMail credits), read off the talent API for an account with an ACTIVE Recruiter seat and cleared when the seat goes; a signed-out seat keeps its last number. LinkedIn grants Recruiter InMails per contract and moves nothing between its products, so this is the pool send_linkedin_recruiter_message spends, not the two above. Null = never read or the last read could not be parsed; not zero.
+            last_premium_check_at:
+              type: string
+              nullable: true
+            last_connections_sync_at:
+              type: string
+              nullable: true
+            last_conversations_sync_at:
+              type: string
+              nullable: true
+            last_sales_navigator_conversations_sync_at:
+              type: string
+              nullable: true
+            last_recruiter_conversations_sync_at:
+              type: string
+              nullable: true
+            last_connection_requests_sync_at:
+              type: string
+              nullable: true
+            last_connection_invitations_sync_at:
+              type: string
+              nullable: true
+            last_followers_sync_at:
+              type: string
+              nullable: true
+            last_snapshot_at:
+              type: string
+              nullable: true
+            initial_sync_completed_at:
+              type: string
+              nullable: true
+            initial_sync_held_at:
+              type: string
+              nullable: true
+              description: When THIS onboarding first parked on a smart-limit budget (the daily self_account_sync allowance ran out before the initial set was done); null = never held. Kept after the latch, cleared by reset-sync.
+            initial_sync_hold_reason:
+              type: string
+              nullable: true
+              description: "The run's park code at that moment: limit:daily_saturation, limit:held or limit:linkedin_quota_hit."
+            last_heartbeat_at:
+              type: string
+              nullable: true
+            sync_config:
+              type: object
+              nullable: true
+              properties:
+                entries:
+                  type: object
+                  properties:
+                    connections:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    sales_navigator_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    recruiter_conversations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_requests:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    connection_invitations:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    premium_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                    snapshot_check:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: Per-track sync-interval overrides, keyed by sync track.
+                timezone:
+                  type: string
+                  description: IANA timezone the window is evaluated in.
+                window:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      day_of_week:
+                        type: integer
+                        minimum: 1
+                        maximum: 7
+                      start_minute:
+                        type: integer
+                        minimum: 0
+                        maximum: 1439
+                      end_minute:
+                        type: integer
+                        minimum: 1
+                        maximum: 1440
+                    required:
+                      - day_of_week
+                      - start_minute
+                      - end_minute
+                  description: Weekly sync-activity window blocks; empty = always open.
+            webhook_config:
+              type: object
+              nullable: true
+              properties:
+                connections:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_requests:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                connection_invitations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                sales_navigator_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                recruiter_conversations:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                messages:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                followers:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                snapshot:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                strike_log:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+                limits:
+                  type: object
+                  properties:
+                    enabled:
+                      type: boolean
+                    since:
+                      type: string
+                      nullable: true
+                  required:
+                    - enabled
+                    - since
+            created_by:
+              type: object
+              properties:
+                actor_type:
+                  type: string
+                  enum:
+                    - user
+                    - support
+                    - api_key
+                    - system
+                    - agent
+                actor_sid:
+                  type: string
+                  nullable: true
+                team_sid:
+                  type: string
+                permissions:
+                  type: object
+                  additionalProperties: {}
+                request_sid:
+                  type: string
+                  nullable: true
+                reason:
+                  type: string
+                  nullable: true
+              required:
+                - actor_type
+                - actor_sid
+                - team_sid
+                - permissions
+                - reason
+            created_at:
+              type: string
+            updated_at:
+              type: string
+            deleted_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - antidetect_browser_sid
+            - status
+            - account_share_sid
+            - share_role
+            - ln_id
+            - ln_member_id
+            - sn_id
+            - nickname
+            - recruiter_seat_id
+            - recruiter_contract_id
+            - recruiter_session_expires_at
+            - full_name
+            - avatar_url
+            - label
+            - has_premium
+            - has_sn
+            - recruiter_status
+            - smart_limits_enabled
+            - inmail_credits
+            - premium_inmail_credits
+            - recruiter_inmail_credits
+            - last_premium_check_at
+            - last_connections_sync_at
+            - last_conversations_sync_at
+            - last_sales_navigator_conversations_sync_at
+            - last_recruiter_conversations_sync_at
+            - last_connection_requests_sync_at
+            - last_connection_invitations_sync_at
+            - last_followers_sync_at
+            - last_snapshot_at
+            - initial_sync_completed_at
+            - initial_sync_held_at
+            - initial_sync_hold_reason
+            - last_heartbeat_at
+            - sync_config
+            - webhook_config
+            - created_by
+            - created_at
+            - updated_at
+            - deleted_at
+        result:
+          type: object
+          properties:
+            activity_log:
+              type: object
+              properties: {}
+              description: The one dispatch row of the batch (linkedin-account-activity-log) per §4.12a; action_type invite_to_event.
+            success:
+              type: boolean
+              description: "The wire's own flag, mirrored: true when LinkedIn took the batch and every element it answered was 200 (already invited) or 201 (created). Always true in a 200; a false is the 409 event_invite_rejected."
+            event_ln_id:
+              type: string
+              description: The event the batch went to, echoed.
+            profile_ids:
+              type: array
+              items:
+                type: string
+              description: "The member ids LinkedIn was given, resolved and deduped, in the order of the targets: a caller who addressed people by nickname learns the ids here."
+          required:
+            - activity_log
+            - success
+            - event_ln_id
+            - profile_ids
         meta:
           type: object
           properties:

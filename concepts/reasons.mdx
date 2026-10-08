@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 229 reasons across 4 services.
+reason is thrown without a sentence). 230 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -86,6 +86,7 @@ reason is thrown without a sentence). 229 reasons across 4 services.
 | `email_box_ops_disabled` | This deployment is not a workspace mailbox host; box operations are off here. | email |
 | `email_box_unaddressable` | This box is not live or has no hostname and access key yet, so it cannot be addressed. | id |
 | `email_taken` | An account with this email already exists; sign in and connect the agent from the app instead. | id |
+| `event_invite_rejected` | LinkedIn refused at least one invitation of this batch and the wire does not say which; check that this account may invite to the event (LinkedIn offers it the Invite button there) and that every target is a 1st-degree connection, then retry with the targets that are. | linkedin |
 | `facet_id_required` | _the field_ needs the id: LinkedIn Sales Navigator matches this filter by id only and ignores a value without one. Resolve the text with sales-nav-param-id-lookup, or build the search with build-search-url. | linkedin |
 | `facet_value_not_found` | LinkedIn's typeahead offers nothing for this text, and this filter takes ids only; check the spelling, or pass an id from the lookup tool. | linkedin |
 | `filters_must_be_a_non_empty_object` | source_input.filters must be an object with at least one search filter. | linkedin |
