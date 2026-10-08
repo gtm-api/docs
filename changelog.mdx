@@ -3,7 +3,7 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
-<Update label="2026-10-08" description="A search URL from filters, and two more company-search filters">
+<Update label="2026-10-08" description="A search URL from filters, Sales Navigator ids where text is ignored, two more company-search filters">
   **`build-search-url` returns the LinkedIn URL of a search.** Send the filters of a people or
   company search, regular or Sales Navigator, with each value as an id or as plain text, and get
   back the search URL, the same filters with every text turned into its id, and what each text
@@ -16,13 +16,20 @@ description: "What's new in the GTM API platform and this documentation."
   you have 1st-degree connections, and `has_jobs: true` keeps companies hiring on LinkedIn right
   now. An auto scrape over the company search takes them too.
 
+  **Sales Navigator facets need their id outside titles and companies.** LinkedIn matches a value
+  without an id as free text on job titles and companies only; on a location, a headquarters
+  region, an industry or a school it ignores it, and the search ran as if that filter had not been
+  sent. `search-sales-nav-people` and `search-sales-nav-companies` now refuse such a value with
+  `422 facet_id_required`, and an auto scrape saved with one stops with the same error. Resolve the
+  text with `sales-nav-param-id-lookup`, or send it to `build-search-url`.
+
   **A toggle sent as `1` counts.** `open_to_volunteer`, the Sales Navigator account toggles
   (`hiring_on_linkedin`, `first_degree_connection`, `saved_accounts_only`) and the `exclude` and
   `required` flags on filter values were accepted as `1` or `"1"` and then left out of the search.
   They now count as `true`.
 </Update>
 
-<Update label="2026-10-08" description="Parked browsers come back on their own, and a migrated profile takes a proxy change">
+<Update label="2026-10-08" description="Parked browsers come back on their own">
   **A parked browser is tried again when its cause can clear.** A browser parked in
   `support_error_investigation` is started again every three hours until it runs. One parked in
   `client_error_investigation` on its proxy is started again after three hours, then six, then
@@ -33,13 +40,6 @@ description: "What's new in the GTM API platform and this documentation."
   again and fails on the same cause, it goes back to its parking quietly: no second email, no
   second escalation. When it fails on a cause the other side owns, it is parked again under that
   verdict, once.
-
-  **Change proxy on a profile you bound by its id.** `update_antidetect_browser_proxy` and
-  `replace_antidetect_browser_proxy` now take a profile bound by `vendor_profile_id` when that
-  profile lives in gtm-api's own GoLogin account (the common case for a profile migrated from
-  GetSales). A profile held in your own GoLogin account still keeps its proxy there (`422
-  managed_proxy_forbidden_for_owner`); when GoLogin cannot say who holds the profile, the call
-  answers `503 vendor_unreachable` and changes nothing.
 </Update>
 
 <Update label="2026-10-07" description="A failure that says retry later runs again under its key">

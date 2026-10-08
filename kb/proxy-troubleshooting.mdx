@@ -180,16 +180,14 @@ top-level `error.code` is only `validation_failed`, `conflict` or `service_unava
 | `422` | `proxy_pool_empty` | No active proxy exists in the country you asked for |
 | `422` | `proxy_replacement_unavailable` | The current country has no other active proxy to rotate onto |
 | `422` | `proxy_country_mismatch` | The proxy you pinned is in a different country than the browser |
-| `422` | `managed_proxy_forbidden_for_owner` | The browser's GoLogin profile is held in your own GoLogin account, so its proxy is set there, not here |
+| `422` | `managed_proxy_forbidden_for_owner` | This browser runs on a profile you bound by its id; its proxy is set in GoLogin, not here |
 | `409` | `proxy_managed_by_owner` | This is a shared copy. Proxy management stays with the owner |
 | `503` | `vendor_proxy_update_failed` | Nothing was committed and the browser is back on its old proxy. Retry |
-| `503` | `vendor_unreachable` | GoLogin did not say who holds the profile, so nothing was changed. Try again in a minute |
 
-Whose proxy it is depends on where the GoLogin profile lives, not on who created the browser.
-A profile gtm-api minted, and a profile you bound by its id that lives in gtm-api's own GoLogin
-account (the common case for a profile migrated from GetSales), take the change here. A profile
-held in your own GoLogin account keeps its proxy there: the menu item is disabled, with the
-reason on hover, and the dialog is never offered.
+Only a profile gtm-api minted takes a proxy change here. A profile you bound by its id keeps its
+proxy in the GoLogin account that holds it, whoever that is: the menu item is disabled, with the
+reason on hover, and the dialog is never offered. Change the proxy in the GoLogin app, then
+**Restart** the browser.
 
 ## Check 6: if it is the session, not the proxy
 

@@ -7534,7 +7534,7 @@ paths:
       operationId: scrape_linkedin_build_search_url
       summary: Build LinkedIn search URL
       description: |-
-        Build the LinkedIn URL of a people or company search, regular or Sales Navigator, from that search's filters: send exactly ONE of people / sales_nav_people / companies / sales_nav_companies. Facet values take an id or plain text; each text is resolved by the search's own typeahead (the option labelled exactly so, else the first), one lookup per distinct text, at most 10 per call, each a paced scraping read (Sales Navigator ones need an SN seat). Returns url (Sales Navigator in its ?query= form, the one imports read), filters in the exact shape the matching search tool takes, and resolved: per text, the id picked and the alternatives. All ids given: no LinkedIn call at all. Recruiter has no build: its URL comes from running scrape_linkedin_search_recruiter_people.
+        Build the LinkedIn URL of a people or company search, regular or Sales Navigator, from that search's filters: send exactly ONE of people / sales_nav_people / companies / sales_nav_companies. Facet values take an id or plain text; each text is resolved by the search's own typeahead (the option labelled exactly so, else the first; a multi-word miss is retried by its first word), at most 10 lookups per call, each a paced scraping read (Sales Navigator ones need an SN seat). A text nothing matches is a 422 naming the closest options, except on Sales Navigator titles and companies, where it stays free text. Returns url (Sales Navigator in its ?query= form, the one imports read), filters in the exact shape the matching search tool takes, and resolved: per text, the id picked and the alternatives. All ids given: no LinkedIn call at all. Recruiter has no build: its URL comes from running scrape_linkedin_search_recruiter_people.
 
         Contract:
         - MCP tool `scrape_linkedin_build_search_url`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -39617,7 +39617,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip, which SN matches on this facet.
                   exclude:
                     type: boolean
                     nullable: true
@@ -39625,7 +39625,7 @@ components:
                   free_text:
                     type: boolean
                     nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
+                    description: true → send the text as a free-text chip, unresolved.
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Current job titles (TITLE).
@@ -39644,7 +39644,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip, which SN matches on this facet.
                   exclude:
                     type: boolean
                     nullable: true
@@ -39652,7 +39652,7 @@ components:
                   free_text:
                     type: boolean
                     nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
+                    description: true → send the text as a free-text chip, unresolved.
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Past job titles (TITLE).
@@ -39671,15 +39671,11 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for is a 422 naming the closest options.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                  free_text:
-                    type: boolean
-                    nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Person geography (BING_GEO).
@@ -39698,15 +39694,11 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for is a 422 naming the closest options.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                  free_text:
-                    type: boolean
-                    nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Current company HQ region (BING_GEO).
@@ -39725,15 +39717,11 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for is a 422 naming the closest options.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                  free_text:
-                    type: boolean
-                    nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Industries (INDUSTRY).
@@ -39752,7 +39740,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip, which SN matches on this facet.
                   exclude:
                     type: boolean
                     nullable: true
@@ -39760,7 +39748,7 @@ components:
                   free_text:
                     type: boolean
                     nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
+                    description: true → send the text as a free-text chip, unresolved.
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Current employer (COMPANY_WITH_LIST).
@@ -39779,7 +39767,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip, which SN matches on this facet.
                   exclude:
                     type: boolean
                     nullable: true
@@ -39787,7 +39775,7 @@ components:
                   free_text:
                     type: boolean
                     nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
+                    description: true → send the text as a free-text chip, unresolved.
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Past employer (COMPANY_WITH_LIST).
@@ -39806,15 +39794,11 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for is a 422 naming the closest options.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                  free_text:
-                    type: boolean
-                    nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Group membership (GROUP).
@@ -39833,15 +39817,11 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for is a 422 naming the closest options.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                  free_text:
-                    type: boolean
-                    nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Schools (SCHOOL).
@@ -40132,15 +40112,11 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for is a 422 naming the closest options.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                  free_text:
-                    type: boolean
-                    nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: HQ region (BING_GEO).
@@ -40159,15 +40135,11 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for stays a free-text chip.
+                    description: Text to resolve into an id plus LinkedIn's label; one the typeahead offers nothing for is a 422 naming the closest options.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                  free_text:
-                    type: boolean
-                    nullable: true
-                    description: true → send the text as a free-text chip, unresolved (SN matches it server-side).
                 description: "One chip: an id, or a text (at least one of the two)."
               maxItems: 10
               description: Industries (INDUSTRY).
@@ -44770,21 +44742,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'HQ region. Ids via lookup(type: "BING_GEO"); exclude supported (e.g. exclude APAC).'
+              description: 'HQ region, by id via lookup(type: "BING_GEO"); exclude supported (e.g. exclude APAC).'
             industries:
               type: array
               nullable: true
@@ -44793,21 +44766,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'Industries. Ids via lookup(type: "INDUSTRY").'
+              description: 'Industries, by id via lookup(type: "INDUSTRY").'
             account_lists:
               type: array
               nullable: true
@@ -44816,21 +44790,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'Your SN account lists. Ids via lookup(type: "ACCOUNT_LIST") - numeric list ids or the "ALL" sentinel; exclude: true skips a list (e.g. current book of business).'
+              description: 'Your SN account lists, by id via lookup(type: "ACCOUNT_LIST") - numeric list ids or the "ALL" sentinel; exclude: true skips a list (e.g. current book of business).'
             company_headcounts:
               type: array
               nullable: true
@@ -45241,7 +45216,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: Free text when no id is given (SN matches it on titles and companies), else the id's label.
                   exclude:
                     type: boolean
                     nullable: true
@@ -45264,7 +45239,7 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: Free text when no id is given (SN matches it on titles and companies), else the id's label.
                   exclude:
                     type: boolean
                     nullable: true
@@ -45280,21 +45255,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'Person geography. Ids via lookup(type: "BING_GEO") (e.g. "103644278" United States); regions like DACH/EMEA exist too.'
+              description: 'Person geography, by id via lookup(type: "BING_GEO") (e.g. "103644278" United States); regions like DACH/EMEA exist too.'
             company_headquarters:
               type: array
               nullable: true
@@ -45303,21 +45279,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'CURRENT COMPANY HQ region (not the person’s own location). Ids via lookup(type: "BING_GEO").'
+              description: 'CURRENT COMPANY HQ region (not the person’s own location), by id via lookup(type: "BING_GEO").'
             industries:
               type: array
               nullable: true
@@ -45326,21 +45303,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'Industries. Ids via lookup(type: "INDUSTRY") (numeric).'
+              description: 'Industries, by id via lookup(type: "INDUSTRY") (numeric).'
             current_companies:
               type: array
               nullable: true
@@ -45356,14 +45334,14 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: Free text when no id is given (SN matches it on titles and companies), else the id's label.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
                 description: "One facet value: at least one of id / text."
               maxItems: 10
-              description: 'Current employer. Ids via lookup(type: "COMPANY_WITH_LIST") - id shape urn:li:organization:N. exclude: true is the classic "not my customers" move.'
+              description: 'Current employer. Ids via lookup(type: "COMPANY_WITH_LIST") - id shape urn:li:organization:N - or free text. exclude: true is the classic "not my customers" move.'
             past_companies:
               type: array
               nullable: true
@@ -45379,14 +45357,14 @@ components:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: Free text when no id is given (SN matches it on titles and companies), else the id's label.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
                 description: "One facet value: at least one of id / text."
               maxItems: 10
-              description: 'Past employer. Ids via lookup(type: "COMPANY_WITH_LIST").'
+              description: 'Past employer. Ids via lookup(type: "COMPANY_WITH_LIST") or free text.'
             groups:
               type: array
               nullable: true
@@ -45395,21 +45373,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'LinkedIn group membership. Ids via lookup(type: "GROUP").'
+              description: 'LinkedIn group membership, by id via lookup(type: "GROUP").'
             schools:
               type: array
               nullable: true
@@ -45418,21 +45397,22 @@ components:
                 properties:
                   id:
                     type: string
-                    nullable: true
                     maxLength: 128
-                    description: Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup.
+                    description: "Opaque SN facet id, VERBATIM from scrape_linkedin_sales_nav_param_id_lookup. REQUIRED: LinkedIn ignores a value without its id on this facet."
                   text:
                     type: string
                     nullable: true
                     maxLength: 256
-                    description: Free-text label - SN matches it server-side; use when no id is at hand.
+                    description: The id's label, optional.
                   exclude:
                     type: boolean
                     nullable: true
                     description: true → EXCLUDED (negative filter); omitted/false → INCLUDED.
-                description: "One facet value: at least one of id / text."
+                required:
+                  - id
+                description: One facet value, by id.
               maxItems: 10
-              description: 'Schools attended. Ids via lookup(type: "SCHOOL") or free text.'
+              description: 'Schools attended, by id via lookup(type: "SCHOOL").'
             seniority_levels:
               type: array
               nullable: true

@@ -105,7 +105,7 @@ exactly. Retired names are the exception and fail loudly with a `422`: `title`, 
 | `network` | the people and service-provider engines take `1st`, `2nd`, `3rd_plus`, and the plain company search `1st` only; Sales Navigator people takes the raw codes `F` 1st, `S` 2nd, `A` group members, `O` 3rd and beyond. Each rejects the other's values with a `422` |
 | `has_jobs` | plain company search only: `true` keeps companies hiring on LinkedIn right now, `false` sends nothing |
 | Headcount bands | the plain company search takes named bands (`1_to_10` up to `10001_plus`) and refuses LinkedIn's letter codes; the Sales Navigator engines take the letters `A` to `I`, and the account search has no `A` |
-| Sales Navigator facets | the people search has nine such members and the account search three; each takes arrays of `` `{id, text, exclude}` ``, max 10 values each, at least one of `id` or `text` per value, `"exclude": true` for a negative filter. `id` is optional: Sales Navigator matches free text server side, so `[{"text": "VP Marketing"}]` needs no lookup |
+| Sales Navigator facets | the people search has nine such members and the account search three; each takes arrays of `` `{id, text, exclude}` ``, max 10 values each, `"exclude": true` for a negative filter. A value without an `id` works on the job titles and the companies only, where Sales Navigator matches the text itself, so `[{"text": "VP Marketing"}]` needs no lookup. Every other facet needs the `id`: LinkedIn ignores a value without one there, so it is refused with `422 facet_id_required` |
 
 ### Three filters that do not mean what they look like
 
@@ -213,9 +213,10 @@ curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-scraping/build-se
 |---|---|
 | Every value carries an id | Nothing runs on LinkedIn: no account needed, no budget spent, no ledger row |
 | A text value | One typeahead lookup on the executing account, one slot of the `scraping` budget each, about 5 seconds apart on one account. Equal texts are looked up once. Up to 10 lookups per call; more is a `422 too_many_lookups` before anything runs |
-| A Sales Navigator text the typeahead does not know | It stays in the search as free text, which Sales Navigator matches on its side; `resolved` shows it with `"id": null` |
-| A regular-search text the typeahead does not know | `422 facet_value_not_found` on that value: those filters take ids only |
-| `"free_text": true` on a Sales Navigator value | No lookup; the text goes in as free text |
+| A text of several words the typeahead does not know | Asked again by its first word, and only an option labelled exactly like your text is taken. Sales Navigator's industry typeahead knows "Software" but not "Software Development" |
+| A text still unmatched on a Sales Navigator title or company | It stays in the search as free text, which Sales Navigator matches on those two; `resolved` shows it with `"id": null` |
+| A text still unmatched anywhere else | `422 facet_value_not_found` on that value, naming the closest options with their ids. Those filters work by id only, and LinkedIn would ignore the text |
+| `"free_text": true` on a Sales Navigator title or company | No lookup; the text goes in as free text. Refused on other facets |
 | `account_lists` given by name | Matched against your own Sales Navigator account lists, exactly or as the only list whose name contains it; no match is a `422` |
 
 The Sales Navigator URL comes in its `?query=` form, the one a browser or an import tool takes. To run the same search,
