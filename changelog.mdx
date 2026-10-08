@@ -3,6 +3,26 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-08" description="Parked browsers come back on their own, and a migrated profile takes a proxy change">
+  **A parked browser is tried again when its cause can clear.** A browser parked in
+  `support_error_investigation` is started again every three hours until it runs. One parked in
+  `client_error_investigation` on its proxy is started again after three hours, then six, then
+  twelve, then once a day for two weeks, so a proxy you fix in your GoLogin account comes back
+  without a Restart. A parking on any other cause of yours still waits for you.
+
+  **A Restart of a parked browser no longer alerts twice.** When a parked browser is started
+  again and fails on the same cause, it goes back to its parking quietly: no second email, no
+  second escalation. When it fails on a cause the other side owns, it is parked again under that
+  verdict, once.
+
+  **Change proxy on a profile you bound by its id.** `update_antidetect_browser_proxy` and
+  `replace_antidetect_browser_proxy` now take a profile bound by `vendor_profile_id` when that
+  profile lives in gtm-api's own GoLogin account (the common case for a profile migrated from
+  GetSales). A profile held in your own GoLogin account still keeps its proxy there (`422
+  managed_proxy_forbidden_for_owner`); when GoLogin cannot say who holds the profile, the call
+  answers `503 vendor_unreachable` and changes nothing.
+</Update>
+
 <Update label="2026-10-07" description="A failure that says retry later runs again under its key">
   **Retrying under the same `idempotency_key` works.** A scraping or enrichment call that failed
   with a `503` or a `429` and `retry_after` used to answer every repeat under its key with the

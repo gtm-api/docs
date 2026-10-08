@@ -180,12 +180,16 @@ top-level `error.code` is only `validation_failed`, `conflict` or `service_unava
 | `422` | `proxy_pool_empty` | No active proxy exists in the country you asked for |
 | `422` | `proxy_replacement_unavailable` | The current country has no other active proxy to rotate onto |
 | `422` | `proxy_country_mismatch` | The proxy you pinned is in a different country than the browser |
-| `422` | `managed_proxy_forbidden_for_owner` | This is a bring-your-own browser; its proxy is not ours to change |
+| `422` | `managed_proxy_forbidden_for_owner` | The browser's GoLogin profile is held in your own GoLogin account, so its proxy is set there, not here |
 | `409` | `proxy_managed_by_owner` | This is a shared copy. Proxy management stays with the owner |
 | `503` | `vendor_proxy_update_failed` | Nothing was committed and the browser is back on its old proxy. Retry |
+| `503` | `vendor_unreachable` | GoLogin did not say who holds the profile, so nothing was changed. Try again in a minute |
 
-For a browser you brought yourself the menu item is disabled, with the hover reason *"This
-browser runs on a profile you brought yourself, so its proxy is not ours to change."*
+Whose proxy it is depends on where the GoLogin profile lives, not on who created the browser.
+A profile gtm-api minted, and a profile you bound by its id that lives in gtm-api's own GoLogin
+account (the common case for a profile migrated from GetSales), take the change here. A profile
+held in your own GoLogin account keeps its proxy there: the menu item is disabled, with the
+reason on hover, and the dialog is never offered.
 
 ## Check 6: if it is the session, not the proxy
 
@@ -198,8 +202,14 @@ only fix, in the app or through
 
 Meanwhile a sync run parked on a broken browser re-checks every **30 minutes** and holds its place
 in the queue, and a run waiting on an `idle` browser to cold-start re-checks every **60 seconds**.
-Only `running` and `idle` browsers are woken automatically: one in `running_issue`, `start_issue`,
-`login_issue`, `client_error_investigation`, `support_error_investigation` or `maintenance` waits for an explicit start, forever.
+Only `running` and `idle` browsers are woken by a sync run itself. A browser in `running_issue` or
+`start_issue` is restarted by the platform every ten minutes until it either runs or is parked. A
+parked browser (`client_error_investigation`, `support_error_investigation`) is tried again on its
+own when the cause is one a retry can outlive: every three hours when the fault is on our side,
+and, when it is the proxy inside your profile, after three hours, then six, then twelve, then
+once a day for two weeks. A parking on any other cause of yours (the session, a deleted profile,
+the account connected in another workspace), a `login_issue` and a `maintenance` wait for an
+explicit start.
 
 ## What the platform already does on its own
 
