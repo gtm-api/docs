@@ -3,6 +3,25 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-08" description="A search URL from filters, and two more company-search filters">
+  **`build-search-url` returns the LinkedIn URL of a search.** Send the filters of a people or
+  company search, regular or Sales Navigator, with each value as an id or as plain text, and get
+  back the search URL, the same filters with every text turned into its id, and what each text
+  matched along with the other options LinkedIn offered. A text is resolved by that search's own
+  typeahead, one lookup per distinct text; when every value already carries an id, nothing runs on
+  LinkedIn. Sales Navigator URLs come in their `?query=` form. See
+  [people and company search](/kb/people-and-company-search#getting-the-search-url).
+
+  **`search-companies` takes `network` and `has_jobs`.** `network: ["1st"]` keeps companies where
+  you have 1st-degree connections, and `has_jobs: true` keeps companies hiring on LinkedIn right
+  now. An auto scrape over the company search takes them too.
+
+  **A toggle sent as `1` counts.** `open_to_volunteer`, the Sales Navigator account toggles
+  (`hiring_on_linkedin`, `first_degree_connection`, `saved_accounts_only`) and the `exclude` and
+  `required` flags on filter values were accepted as `1` or `"1"` and then left out of the search.
+  They now count as `true`.
+</Update>
+
 <Update label="2026-10-08" description="Parked browsers come back on their own, and a migrated profile takes a proxy change">
   **A parked browser is tried again when its cause can clear.** A browser parked in
   `support_error_investigation` is started again every three hours until it runs. One parked in

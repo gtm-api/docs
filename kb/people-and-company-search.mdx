@@ -1,6 +1,6 @@
 ---
 title: "People and company search"
-description: "Run one live page of a LinkedIn, Sales Navigator or Recruiter people or company search: the pasted-URL and structured-filter input styles, how ids are resolved, what a row contains, and what a page costs."
+description: "Run one live page of a LinkedIn, Sales Navigator or Recruiter people or company search: the pasted-URL and structured-filter input styles, how ids are resolved, how to get a search URL from filters, what a row contains, and what a page costs."
 ---
 
 A search runs now, returns one live page of results inside the HTTP response, and stores nothing.
@@ -45,6 +45,7 @@ Every method is a `POST` under `https://app.gtm-api.com/linkedin/v4/api/linkedin
 | `sales-nav-param-id-lookup` | typeahead options | none, `limit` 1 to 25, default 10 | yes |
 | `search-recruiter-people` | people | `page` 1 to 40, 25 rows a page; `url` XOR `filters` | Recruiter seat |
 | `recruiter-param-id-lookup` | typeahead options | none, a fixed ten | Recruiter seat |
+| `build-search-url` | a search URL and its filters, nothing run | none | only to resolve Sales Navigator text |
 
 The same surface also searches posts, jobs, events, groups, courses, products and schools, and reads a post's commenters,
 reactors and resharers. Same rules, and their filter vocabularies are in the [API reference](/api-reference/overview).
@@ -101,7 +102,8 @@ exactly. Retired names are the exception and fail loudly with a `422`: `title`, 
 |---|---|
 | Free text | a double quote inside a free-text member returns `422` on the people, company and service-provider searches, because LinkedIn wraps free text in quotes while the query is composed. The Sales Navigator engines accept quotes |
 | Id arrays | the numeric ones (locations, industries, current and past companies, service categories) are max 10 entries, digits only, up to 64 characters per entry; over the cap or a non-numeric entry is a `422`. `connections_of` and `followers_of` are the exception: profile ids up to 128 characters on the people search, any non-empty string up to 64 on Sales Navigator |
-| `network` | the people and service-provider engines take `1st`, `2nd`, `3rd_plus`; Sales Navigator people takes the raw codes `F` 1st, `S` 2nd, `A` group members, `O` 3rd and beyond. Each rejects the other's values with a `422` |
+| `network` | the people and service-provider engines take `1st`, `2nd`, `3rd_plus`, and the plain company search `1st` only; Sales Navigator people takes the raw codes `F` 1st, `S` 2nd, `A` group members, `O` 3rd and beyond. Each rejects the other's values with a `422` |
+| `has_jobs` | plain company search only: `true` keeps companies hiring on LinkedIn right now, `false` sends nothing |
 | Headcount bands | the plain company search takes named bands (`1_to_10` up to `10001_plus`) and refuses LinkedIn's letter codes; the Sales Navigator engines take the letters `A` to `I`, and the account search has no `A` |
 | Sales Navigator facets | the people search has nine such members and the account search three; each takes arrays of `` `{id, text, exclude}` ``, max 10 values each, at least one of `id` or `text` per value, `"exclude": true` for a negative filter. `id` is optional: Sales Navigator matches free text server side, so `[{"text": "VP Marketing"}]` needs no lookup |
 
@@ -186,6 +188,39 @@ A lookup types into the account's already-open tab, so it loads no page, spends 
 commercial-use limit untouched. It still takes one slot of the daily `scraping` budget, and is never
 cached. Empty `rows` means the dropdown offered nothing for that term: an answer, not an error, ledger row `completed`.
 </Note>
+
+## Getting the search URL
+
+`build-search-url` returns the LinkedIn URL of a people or company search instead of running it, plus the filters in
+the exact shape the search takes. Send exactly one of `people`, `sales_nav_people`, `companies` or
+`sales_nav_companies`, each in the vocabulary of `search-people`, `search-sales-nav-people`, `search-companies` or
+`search-sales-nav-companies`. Sending two of them, or none, is a `422`.
+
+Where a filter takes ids, give each value as `{"id": "..."}` or as plain text, `{"text": "Berlin"}`. A text goes
+through that search's own typeahead: the option labelled exactly like your text wins, otherwise LinkedIn's first one.
+`resolved` in the answer lists every text with the id it got and the other options LinkedIn offered, so a wrong pick
+is fixed by sending that value again with the id you want.
+
+```bash curl
+curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-scraping/build-search-url" \
+  -H "Authorization: Bearer gtm_live_YOUR_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"sales_nav_people": {"current_titles": [{"text": "CTO"}], "locations": [{"text": "Berlin"}],
+       "seniority_levels": ["310"]}}'
+```
+
+| Case | What happens |
+|---|---|
+| Every value carries an id | Nothing runs on LinkedIn: no account needed, no budget spent, no ledger row |
+| A text value | One typeahead lookup on the executing account, one slot of the `scraping` budget each, about 5 seconds apart on one account. Equal texts are looked up once. Up to 10 lookups per call; more is a `422 too_many_lookups` before anything runs |
+| A Sales Navigator text the typeahead does not know | It stays in the search as free text, which Sales Navigator matches on its side; `resolved` shows it with `"id": null` |
+| A regular-search text the typeahead does not know | `422 facet_value_not_found` on that value: those filters take ids only |
+| `"free_text": true` on a Sales Navigator value | No lookup; the text goes in as free text |
+| `account_lists` given by name | Matched against your own Sales Navigator account lists, exactly or as the only list whose name contains it; no match is a `422` |
+
+The Sales Navigator URL comes in its `?query=` form, the one a browser or an import tool takes. To run the same search,
+pass the URL to the search's `url`, or the returned `filters` to its `filters`. Recruiter has no URL builder: a
+Recruiter search URL only exists once the search has run, and `search-recruiter-people` returns it as `search_url`.
 
 ## What comes back
 

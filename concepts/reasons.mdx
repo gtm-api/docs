@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 225 reasons across 4 services.
+reason is thrown without a sentence). 228 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -86,6 +86,7 @@ reason is thrown without a sentence). 225 reasons across 4 services.
 | `email_box_ops_disabled` | This deployment is not a workspace mailbox host; box operations are off here. | email |
 | `email_box_unaddressable` | This box is not live or has no hostname and access key yet, so it cannot be addressed. | id |
 | `email_taken` | An account with this email already exists; sign in and connect the agent from the app instead. | id |
+| `facet_value_not_found` | LinkedIn's typeahead offers nothing for this text, and this filter takes ids only; check the spelling, or pass an id from the lookup tool. | linkedin |
 | `filters_must_be_a_non_empty_object` | source_input.filters must be an object with at least one search filter. | linkedin |
 | `handover_in_flight` | A handover of this account is already in progress; wait for it to finish. | id |
 | `handover_in_progress` | Another handover of this account is still in progress; finish or cancel it first. | linkedin |
@@ -205,6 +206,7 @@ reason is thrown without a sentence). 225 reasons across 4 services.
 | `scheduled_at_in_past` | scheduled_at is in the past; omit it to send now, or pass a future time. | email |
 | `scheduled_change_is_not_cancel` | The scheduled change on this subscription is not a cancellation, so there is no cancellation to undo. | id |
 | `scheduled_post_not_deleted` | LinkedIn did not delete this scheduled post: it is not this account's, or it was already published or removed. | linkedin |
+| `search_filters_empty` | _the field_ carries no filter the search can use; give at least one member: keywords, a facet value or a toggle. | linkedin |
 | `send_as_denied` | from_email is not an address this account owns or is allowed to send as. | email |
 | `send_outcome_settled` | confirmed_sent names an attempt that was already proven not sent (context.activity_log_sid, why in context.check_reason), so the word cannot be taken; nothing was sent. | email |
 | `send_outcome_unknown` | **linkedin:** The answer of an attempt of this send never came back, so it may or may not be on LinkedIn, and nothing more is sent until that is known. Repeat the same request after retry_after, or settle it with confirmed_not_sent or confirmed_sent naming context.activity_log_sid.<br/>**email:** This message may already have gone out (the provider gave no verdict), so it is not sent again until the mailbox shows whether it left; ask again after context.retry_after, or ask check-sent (context.activity_log_sid names the attempt). | linkedin, email |
@@ -225,6 +227,7 @@ reason is thrown without a sentence). 225 reasons across 4 services.
 | `team_already_has_subscription` | This workspace already has a subscription applied; cancel or replace it first. | id |
 | `team_partner_managed` | This workspace is managed by a partner; billing changes come through the partner. | id |
 | `team_unavailable` | That workspace does not exist or was deleted. | id |
+| `too_many_lookups` | These filters need more typeahead lookups than one call resolves; pass ids for some values (the lookup tools return them), or split the search. | linkedin |
 | `too_many_recipients` | A send reaches at most 50 recipients across to, cc and bcc together; split it into several sends. | email |
 | `too_many_splits` | group_by would produce more than 500 groups; narrow the filter or split on a field with fewer values. | linkedin, id, orchestration |
 | `tool_busy` | The shadowban checker is at its daily budget; retry after retry_after. | linkedin |
