@@ -42,12 +42,17 @@ volume and frequency instead of features.
 | Connected accounts | 1 |
 | Card required | None |
 | Parallel cloud-browser sessions | 1 |
-| Webhooks | 0 |
+| Webhooks | 1 |
 | Expiry | None; the plan does not end |
 
-Three things are genuinely off rather than slowed: **webhooks** (creating one answers
-`webhook_limit_reached`), **team members** (the workspace is single-user), and the **AI
-copilot**.
+Two things are genuinely off rather than slowed: **team members** (the workspace is
+single-user) and the **AI copilot**.
+
+**One webhook** is included: one registered endpoint, and it can subscribe to every event type
+with `events: ["*"]`. Registering a second answers `402` with `webhook_limit_reached`. A trigger
+in n8n, Make or Zapier registers a webhook of its own, so on Sandbox one trigger runs at a time.
+Realtime push is off on Sandbox (below), so an event that starts on LinkedIn, such as a received
+message, reaches the webhook when a sync reads it rather than the moment it happens.
 
 Daily action caps on Sandbox, per connected account:
 

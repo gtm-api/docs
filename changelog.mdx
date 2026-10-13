@@ -3,6 +3,17 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-13" description="One webhook on the free plan">
+  **Sandbox, the forever free plan, now includes one webhook.** A free workspace can register one
+  endpoint with `POST /api/webhooks`, and that endpoint may subscribe to every event type with
+  `events: ["*"]`. A second registration answers `402 webhook_limit_reached` with `used` and
+  `limit`, the same refusal a paid workspace gets past its 100. A trigger in n8n, Make or Zapier
+  registers a webhook of its own, so on Sandbox one trigger runs at a time. Before this release every
+  one of them answered `402` on a free workspace. Realtime push stays off on Sandbox, so a received
+  message reaches the webhook when a sync reads it. See
+  [billing and plans](/kb/billing-and-plans) and [receive webhooks](/guides/receive-webhooks).
+</Update>
+
 <Update label="2026-10-08" description="Invite members to a LinkedIn event">
   **`invite-to-event` invites up to 25 members to a LinkedIn event, in one call.** Send the
   event's numeric id (`event_ln_id`, the one a `search-events` row carries and the number in the
