@@ -11,7 +11,7 @@ share can be rolled back.
 <Tip>
 **Give this to your AI agent** to lend an account without touching the app:
 
-"Lend a LinkedIn account to another gtm-api workspace. POST to https://app.gtm-api.com/id/v4/api/account-shares
+"Lend a LinkedIn account to another gtm-api workspace. POST to `https://app.gtm-api.com/id/v4/api/account-shares`
 with `{"channel":"linkedin","account_sid":"ln_ac_...","to_email":"..."}` using my API key. It answers 201 with
 status pending, which means nothing has started yet. Poll POST /api/account-shares/search with filter
 `{"sid":{"eq":"ac_sh_..."}}` every 15 seconds until status is active or failed, then report the status,
