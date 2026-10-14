@@ -37,9 +37,16 @@ description: "What's new in the GTM API platform and this documentation."
   server error. It now answers `409 payment_declined` with the bank's reason, for example not
   enough balance, and nothing is charged: top the card up or change it, then try again.
 
-  **The cloud browser asks for a computer.** A sign-in link, or the cloud browser in the app,
-  opened on a phone now shows a notice to open it on a computer instead of starting a session, so
-  a phone that cannot drive the remote desktop spends none of the link's connects.
+  **The cloud browser works from a phone and from a Mac keyboard.** A tap on the remote desktop is
+  now a click (a long press is a right click), and tapping it raises the phone's keyboard, so a
+  sign-in link opened on a phone can be used to the end. On a Mac, Cmd acts as Ctrl on the remote
+  Windows desktop: Cmd+C, Cmd+V and Cmd+A copy, paste and select there instead of setting off
+  the Windows key's own shortcuts.
+
+  **Resuming a subscription that is not paused is no longer an error.**
+  `POST /api/billing-subscriptions/{sid}/resume` on a subscription with nothing paused answers
+  `resumed: false` and changes nothing, where it answered a server error; a real resume answers
+  `resumed: true`.
 </Update>
 
 <Update label="2026-10-13" description="One webhook on the free plan">
