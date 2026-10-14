@@ -300,7 +300,7 @@ paths:
       operationId: check_antidetect_browser_proxy
       summary: Check custom proxy
       description: |-
-        Probe a customer-supplied proxy tuple and report the exit it reaches: country, IP and round-trip latency. Nothing is written, and no browser is named: call it for a proxy you are about to pass as custom_proxy_config, on create or on update-proxy. A proxy that refuses is a SUCCESSFUL call with ok:false plus error_kind (timeout | tls | network | http_error); only a malformed tuple is a 422. The write paths run the same probe themselves, so this verb is for showing the operator what a tuple resolves to BEFORE committing to it.
+        Probe a customer-supplied proxy tuple and report the exit it reaches: country, IP and round-trip latency. Nothing is written: call it for a proxy you are about to pass as custom_proxy_config, on create or on update-proxy. A proxy that refuses is a SUCCESSFUL call with ok:false plus error_kind (timeout | tls | network | http_error); only a malformed tuple is a 422. The write paths run the same probe themselves, so this verb is for showing the operator what a tuple resolves to BEFORE committing to it. Checking an edit of a browser that already rides its own proxy? Pass its sid and leave the password out: the stored one is probed, as update-proxy keeps it, for the same ip and username only.
 
         Contract:
         - MCP tool `check_antidetect_browser_proxy`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -4177,7 +4177,7 @@ paths:
       operationId: send_linkedin_connection_request
       summary: Send connection request
       description: |-
-        Send one outbound LinkedIn connection request (outward action). Address the person by profile_id (the URN, ln_id OR sn_id) or by public_identifier (a vanity slug or linkedin.com/in/ URL, resolved server-side). Server-side checks run first: the daily send limit, the premium-aware note cap (200 free / 300 premium), and the 21-day resend cooldown. Fire-on-success: a row is created only when LinkedIn confirms the send. Sends once per client_reference and person: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. A person with a request on record under another key or none is refused 422 resend_not_available, context.cause pending, accepted, cooldown (resend_available_at) or sync_reset; LinkedIn refusing a second invitation while one of the account's is out is answered by that one, never as a refusal of this send. check_linkedin_connection_request_sent asks what an invitation came to without sending.
+        Send one outbound LinkedIn connection request (outward action). Address the person by profile_id (the URN, ln_id or sn_id) or by public_identifier (slug or /in/ URL). Checks: daily limit, note cap (200 free / 300 premium), 21-day resend cooldown. Fire-on-success: a row only when LinkedIn confirms. Sends once per client_reference and person: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. A request on record under another key or none: 422 resend_not_available, context.cause pending, accepted, cooldown (resend_available_at) or sync_reset; an accepted one is probed on LinkedIn first (context.probe); a person who removed the account, or whom it removed, is invited again. 422 target_blocked: they blocked the account (context.block_log_sid; never retry). 422 target_unavailable: nobody in the team can see their account (retry after context.retry_after). check_linkedin_connection_request_sent asks what an invitation came to without sending.
 
         Contract:
         - MCP tool `send_linkedin_connection_request`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
@@ -4473,7 +4473,7 @@ paths:
       operationId: sync_my_linkedin_connections
       summary: Sync my connections
       description: |-
-        Kick off a full background connections sync for one account by inserting a sync_run (upsert-only: new/updated rows only, no removal detection). ASYNC: returns pending refs to poll or await the linkedin-connections.sync-completed webhook. For an in-request head refresh use get_my_latest_linkedin_connections instead.
+        Kick off a background connections sync for one account by inserting a sync_run. The pages add and update rows; a live row the run should have listed and did not goes to the check-target-block, whose read removes a severed edge (linkedin-connections.removed lands shortly after the run). ASYNC: returns pending refs to poll or await the linkedin-connections.sync-completed webhook. For an in-request head refresh use get_my_latest_linkedin_connections instead.
 
         Contract:
         - MCP tool `sync_my_linkedin_connections`, registry package `mcp.linkedin/linkedin_connections`, mount `linkedin.network`.
@@ -6816,7 +6816,7 @@ paths:
       operationId: send_linkedin_message
       summary: Send LinkedIn message
       description: |-
-        Send one outbound regular LinkedIn DM on the basic messenger (outward action). Reply to an existing thread via linkedin_conversation_sid, or open a new thread to a 1st-degree connection via ln_id / sn_id or by public_identifier (slug or linkedin.com/in/ URL, resolved server-side). Guards run first: send_messages daily cap, 8000-char body cap, connection guard, attachment https:// reachability, basic-messenger surface guard. Fire-on-success: a row is inserted only on terminal success. Sends once per client_reference and place (the thread, else the person): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. When NOT: InMail to a non-connection → send_linkedin_inmail; voice note → send_linkedin_voice_message; Sales Navigator thread → send_linkedin_sales_nav_message; the connection-request note lives on linkedin-connection-requests. Bulk send: loop client-side and respect the daily cap.
+        Send one outbound regular LinkedIn DM on the basic messenger (outward action). Reply to an existing thread via linkedin_conversation_sid, or open a new thread to a 1st-degree connection via ln_id / sn_id or by public_identifier (slug or linkedin.com/in/ URL). Guards run first: send_messages daily cap, 8000-char body cap, block guard (a member who blocked this account is refused 422 target_blocked, no browser call), connection guard, attachment https:// reachability, basic-messenger surface guard. Fire-on-success: a row only on terminal success. Sends once per client_reference and place (the thread, else the person): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. When NOT: InMail to a non-connection → send_linkedin_inmail; voice note → send_linkedin_voice_message; Sales Navigator thread → send_linkedin_sales_nav_message; the connection note lives on linkedin-connection-requests. Bulk: loop client-side within the daily cap.
 
         Contract:
         - MCP tool `send_linkedin_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -9377,6 +9377,12 @@ components:
         password:
           type: string
           nullable: true
+        sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ab_br_
+          description: The browser whose own proxy is being edited. A password left out is then the one that browser stores, for the same ip and username only; another host never receives it.
       required:
         - ip
         - port
@@ -15305,7 +15311,7 @@ components:
           type: string
           nullable: true
           maxLength: 191
-          description: 'The company website instead of its LinkedIn URL ("acme.com", "www.acme.com" and "https://acme.com/pricing" all fold to the same host): resolved to a LinkedIn identity through the stored corpus, so a miss is refused company_not_resolvable rather than searched for live. This is the way to turn a domain you already have into the company profile. Provide domain XOR company_url.'
+          description: "The company website instead of its LinkedIn URL (`acme.com`, `www.acme.com` and `https://acme.com/pricing` all fold to the same host): resolved to a LinkedIn identity through the stored corpus, so a miss is refused company_not_resolvable rather than searched for live. This is the way to turn a domain you already have into the company profile. Provide domain XOR company_url."
         linkedin_account_sid:
           type: string
           nullable: true
@@ -15732,7 +15738,7 @@ components:
           type: string
           nullable: true
           maxLength: 191
-          description: 'The company website instead of its LinkedIn URL ("acme.com", "www.acme.com" and "https://acme.com/pricing" all fold to the same host): resolved to a LinkedIn identity through the stored corpus, so a miss is refused company_not_resolvable rather than searched for live. This is the way to turn a domain you already have into the company profile. Provide domain XOR company_url.'
+          description: "The company website instead of its LinkedIn URL (`acme.com`, `www.acme.com` and `https://acme.com/pricing` all fold to the same host): resolved to a LinkedIn identity through the stored corpus, so a miss is refused company_not_resolvable rather than searched for live. This is the way to turn a domain you already have into the company profile. Provide domain XOR company_url."
         linkedin_account_sid:
           type: string
           nullable: true
@@ -65631,7 +65637,7 @@ components:
           required:
             - ip
             - port
-          description: Custom proxy connection tuple (customer BYO path). Probed before it is written; 5G Proxy cannot ride it.
+          description: Custom proxy connection tuple (customer BYO path). Probed before it is written; 5G Proxy cannot ride it. A password left out keeps the one this browser stores when ip and username stay the same, never for another host.
         proxy_5g:
           type: boolean
           description: "Arm (true) or release (false) the 5G Proxy add-on binding on this browser. Omit to leave the binding untouched. A body carrying proxy_5g alone is a valid source-less call: it moves only the add-on binding and leaves the IP where it is."

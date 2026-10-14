@@ -3,6 +3,45 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-14" description="Blocked members, removed connections, your own proxy, declined cards">
+  **A member who blocked the account is refused before anything is sent.** When the team already
+  knows that a member blocked one of its LinkedIn accounts (another account of the team still sees
+  them, this one does not), `POST /api/linkedin-messages/send` and the other send verbs, and
+  `POST /api/linkedin-connection-requests/send`, answer `422 target_blocked` with
+  `context.block_log_sid` before any browser opens; a retry changes nothing, another account can
+  still reach them. A connection request to a member whom two accounts of the team cannot see at
+  all (a deleted, restricted or hibernated LinkedIn account) is refused with
+  `422 target_unavailable` and `context.retry_after`, when the check looks again. Both are on the
+  [reasons](/concepts/reasons) page.
+
+  **A connection removed on LinkedIn can be invited again.** A connection request once accepted
+  used to refuse every new invitation to the same person, even after one side removed the
+  connection on LinkedIn. That refusal is now checked against LinkedIn before it stands: a person
+  who is still a 1st-degree connection keeps it, with `context.probe` saying so, and a person who
+  is not is invited and the stored connection is removed.
+
+  **The connections sync notices who left the list.** Once a week a connections sync walks the
+  whole list, and every sync compares its newest page with what is stored. A connection the sync
+  should have listed and did not is checked on LinkedIn before anything changes: a removed one is
+  deleted and announced as `linkedin-connections.removed`, a block is recorded, and one that is
+  still connected stays.
+
+  **Your own proxy: Save checks it, and a password left out is kept.** In the app, Connect account
+  and Change proxy run the proxy check themselves when you save, and stop with the reason when the
+  proxy does not answer. `POST /api/antidetect-browsers/update-proxy` keeps the stored password of
+  your own proxy when the request leaves it out, for the same host and username only, and
+  `POST /api/antidetect-browsers/check-proxy` takes the browser's `sid` to test exactly what that
+  update would push.
+
+  **A declined card says why.** Adding seats or an add-on with a card the bank declines answered a
+  server error. It now answers `409 payment_declined` with the bank's reason, for example not
+  enough balance, and nothing is charged: top the card up or change it, then try again.
+
+  **The cloud browser asks for a computer.** A sign-in link, or the cloud browser in the app,
+  opened on a phone now shows a notice to open it on a computer instead of starting a session, so
+  a phone that cannot drive the remote desktop spends none of the link's connects.
+</Update>
+
 <Update label="2026-10-13" description="One webhook on the free plan">
   **Sandbox, the forever free plan, now includes one webhook.** A free workspace can register one
   endpoint with `POST /api/webhooks`, and that endpoint may subscribe to every event type with

@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 230 reasons across 4 services.
+reason is thrown without a sentence). 232 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -225,6 +225,8 @@ reason is thrown without a sentence). 230 reasons across 4 services.
 | `subscription_not_floating` | This subscription is already applied to another workspace. | id |
 | `subscription_required` | This LinkedIn account does not fit the workspace's plan right now, so it takes no action; add a seat to the plan or free one, then retry. | linkedin |
 | `sync_in_progress` | **linkedin:** A sync of the same kind is running on this account; retry after retry_after.<br/>**email:** A sync of this account is already running (context.open_sync_run_sid); wait for it to finish. | linkedin, email |
+| `target_blocked` | This member blocked this account on LinkedIn (visible to another account of the team, invisible to this one), so nothing can be sent to them from it and a retry changes nothing; context.block_log_sid names the verdict. Reach them from another account, or leave them. | linkedin |
+| `target_unavailable` | This member's LinkedIn account is unavailable right now (invisible from two accounts of the team: deleted, restricted or hibernated), so there is nobody to send to and the stored connection is marked gone. Retry after context.retry_after, when the check looks again. | linkedin |
 | `target_unresolvable` | LinkedIn answered no profile for the target nickname; check the vanity slug, or address the person by their profile URN. | linkedin |
 | `team_already_has_subscription` | This workspace already has a subscription applied; cancel or replace it first. | id |
 | `team_partner_managed` | This workspace is managed by a partner; billing changes come through the partner. | id |
