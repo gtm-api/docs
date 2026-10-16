@@ -96,7 +96,7 @@ On failure, `error_message` names the class:
 
 | Prefix | What happened |
 |---|---|
-| `limit_reached: {bucket}` | The executor's smart-limit bucket ran out mid-run. The cause is appended: `linkedin_quota_hit`, `held`, `daily_saturation` or `delay_not_elapsed` |
+| `limit_reached: {bucket}` | LinkedIn's own quota lock on the executor mid-run (`linkedin_quota_hit`). A spent daily budget or a hold is not a failure since 2026-10-16: the run waits for the bucket's reset and goes on from the page it stopped at, up to a day, with the clock claimed; a `daily_saturation` or `held` here means the refusal carried no clock |
 | `run_timeout: no progress` | The driver died and the run stopped moving |
 | `run_timeout: never started` | The dispatch was lost between the mint and the queue |
 | `abandoned: parent deleted` | The job was deleted mid-run. This one never counts toward the auto-pause streak |
@@ -104,6 +104,7 @@ On failure, `error_message` names the class:
 
 A reaper scans every **15 minutes** and finalizes stuck runs: an `in_progress` run with no movement for **2 hours**, and a
 `pending` run older than **30 minutes** that never started. Both are stamped `failed` with `run_timeout:`, releasing the clock.
+A run waiting for its budget's reset is not stuck: the reaper leaves it alone until that reset is 2 hours overdue.
 
 ## How leads are deduplicated across runs
 
@@ -160,8 +161,8 @@ ends the platform resumes exactly those rows. A transfer does not come back: the
 <Warning>
 A job auto-pauses after **10 consecutive failed runs**, with `paused_reason: too_many_failures` and a
 `linkedin-auto-scrapes.paused` webhook. The streak resets to 0 on the first successful run. `limit_reached:` failures count
-deliberately, so a cadence that chronically outruns the executor's scraping budget walks itself to a pause instead of failing
-quietly for months.
+deliberately: an executor LinkedIn keeps locking walks the job to a pause instead of failing quietly for months. A spent
+daily budget is not one of them, the run waits it out.
 </Warning>
 
 ## Over the API
@@ -214,12 +215,18 @@ Endpoint setup is in [Receive webhooks](/guides/receive-webhooks).
 Every page runs on the pinned executor account.
 A page spends that account's own `scraping` smart-limit bucket, one spend per page, and writes a row in Data Requests.
 The ceiling is per account, not per job, and the daily `scraping` budget is warmup-driven, so a young account collects less per day.
-Pages are never served from cache. If a collector keeps failing with `limit_reached: scraping`, lower the cadence or move it to an
-account with headroom rather than raising the budget past what [warmup](/kb/smart-limits-and-warmup) supports.
+Pages are never served from cache. A source larger than one day's budget is one run over several days: when the budget runs
+out mid-walk the run waits for the reset and goes on from the page it stopped at, every page fetched once (a 2,500-row Sales
+Navigator search on a 375-a-day budget takes seven days). The clock stays claimed meanwhile, so no second run is minted under it.
+If a collector keeps meeting `limit_reached: scraping`, LinkedIn's own lock, move it to an account with headroom rather than
+raising the budget past what [warmup](/kb/smart-limits-and-warmup) supports.
 
 The drawer is a sample plus an export, not a browser. **Results** loads the newest 100 rows, **Runs** the newest 50, and the
-list page loads up to 200 jobs and filters them in memory. **Download CSV** exports the rows currently loaded, not the whole
-registry: for the full set, page the results endpoint.
+list page loads up to 200 jobs and filters them in memory. **Export all** on the Results tab reads the whole registry page by
+page and writes it as one CSV or JSON file: every row the job ever collected, with every fact the row carries (a Sales
+Navigator row's position, company and its id, region, degree, seniority, tenure, About text and badges), the identifiers
+(`sn_id`, `ln_id`, `nickname`, `ln_member_id`), a profile link, the Sales Navigator link, and which run first and last saw it.
+The same rows are on the results endpoint.
 
 ## Related
 

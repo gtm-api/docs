@@ -233,17 +233,29 @@ Rows sit at `result.rows`, paging at `result.paging`, and the ledger row at `res
 | `ln_id` | filled | `null` | `null` |
 | `sn_id` | `null` | filled | `null` |
 | `nickname` (vanity slug) | filled | `null` | filled |
-| `headline`, `position`, `company_name`, `location`, `connection_degree` | always `null` | always `null` | filled where LinkedIn shows them |
+| `headline` | filled, the card's line | `null` | filled |
+| `location`, `connection_degree` | filled, the card's line and badge | filled | filled where LinkedIn shows them |
+| `position`, `company_name` | `null`, the card prints no structured position (read the headline) | filled, the current position | filled where LinkedIn shows them |
+
+The Sales Navigator rows carry the lead as the search page shows it, read from the page's own answer at no extra cost,
+with these fields after the common set: `first_name` and `last_name` (an initial for some members), `company_ln_id`
+(the current company's numeric id, the one every company method takes; `null` when the company has no LinkedIn page),
+`company_industry`, `about` (the whole About text), `months_in_position`, `months_at_company`, `seniority` ("Vice
+President", "CXO"), `premium`, `open_profile` (takes InMail without a credit), `pending_invitation` (the executor has an
+invitation out to the lead), `spotlights` (Sales Navigator's badges, lowercased: `recently_hired`, `recently_promoted`,
+`posted_on_linkedin`, `follows_your_company`, `second_degree_connection`), `sales_navigator_url` and `profile_url`
+(`/in/` plus the `sn_id`, which LinkedIn resolves to the member's page). The degree, the pending invitation and the
+relationship badges are relative to the executor. `company-decision-makers` answers the same row shape. The degree is
+spelled `1st`, `2nd`, `3rd` or `out_of_network` there, where the people search spells `3rd+`.
 
 The Recruiter rows add `talent_id` (what `send-recruiter` addresses as `recipient_profile_id`), `industry`,
 `can_send_inmail`, `open_to_work`, `connections_count` and `anonymized`, and the result block adds
 `search_history_id` and `search_url`, the handle to page by.
 
-Those last five are `null` by construction on the first two engines: the result page does not carry them. Service-provider rows
-use the same shape, with no ratings, review counts or service labels. When you need more, take `ln_id` or `nickname`
-from a people-search row, or `sn_id` from a Sales Navigator row, into enrichment (as `profile_id` / `public_identifier`)
-or into `check-degree`. `ln_member_id` is a join key only: it cannot be turned back into a signed URN, so no method
-accepts it.
+Service-provider rows use the people-search shape, with no ratings, review counts or service labels. When you need more
+than a row carries, take `ln_id` or `nickname` from a people-search row, or `sn_id` from a Sales Navigator row, into
+enrichment (as `profile_id` / `public_identifier`) or into `check-degree`. `ln_member_id` is a join key only: it cannot
+be turned back into a signed URN, so no method accepts it.
 
 | Company field | Company search | Sales Navigator account search | `similar-companies` |
 |---|---|---|---|
@@ -259,9 +271,11 @@ To resolve a Sales Navigator company into a vanity slug, run `company-public-ide
 
 <Warning>
 Paging: `page` is the page you asked for (default 1), `page_size` is how many rows LinkedIn returned rather than a knob
-you set, and `total` is always `null` on the people and company engines. Drive the loop from `has_more`, true while
-this page returned rows and `page` is below 100. The ceiling is page 100: a `page` above it is a `422`, `has_more` is
-`false` at 100 whatever LinkedIn still has, and an empty page is terminal.
+you set, and `total` is `null` on the people and company engines, except the Sales Navigator people search, where it is
+LinkedIn's own count of the search: exact on a small search, an estimate on a large one (the page prints "8M+"). Drive
+the loop from `has_more`, true while this page returned rows and `page` is below 100; on the Sales Navigator people
+search it turns `false` on the page that reaches the total, one page before the empty one. The ceiling is page 100: a
+`page` above it is a `422`, `has_more` is `false` at 100 whatever LinkedIn still has, and an empty page is terminal.
 </Warning>
 
 `search-people` carries an extra boolean, `commercial_use_limit_hit`: `true` means LinkedIn's monthly commercial-use
@@ -337,9 +351,10 @@ The detail sits in one of two places, never both: a 422 carries it in `error.fie
 | LinkedIn's own quota lock on the account | 429 | `rate_limited` | `context`: `linkedin_strike`, `cause: "linkedin_quota_hit"`, `retry_after`; no bypass |
 | The account's browser could not serve the search this time | 503 | `service_unavailable` | `context.reason` says why, always with `retry_after`: `browser_starting` (a cold start still warming up, 30 seconds), `browser_unavailable` (the session was lost and is being restarted, two minutes), `plugin_unavailable` (the search page did not load or did not answer, one minute), `browser_maintenance` or `infrastructure_maintenance` (the browser or the fleet is being updated, five to ten minutes). The run is marked `failed`; a repeat under the same `idempotency_key` returns that row until `retry_after`, and runs the search again after it |
 
-The Sales Navigator refusal spells out its own fix: use an account that has a seat, or run `get-my-sales-navigator` to
-refresh that account's premium status first. That check also runs on its own every 360 minutes (6 hours), so a seat
-bought minutes ago usually needs the manual refresh.
+The Sales Navigator refusal spells out its own fix: use an account that has a seat, or refresh that account's seat
+status first with `POST /api/linkedin-accounts/{sid}/check-premium` (MCP `check_linkedin_account_premium_subscription`,
+`checks: ["sales_nav"]`). That check also runs on its own every 360 minutes (6 hours), so a seat bought minutes ago
+usually needs the manual refresh.
 
 ## Where a search shows up in the app
 

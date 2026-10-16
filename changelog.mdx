@@ -3,6 +3,31 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-16" description="Sales Navigator rows carry the lead, a collector waits for its budget, the whole registry exports">
+  **A Sales Navigator people search answers the lead, not just a name.** Every row of
+  `POST /api/linkedin-scraping/search-sales-nav-people` (and of `company-decision-makers`) now carries the
+  current position and company with its numeric `company_ln_id`, the industry, the region, the degree, the
+  seniority, the tenure in months, the About text, the premium and Open Profile flags, Sales Navigator's
+  badges, the lead page and a profile link, all read from the search page's own answer at no extra cost.
+  `paging.total` is LinkedIn's count of the search and `has_more` turns false on the last page. Rows used
+  to carry the name, the `sn_id` and the picture only. The full shape is on
+  [People and company search](/kb/people-and-company-search).
+
+  **An auto-scrape waits for its budget instead of failing.** A collector whose executor spends the day's
+  scraping budget mid-walk now parks until the budget resets and goes on from the page it stopped at, with
+  the clock claimed meanwhile; the next run no longer restarts at page 1 and re-spends the day on rows it
+  had. A source larger than one day's budget is one run over several days. LinkedIn's own quota lock
+  still fails the run and counts toward the auto-pause streak. Details on [Auto-scrapes](/kb/auto-scrapes).
+
+  **Export all on the Results tab.** The auto-scrape drawer exports the whole registry as CSV or JSON,
+  every row the job collected with every fact it carries, the identifiers, a profile link and the Sales
+  Navigator link. The export used to be the 100 rows on screen with one identity column.
+
+  **The Sales Navigator refusal names the right verb.** `sales_nav_required` now points at
+  `POST /api/linkedin-accounts/{sid}/check-premium` (MCP `check_linkedin_account_premium_subscription`,
+  `checks: ["sales_nav"]`) to refresh a seat; it used to name an internal verb that is not public.
+</Update>
+
 <Update label="2026-10-14" description="Blocked members, removed connections, your own proxy, declined cards">
   **A member who blocked the account is refused before anything is sent.** When the team already
   knows that a member blocked one of its LinkedIn accounts (another account of the team still sees
