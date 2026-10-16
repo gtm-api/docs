@@ -145,11 +145,12 @@ batch, on the Smart Limits tab of the account drawer or through
 [smart limits and warmup](/kb/smart-limits-and-warmup) filtered on `limit_type`.
 
 <Warning>
-Default budget: 80 enrichment actions per day per account, with a 240 second gap enforced
-between counted actions. When the budget is spent or the gap has not elapsed the call
-returns `429 rate_limited`, reason `bucket_saturated`, with a `retry_after` value; retry
-after that timestamp, not on a fixed schedule. The free plan clamps this to 12 enrichments
-per day per connected account.
+Default budget: 80 enrichment actions per day per account, paced about one call every 5
+seconds. A wait of up to 20 seconds for the slot is slept by the server, so the call simply
+takes longer. When the budget is spent, the account is on hold, or the wait would be longer,
+the call returns `429 rate_limited`, reason `bucket_saturated`, with a `retry_after` value;
+retry after that timestamp, not on a fixed schedule. The free plan clamps this to 12
+enrichments per day per connected account.
 </Warning>
 
 ## Errors you will actually hit
