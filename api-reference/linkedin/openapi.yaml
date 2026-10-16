@@ -10993,12 +10993,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -12969,12 +12969,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -33847,12 +33847,12 @@ components:
                           type: string
                         file_byte_size:
                           type: number
-                        path:
+                        file_name:
                           type: string
-                          description: "Outbound rows only: the https:// URL we uploaded from."
-                        size:
-                          type: number
-                          description: Outbound rows only.
+                          description: "Rows our send verbs wrote: the file name as sent."
+                        file_type:
+                          type: string
+                          description: "Rows our send verbs wrote: the MIME type as sent."
                   reactions:
                     type: array
                     nullable: true
@@ -34172,12 +34172,12 @@ components:
                           type: string
                         file_byte_size:
                           type: number
-                        path:
+                        file_name:
                           type: string
-                          description: "Outbound rows only: the https:// URL we uploaded from."
-                        size:
-                          type: number
-                          description: Outbound rows only.
+                          description: "Rows our send verbs wrote: the file name as sent."
+                        file_type:
+                          type: string
+                          description: "Rows our send verbs wrote: the MIME type as sent."
                   reactions:
                     type: array
                     nullable: true
@@ -34497,12 +34497,12 @@ components:
                           type: string
                         file_byte_size:
                           type: number
-                        path:
+                        file_name:
                           type: string
-                          description: "Outbound rows only: the https:// URL we uploaded from."
-                        size:
-                          type: number
-                          description: Outbound rows only.
+                          description: "Rows our send verbs wrote: the file name as sent."
+                        file_type:
+                          type: string
+                          description: "Rows our send verbs wrote: the MIME type as sent."
                   reactions:
                     type: array
                     nullable: true
@@ -36603,12 +36603,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -57387,12 +57387,12 @@ components:
                           type: string
                         file_byte_size:
                           type: number
-                        path:
+                        file_name:
                           type: string
-                          description: "Outbound rows only: the https:// URL we uploaded from."
-                        size:
-                          type: number
-                          description: Outbound rows only.
+                          description: "Rows our send verbs wrote: the file name as sent."
+                        file_type:
+                          type: string
+                          description: "Rows our send verbs wrote: the MIME type as sent."
                   reactions:
                     type: array
                     nullable: true
@@ -58483,12 +58483,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -58804,12 +58804,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -59119,12 +59119,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -59430,12 +59430,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -59716,12 +59716,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true
@@ -62537,12 +62537,12 @@ components:
                     type: string
                   file_byte_size:
                     type: number
-                  path:
+                  file_name:
                     type: string
-                    description: "Outbound rows only: the https:// URL we uploaded from."
-                  size:
-                    type: number
-                    description: Outbound rows only.
+                    description: "Rows our send verbs wrote: the file name as sent."
+                  file_type:
+                    type: string
+                    description: "Rows our send verbs wrote: the MIME type as sent."
             reactions:
               type: array
               nullable: true

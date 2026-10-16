@@ -72,7 +72,7 @@ If the operator already has an account, skip this flow: connect through OAuth fr
 
 ## When Sandbox is not enough
 
-Sandbox never expires, but verbs answer `402` with `subscription_required` the moment the workspace needs more than the free plan grants, for example a second connected account or a second webhook. That moment is handleable by the agent, not just reportable:
+Sandbox never expires, but a verb answers `402` the moment the workspace needs more than the free plan grants: a second connected account is refused with `insufficient_slots`, a second webhook with `webhook_limit_reached`, each with `suggested_action: upgrade_subscription`. That moment is handleable by the agent, not just reportable:
 
 1. Read the state: search `billing-subscriptions` for the workspace and see `status`.
 2. Mint a payment link: create a checkout for the plan through the billing tools (or a Paddle portal link for an existing subscription). Both return a URL a human can open.
