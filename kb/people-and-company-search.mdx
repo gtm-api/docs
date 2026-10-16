@@ -13,11 +13,11 @@ A search runs now, returns one live page of results inside the HTTP response, an
 - A Recruiter seat, with a live Recruiter session, on the executing account for the Recruiter methods.
 
 <Note>
-A search is a discovery list, not an enriched one. Rows carry an identity (member id, vanity slug, name, avatar) and
-nothing else: no headline, no title, no company, no location, no connection degree. Feed the ids into
-[enrichment](/kb/enrichment) for those, a separate surface. The one exception is the Recruiter people search, whose
-rows come back with the headline, current position, location and connection degree filled, because LinkedIn Recruiter
-resolves the profile inline.
+A search is a discovery list, not an enriched one. Rows carry what the result page itself shows: on the people search
+the identity, the headline, the location and the connection degree; on the Sales Navigator people search also the
+current title and company and the lead facts listed under the field table below; on the Recruiter people search the
+headline, current position, location and degree. Experience, skills and contact details are not on a result page:
+feed the ids into [enrichment](/kb/enrichment) for those, a separate surface.
 </Note>
 
 A search is never cached: every call re-runs. The only durable traces are one row in the **Data
@@ -348,7 +348,7 @@ The detail sits in one of two places, never both: a 422 carries it in `error.fie
 | URL from the wrong LinkedIn screen, or over 2048 characters | 422 | `validation_failed` | `field_errors` on `url` |
 | Sales Navigator method on an account with no seat | 422 | `validation_failed` | `field_errors` on `linkedin_account_sid`, message starts `sales_nav_required:`; the ledger row is `rejected` |
 | Daily budget spent, account on hold, or cooldown not elapsed | 429 | `rate_limited` | `context`: `bucket_saturated`, `limit_type: "scraping"`, `cause`, `retry_after` |
-| LinkedIn's own quota lock on the account | 429 | `rate_limited` | `context`: `linkedin_strike`, `cause: "linkedin_quota_hit"`, `retry_after`; no bypass |
+| LinkedIn's own quota lock on the account | 429 | `rate_limited` | `context`: `linkedin_strike`, `cause: "linkedin_quota_hit"`, `retry_after`; nothing overrides it |
 | The account's browser could not serve the search this time | 503 | `service_unavailable` | `context.reason` says why, always with `retry_after`: `browser_starting` (a cold start still warming up, 30 seconds), `browser_unavailable` (the session was lost and is being restarted, two minutes), `plugin_unavailable` (the search page did not load or did not answer, one minute), `browser_maintenance` or `infrastructure_maintenance` (the browser or the fleet is being updated, five to ten minutes). The run is marked `failed`; a repeat under the same `idempotency_key` returns that row until `retry_after`, and runs the search again after it |
 
 The Sales Navigator refusal spells out its own fix: use an account that has a seat, or refresh that account's seat
