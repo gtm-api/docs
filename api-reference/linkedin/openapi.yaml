@@ -3001,7 +3001,7 @@ paths:
       operationId: update_linkedin_account_sync_config
       summary: Update account sync config
       description: |-
-        Set the account's weekly sync schedule: the timezone, the allowed per-weekday time windows, and per-track interval entries, each its track's platform cadence or longer (an entry only slows a track down; one below the cadence is refused with 422). Replaces the stored sync_config wholesale (send the full desired config, not a delta). Returns the updated account. SINGLE account: to reschedule a fleet, author a mass action on /mcp/orchestration/mass-actions with the step `linkedin-accounts.update-sync-config` (scope objects) so the whole change rides ONE approval.
+        Set the account's weekly sync schedule: the timezone, the allowed per-weekday time windows, and per-track interval entries, each its track's floor or longer (15 minutes for an inbox, which is real-time mode: the browser stays awake inside the window; an hour for the rest; one below the floor is refused with 422). Replaces the stored sync_config wholesale (send the full desired config, not a delta). Returns the updated account. SINGLE account: to reschedule a fleet, author a mass action on /mcp/orchestration/mass-actions with the step `linkedin-accounts.update-sync-config` (scope objects) so the whole change rides ONE approval.
 
         Contract:
         - MCP tool `update_linkedin_account_sync_config`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -9690,7 +9690,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -10212,7 +10219,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -13872,7 +13886,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -14456,7 +14477,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -15005,7 +15033,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -19598,7 +19633,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -21909,7 +21951,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -22473,7 +22522,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -23059,7 +23115,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -23570,7 +23633,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -24070,7 +24140,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -24587,7 +24664,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -25137,7 +25221,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -25650,7 +25741,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -26237,7 +26335,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -26794,7 +26899,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -27409,7 +27521,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -28072,7 +28191,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -28660,7 +28786,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -29160,7 +29293,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -29719,7 +29859,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -35081,7 +35228,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -38389,7 +38543,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -53071,7 +53232,14 @@ components:
                                 type: number
                             required:
                               - interval_minutes
-                        description: Per-track sync-interval overrides, keyed by sync track.
+                          followers:
+                            type: object
+                            properties:
+                              interval_minutes:
+                                type: number
+                            required:
+                              - interval_minutes
+                        description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                       timezone:
                         type: string
                         description: IANA timezone the window is evaluated in.
@@ -57749,7 +57917,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -60067,7 +60242,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -60649,7 +60831,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -61251,7 +61440,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -61803,7 +61999,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -64358,7 +64561,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -64915,7 +65125,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -66236,8 +66453,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 180
-                      description: "Minutes between two connections syncs: 180 (the platform cadence) or more."
+                      minimum: 60
+                      description: "Minutes between two connections syncs: 60 or more (180 when the track is left out)."
                   required:
                     - interval_minutes
                 conversations:
@@ -66245,8 +66462,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 180
-                      description: "Minutes between two conversations syncs: 180 (the platform cadence) or more."
+                      minimum: 15
+                      description: "Minutes between two conversations syncs: 15 or more (180 when the track is left out)."
                   required:
                     - interval_minutes
                 sales_navigator_conversations:
@@ -66254,8 +66471,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 120
-                      description: "Minutes between two sales_navigator_conversations syncs: 120 (the platform cadence) or more."
+                      minimum: 15
+                      description: "Minutes between two sales_navigator_conversations syncs: 15 or more (120 when the track is left out)."
                   required:
                     - interval_minutes
                 recruiter_conversations:
@@ -66263,8 +66480,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 120
-                      description: "Minutes between two recruiter_conversations syncs: 120 (the platform cadence) or more."
+                      minimum: 15
+                      description: "Minutes between two recruiter_conversations syncs: 15 or more (120 when the track is left out)."
                   required:
                     - interval_minutes
                 connection_requests:
@@ -66272,8 +66489,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 720
-                      description: "Minutes between two connection_requests syncs: 720 (the platform cadence) or more."
+                      minimum: 60
+                      description: "Minutes between two connection_requests syncs: 60 or more (720 when the track is left out)."
                   required:
                     - interval_minutes
                 connection_invitations:
@@ -66281,8 +66498,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 720
-                      description: "Minutes between two connection_invitations syncs: 720 (the platform cadence) or more."
+                      minimum: 60
+                      description: "Minutes between two connection_invitations syncs: 60 or more (720 when the track is left out)."
                   required:
                     - interval_minutes
                 premium_check:
@@ -66290,8 +66507,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 360
-                      description: "Minutes between two premium_check syncs: 360 (the platform cadence) or more."
+                      minimum: 60
+                      description: "Minutes between two premium_check syncs: 60 or more (360 when the track is left out)."
                   required:
                     - interval_minutes
                 snapshot_check:
@@ -66300,10 +66517,19 @@ components:
                     interval_minutes:
                       type: integer
                       minimum: 1320
-                      description: "Minutes between two snapshot_check syncs: 1320 (the platform cadence) or more."
+                      description: "Minutes between two snapshot_check syncs: 1320 or more (1320 when the track is left out)."
                   required:
                     - interval_minutes
-              description: "Per-track interval overrides in minutes, keyed by sync track. An entry can only slow its track down: the worker never syncs a track sooner than its platform cadence (connections and conversations 180, sales_navigator_conversations and recruiter_conversations 120, premium_check 360, connection_requests and connection_invitations 720, snapshot_check 1320), and an entry below it is refused with 422 interval_below_platform_cadence. Leave a track out to sync it at its cadence. New messages do not wait for a sync on a paid plan: while the browser of the account runs they arrive through the realtime push (linkedin-messages.received), so a shorter interval is not the way to get them sooner."
+                followers:
+                  type: object
+                  properties:
+                    interval_minutes:
+                      type: integer
+                      minimum: 60
+                      description: "Minutes between two followers syncs: 60 or more (1440 when the track is left out)."
+                  required:
+                    - interval_minutes
+              description: "Per-track interval overrides in minutes, keyed by sync track; a track left out syncs at its default (connections and conversations 180, sales_navigator_conversations and recruiter_conversations 120, premium_check 360, connection_requests and connection_invitations 720, snapshot_check 1320, followers 1440). Each track has a floor the worker never syncs sooner than, and an entry below it is refused with 422 interval_below_platform_floor: 15 for the three inboxes, 60 for connections, connection_requests, connection_invitations, premium_check and followers, 1320 for snapshot_check. An inbox at 15 is real-time mode: the browser of the account stays awake for as long as its sync window is open, so on a paid plan new messages arrive through the realtime push (linkedin-messages.received) in seconds and the pass every 15 minutes is the net under it; at any longer interval the browser rests between passes. The free plan floors every track at a day."
           required:
             - timezone
           description: Weekly sync schedule for the account (replaces the stored config wholesale).
@@ -66516,7 +66742,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.
@@ -67289,7 +67522,14 @@ components:
                           type: number
                       required:
                         - interval_minutes
-                  description: Per-track sync-interval overrides, keyed by sync track.
+                    followers:
+                      type: object
+                      properties:
+                        interval_minutes:
+                          type: number
+                      required:
+                        - interval_minutes
+                  description: "Per-track sync-interval overrides, keyed by sync track. An inbox track at 15 is real-time mode: the browser stays awake inside the sync window."
                 timezone:
                   type: string
                   description: IANA timezone the window is evaluated in.

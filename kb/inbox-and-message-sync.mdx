@@ -76,22 +76,28 @@ sync spends that budget and nothing else.
 
 ## How often each surface re-syncs
 
-| Surface | Default interval | Editable per account |
+| Surface | Default interval | Shortest interval |
 |---|---|---|
-| `conversations` | 180 minutes | yes |
-| `sales_navigator_conversations` | 120 minutes | yes |
-| `recruiter_conversations` | 120 minutes | yes |
-| `connections` | 180 minutes | yes |
-| `connection_requests` | 720 minutes | yes |
-| `connection_invitations` | 720 minutes | yes |
-| `premium_check` | 360 minutes | yes |
-| `snapshot_check` | 1320 minutes | yes |
-| `followers` | 1440 minutes | no |
+| `conversations` | 180 minutes | 15 minutes (real-time mode) |
+| `sales_navigator_conversations` | 120 minutes | 15 minutes (real-time mode) |
+| `recruiter_conversations` | 120 minutes | 15 minutes (real-time mode) |
+| `connections` | 180 minutes | 60 minutes |
+| `connection_requests` | 720 minutes | 60 minutes |
+| `connection_invitations` | 720 minutes | 60 minutes |
+| `premium_check` | 360 minutes | 60 minutes |
+| `snapshot_check` | 1320 minutes | 1320 minutes |
+| `followers` | 1440 minutes | 60 minutes |
 
-The default is also the fastest a surface ever syncs: a per-account interval can only make it
-sync less often. `update-sync-config` refuses a shorter one with a `422`
-(`interval_below_platform_cadence` on the field, and the message names the minimum), and the
-interval menu on the **Account Sync** tab starts at the default.
+Every surface is editable per account, from its shortest interval up. `update-sync-config` refuses
+anything shorter with a `422` (`interval_below_platform_floor` on the field; the message names the
+shortest value and the default), and the interval menu on the **Account Sync** tab runs from the
+shortest value.
+
+**Real-time mode.** An inbox set to 15 minutes keeps the account's browser awake for as long as its
+sync window is open (instead of going idle after 15 minutes without work), so on a paid plan new
+messages arrive through the [realtime push](#realtime-push-and-what-it-does-not-do) in seconds and
+the pass every 15 minutes is the net under it. Outside the window the browser rests as usual. At any
+longer interval the browser wakes for each pass and rests between them.
 
 Three things change the effective interval: your per-account setting on the **Account Sync**
 tab, the [sync window](/kb/sync-windows-and-auto-suspend) (a run due outside the configured

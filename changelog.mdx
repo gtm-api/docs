@@ -15,18 +15,25 @@ description: "What's new in the GTM API platform and this documentation."
   the `409`. Details on [Inbox and message sync](/kb/inbox-and-message-sync).
 </Update>
 
-<Update label="2026-10-17" description="A sync interval below its surface's default is refused instead of saved">
-  **`update-sync-config` refuses an interval the platform never runs.** Every sync surface has a default
-  interval that is also the fastest it ever syncs: conversations and connections every 180 minutes, the
-  Sales Navigator and Recruiter inboxes every 120, the premium check every 360, invitations every 720, the
-  profile snapshot every 1320. An interval in `entries` could only ever slow a surface down, yet a shorter
-  one was stored and answered `200` while the surface kept its default. It is now a `422` with
-  `interval_below_platform_cadence` on the field, and the message names the minimum; a surface left out
-  of `entries` syncs at its default. The same check runs on the `linkedin-accounts.update-sync-config`
-  mass-action step. Intervals stored below the default before today never ran and are removed, the
-  interval menu on the Account Sync tab starts at the default, and the API reference states each
-  surface's minimum. For new messages a short interval is not the tool: on a paid plan they arrive through
-  the realtime push while the account's browser runs. Details on
+<Update label="2026-10-17" description="Sync intervals go below the defaults, an inbox every 15 minutes is real-time mode, and followers get an interval">
+  **Every sync surface can run faster than its default.** Until today a per-account interval could only
+  slow a surface down (a shorter one was stored, answered `200` and never ran). Now each surface has a
+  shortest interval below its default: the three inboxes 15 minutes, connections, invitations, the premium
+  check and the followers re-read an hour, the profile snapshot its usual 22 hours. The defaults are
+  unchanged. `update-sync-config` refuses anything shorter with a `422` (`interval_below_platform_floor`
+  on the field; the message names the shortest value and the default), the same on the
+  `linkedin-accounts.update-sync-config` mass-action step; intervals stored below the shortest value before
+  today never ran and are removed. The interval menu on the Account Sync tab runs from the shortest value,
+  and the API reference states each surface's minimum.
+
+  **An inbox every 15 minutes is real-time mode.** The account's browser then stays awake for as long as
+  its sync window is open instead of going idle after 15 minutes, so on a paid plan new messages arrive
+  through the realtime push in seconds and the pass every 15 minutes is the net under it. Outside the
+  window the browser rests as before. At any longer interval the browser wakes for each pass and rests
+  between them.
+
+  **The followers re-read takes an interval.** `entries.followers` (default 1440 minutes, an hour at the
+  shortest) joins the other surfaces; its day used to be fixed. Details on
   [Inbox and message sync](/kb/inbox-and-message-sync#how-often-each-surface-re-syncs).
 </Update>
 
