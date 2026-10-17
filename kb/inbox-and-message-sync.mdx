@@ -85,8 +85,13 @@ sync spends that budget and nothing else.
 | `connection_requests` | 720 minutes | yes |
 | `connection_invitations` | 720 minutes | yes |
 | `premium_check` | 360 minutes | yes |
-| `snapshot` | 1320 minutes | no |
+| `snapshot_check` | 1320 minutes | yes |
 | `followers` | 1440 minutes | no |
+
+The default is also the fastest a surface ever syncs: a per-account interval can only make it
+sync less often. `update-sync-config` refuses a shorter one with a `422`
+(`interval_below_platform_cadence` on the field, and the message names the minimum), and the
+interval menu on the **Account Sync** tab starts at the default.
 
 Three things change the effective interval: your per-account setting on the **Account Sync**
 tab, the [sync window](/kb/sync-windows-and-auto-suspend) (a run due outside the configured

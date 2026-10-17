@@ -34,7 +34,10 @@ an account from working, stop its browser instead.
   it are gated.
 
 Edit the window and the per-kind intervals on the **Account Sync** tab of the account
-drawer. Each sync kind shows its interval, the last run and the next due time.
+drawer. Each sync kind shows its interval, the last run and the next due time. An interval
+can only make a kind sync less often than its default, so the menu starts at the default;
+the defaults are listed under
+[How often each surface re-syncs](/kb/inbox-and-message-sync#how-often-each-surface-re-syncs).
 
 ## Browser auto-suspend and wake
 
@@ -108,7 +111,10 @@ await fetch(
 
 Omit `window`, or send it as an empty list, to sync around the clock. Both mean the
 same thing, and neither switches syncing off. Per-kind intervals ride the same
-request's `entries` object.
+request's `entries` object, each one that kind's default or longer: a shorter one is
+refused with a `422` (`interval_below_platform_cadence`), and the message names the
+minimum. New messages do not need a short interval: on a paid plan they arrive through the
+[realtime push](/kb/inbox-and-message-sync#realtime-push-and-what-it-does-not-do).
 
 Field names and the full request shape are in the
 [API reference](/api-reference/overview); to change the schedule for every account on

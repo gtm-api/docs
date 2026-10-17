@@ -3,6 +3,21 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-17" description="A sync interval below its surface's default is refused instead of saved">
+  **`update-sync-config` refuses an interval the platform never runs.** Every sync surface has a default
+  interval that is also the fastest it ever syncs: conversations and connections every 180 minutes, the
+  Sales Navigator and Recruiter inboxes every 120, the premium check every 360, invitations every 720, the
+  profile snapshot every 1320. An interval in `entries` could only ever slow a surface down, yet a shorter
+  one was stored and answered `200` while the surface kept its default. It is now a `422` with
+  `interval_below_platform_cadence` on the field, and the message names the minimum; a surface left out
+  of `entries` syncs at its default. The same check runs on the `linkedin-accounts.update-sync-config`
+  mass-action step. Intervals stored below the default before today never ran and are removed, the
+  interval menu on the Account Sync tab starts at the default, and the API reference states each
+  surface's minimum. For new messages a short interval is not the tool: on a paid plan they arrive through
+  the realtime push while the account's browser runs. Details on
+  [Inbox and message sync](/kb/inbox-and-message-sync#how-often-each-surface-re-syncs).
+</Update>
+
 <Update label="2026-10-17" description="Mass actions send to a vanity slug, and the preview refuses a target no step can reach">
   **A mass-action target can name a person by their vanity slug.** A connect or message step now sends to
   a target that carries only `nickname` (or `public_identifier`, or a `linkedin.com/in/...` link in either):

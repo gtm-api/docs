@@ -3001,7 +3001,7 @@ paths:
       operationId: update_linkedin_account_sync_config
       summary: Update account sync config
       description: |-
-        Set the account's weekly sync schedule: the timezone, the allowed per-weekday time windows, and per-track cadence entries. Replaces the stored sync_config wholesale (send the full desired config, not a delta). Returns the updated account. SINGLE account: to reschedule a fleet, author a mass action on /mcp/orchestration/mass-actions with the step `linkedin-accounts.update-sync-config` (scope objects) so the whole change rides ONE approval.
+        Set the account's weekly sync schedule: the timezone, the allowed per-weekday time windows, and per-track interval entries, each its track's platform cadence or longer (an entry only slows a track down; one below the cadence is refused with 422). Replaces the stored sync_config wholesale (send the full desired config, not a delta). Returns the updated account. SINGLE account: to reschedule a fleet, author a mass action on /mcp/orchestration/mass-actions with the step `linkedin-accounts.update-sync-config` (scope objects) so the whole change rides ONE approval.
 
         Contract:
         - MCP tool `update_linkedin_account_sync_config`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -66229,7 +66229,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 180
+                      description: "Minutes between two connections syncs: 180 (the platform cadence) or more."
                   required:
                     - interval_minutes
                 conversations:
@@ -66237,7 +66238,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 180
+                      description: "Minutes between two conversations syncs: 180 (the platform cadence) or more."
                   required:
                     - interval_minutes
                 sales_navigator_conversations:
@@ -66245,7 +66247,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 120
+                      description: "Minutes between two sales_navigator_conversations syncs: 120 (the platform cadence) or more."
                   required:
                     - interval_minutes
                 recruiter_conversations:
@@ -66253,7 +66256,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 120
+                      description: "Minutes between two recruiter_conversations syncs: 120 (the platform cadence) or more."
                   required:
                     - interval_minutes
                 connection_requests:
@@ -66261,7 +66265,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 720
+                      description: "Minutes between two connection_requests syncs: 720 (the platform cadence) or more."
                   required:
                     - interval_minutes
                 connection_invitations:
@@ -66269,7 +66274,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 720
+                      description: "Minutes between two connection_invitations syncs: 720 (the platform cadence) or more."
                   required:
                     - interval_minutes
                 premium_check:
@@ -66277,7 +66283,8 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 360
+                      description: "Minutes between two premium_check syncs: 360 (the platform cadence) or more."
                   required:
                     - interval_minutes
                 snapshot_check:
@@ -66285,10 +66292,11 @@ components:
                   properties:
                     interval_minutes:
                       type: integer
-                      minimum: 5
+                      minimum: 1320
+                      description: "Minutes between two snapshot_check syncs: 1320 (the platform cadence) or more."
                   required:
                     - interval_minutes
-              description: Per-track cadence overrides (minutes, ≥5), keyed by sync track.
+              description: "Per-track interval overrides in minutes, keyed by sync track. An entry can only slow its track down: the worker never syncs a track sooner than its platform cadence (connections and conversations 180, sales_navigator_conversations and recruiter_conversations 120, premium_check 360, connection_requests and connection_invitations 720, snapshot_check 1320), and an entry below it is refused with 422 interval_below_platform_cadence. Leave a track out to sync it at its cadence. New messages do not wait for a sync on a paid plan: while the browser of the account runs they arrive through the realtime push (linkedin-messages.received), so a shorter interval is not the way to get them sooner."
           required:
             - timezone
           description: Weekly sync schedule for the account (replaces the stored config wholesale).
