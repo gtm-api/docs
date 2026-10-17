@@ -3,6 +3,30 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-17" description="Mass actions send to a vanity slug, and the preview refuses a target no step can reach">
+  **A mass-action target can name a person by their vanity slug.** A connect or message step now sends to
+  a target that carries only `nickname` (or `public_identifier`, or a `linkedin.com/in/...` link in either):
+  the step resolves the slug to the profile URN when it runs, the way the single
+  `POST /api/linkedin-connection-requests/send` and `POST /api/linkedin-messages/send` have resolved
+  `public_identifier` since 2026-09-15. A person the team already knows (a connection, an invitation, a
+  follower, a lookup of the last day) costs nothing; anyone else is a lite-profile read on the sending
+  account, which spends its `enrichment` budget, and a spent budget makes the item wait for the reset
+  instead of failing. Until now such a target passed the preview and failed its step with "target carries
+  no profile URN", so a caller had to look every slug up first.
+
+  **A slug resolves from the corpus before a browser opens.** The slug lookup behind both single send
+  verbs and the mass-action steps now also takes a profile the corpus holds from the last 30 days, so a
+  person already in it costs no `enrichment` budget.
+
+  **The preview refuses a target that no step can reach.** With a connect, message or follow step, every
+  target has to carry a profile URN (`ln_id`, `sn_id`, `profile_id`) or a slug; a message also takes an
+  existing thread (`linkedin_conversation_sid`). A member number alone, a company id or no person at all is
+  a `422` with `target_identity_required` on `scope.targets.N`, a company page or a Recruiter id in
+  `nickname` is `public_identifier_not_resolvable` on the field, and a lead appended to a running run is
+  refused the same way on `identities.N`. Before, each of these took the canary and failed it. Details on
+  [Run a mass action](/guides/run-a-mass-action).
+</Update>
+
 <Update label="2026-10-16" description="Sales Navigator rows carry the lead, a collector waits for its budget, the whole registry exports">
   **A Sales Navigator people search answers the lead, not just a name.** Every row of
   `POST /api/linkedin-scraping/search-sales-nav-people` (and of `company-decision-makers`) now carries the
