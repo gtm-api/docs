@@ -57173,6 +57173,13 @@ components:
                   items:
                     type: string
               additionalProperties: false
+            is_deleted:
+              type: object
+              properties:
+                eq:
+                  type: boolean
+              additionalProperties: false
+              description: "Deleted for everyone on LinkedIn (a recall, the counterpart's or the account's own): the row stays with its text emptied. Each one is told once as linkedin-messages.deleted."
             client_reference:
               type: object
               properties:

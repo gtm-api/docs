@@ -214,15 +214,18 @@ A message carries `type` (`inbox` or `outbox`), `automation` (`auto`, `manual` o
 `linkedin_type` (`message`, `inmail` or `connection_note`). A `connection_note` is the invitation
 note: LinkedIn puts it into the thread when the invitation is accepted, so it arrives through the
 sync like any other message (`automation: synced`) and carries that label. Messages are
-append-only on both surfaces: no edit, no delete, no unsend, no recall. There are no read
-receipts and no open tracking, and marking a thread read changes the state on LinkedIn only.
+append-only: no edit and no unsend. On the basic messenger a message of yours can be deleted for
+everyone within LinkedIn's hour (`delete-on-linkedin`), and a message deleted for everyone by
+either side stays a row marked `is_deleted: true`, its text emptied, told once as
+`linkedin-messages.deleted`. There are no read receipts and no open tracking, and marking a
+thread read changes the state on LinkedIn only.
 
 There is no export button and no CSV. `linkedin-messages/search` and
 `linkedin-conversations/search` page by cursor and touch neither the browser nor the budget
 (filters and sorts are in the [API reference](/api-reference/overview)), and a conversation
 from another workspace answers `403 wrong_team`, not `404`. Webhooks deliver
-`linkedin-messages.received`, `.sent` and `.send-failed`, plus `linkedin-conversations.created`
-and `.sync-completed`.
+`linkedin-messages.received`, `.sent`, `.send-failed` and `.deleted`, plus
+`linkedin-conversations.created` and `.sync-completed`.
 
 <Note>
 A send that fails never creates a message row: the failure lands on the activity log and is

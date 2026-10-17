@@ -3,6 +3,18 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-17" description="A message deleted for everyone is caught and told">
+  **`linkedin-messages.deleted` says that a message was deleted for everyone.** When the other side
+  deletes a message, or your account does in LinkedIn or through `delete-on-linkedin`, the stored row
+  is marked `is_deleted: true` with its text emptied and the new webhook fires once, with
+  `deleted_detected_at` and the `source` of the read that saw it. A deletion does not move a thread's
+  last activity, so the conversations sync now reads it off the conversations page itself, and on a
+  paid plan the realtime push catches it while the account's browser runs. `linkedin-messages.received`
+  and `.sent` carry `is_deleted`, `linkedin-messages/search` filters on it, and a send with
+  `stop_if_replied_after` still refuses over a reply the person deleted, with `is_deleted: true` in
+  the `409`. Details on [Inbox and message sync](/kb/inbox-and-message-sync).
+</Update>
+
 <Update label="2026-10-17" description="A sync interval below its surface's default is refused instead of saved">
   **`update-sync-config` refuses an interval the platform never runs.** Every sync surface has a default
   interval that is also the fastest it ever syncs: conversations and connections every 180 minutes, the
