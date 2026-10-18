@@ -3,6 +3,35 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-18" description="A mass action holds for a spent budget as one run, a canary run left alone settles itself, and preview catches a missing text">
+  **A spent daily budget pauses the run, not each item.** When the sending account's smart limit is
+  spent, or LinkedIn refuses for the day, the run pauses with `paused_reason: limit_reached` and
+  `hold_till` at the moment the budget comes back, then resumes by itself and re-plans the remaining
+  items onto a fresh pacing chain. Until today every item parked on its own and all of them went out
+  together at the reset. The budget now comes back at the account's own midnight (its
+  `sync_config.timezone`, UTC when it keeps none), no longer at the server's UTC midnight: `hold_till`,
+  the `retry_after` of a `429` and `next_call_after` all name it. Pausing by hand replaces the hold;
+  resuming before `hold_till` parks the run again at the first refused item.
+
+  **A canary run left alone settles itself.** A run paused with `canary_failed` that nobody retries,
+  releases or deletes within 7 days cancels its pending items and settles. Appending leads into a run
+  after its first success works again (it answered `422 run_not_payload_addressed` once the first sent
+  item carried the object it created), a run held for a spent limit still takes appended leads, and
+  the `409 run_not_active` of any other pause says why in `context.reason_detail` and what to do in
+  `context.detail`.
+
+  **Preview refuses more before the canary does.** A message or comment step without `args.text`
+  fails preview with `text_required`; a follow, react or comment step without its
+  `linkedin_account_sid` fails with `sender_required`, as connect and message steps already did. A
+  run step on a browser that is already up skips instead of failing the item, `started_at` is stamped
+  when the first item starts, and `mass-actions/search` filters on `title` (`q` searches it).
+
+  **LinkedIn's own "can't resend yet" is a readable refusal.** When LinkedIn refuses a connection
+  request over an earlier invitation it alone knows of (sent from another tool, or withdrawn before
+  the platform saw it), the send answers `422 resend_not_available` with `context.cause: "linkedin"`
+  instead of a `409` quoting LinkedIn's JSON. Details on [Run a mass action](/guides/run-a-mass-action).
+</Update>
+
 <Update label="2026-10-17" description="A message deleted for everyone is caught and told">
   **`linkedin-messages.deleted` says that a message was deleted for everyone.** When the other side
   deletes a message, or your account does in LinkedIn or through `delete-on-linkedin`, the stored row

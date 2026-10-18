@@ -4177,7 +4177,7 @@ paths:
       operationId: send_linkedin_connection_request
       summary: Send connection request
       description: |-
-        Send one outbound LinkedIn connection request (outward action). Address the person by profile_id (the URN, ln_id or sn_id) or by public_identifier (slug or /in/ URL). Checks: daily limit, note cap (200 free / 300 premium), 21-day resend cooldown. Fire-on-success: a row only when LinkedIn confirms. Sends once per client_reference and person: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. A request on record under another key or none: 422 resend_not_available, context.cause pending, accepted, cooldown (resend_available_at) or sync_reset; an accepted one is probed on LinkedIn first (context.probe); a person who removed the account, or whom it removed, is invited again. 422 target_blocked: they blocked the account (context.block_log_sid; never retry). 422 target_unavailable: nobody in the team can see their account (retry after context.retry_after). check_linkedin_connection_request_sent asks what an invitation came to without sending.
+        Send one outbound LinkedIn connection request. Address the person by profile_id (ln_id or sn_id URN) or public_identifier (slug or /in/ URL). Checks: daily limit, note cap (200 free / 300 premium), 21-day resend cooldown. A row only when LinkedIn confirms. Sends once per client_reference and person: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. A request on record under another key or none: 422 resend_not_available, context.cause pending, accepted, cooldown (resend_available_at), sync_reset, or linkedin (LinkedIn alone holds the earlier one: sync, retry weeks later); an accepted one is probed on LinkedIn first (context.probe) and a removed connection is invited again. 422 target_blocked: they blocked the account (context.block_log_sid; never retry). 422 target_unavailable: nobody in the team can see their account (retry after context.retry_after). check_linkedin_connection_request_sent asks what an invitation came to without sending.
 
         Contract:
         - MCP tool `send_linkedin_connection_request`, registry package `mcp.linkedin/linkedin_connection_requests`, mount `linkedin.network`.
@@ -7629,7 +7629,7 @@ paths:
       operationId: scrape_linkedin_company_decision_makers
       summary: Scrape company decision makers
       description: |-
-        Sales Navigator’s decision-makers panel for ONE company: the bounded, seniority-weighted leadership/buying-committee list SN computes. SN-capable executor required.
+        Sales Navigator’s decision-makers panel for ONE company: the bounded, seniority-weighted leadership/buying-committee list SN computes, in the Sales Navigator row shape (position, company, region, degree, seniority, tenure, About text, badges). SN-capable executor required.
 
         Contract:
         - MCP tool `scrape_linkedin_company_decision_makers`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -8385,7 +8385,7 @@ paths:
       operationId: scrape_linkedin_search_sales_nav_people
       summary: Scrape Sales Navigator people search
       description: |-
-        One page of a Sales Navigator people search: richer facets than the regular engine (seniority, function, tenure, headcount, company type), no commercial-use limit, SN URNs (sn_id) on the rows. Addressed EITHER by `filters`, which carry the COMPLETE SN facet vocabulary, OR by a pasted /sales/search/people `url`: exactly one of the two. Typeahead members take [{id, text, exclude}] values from scrape_linkedin_sales_nav_param_id_lookup; the static-enum members list their ids inline and need no lookup. Needs an SN-capable executor (a non-SN own account gets 422 sales_nav_required; the auto-pick filters to SN seats).
+        One page of a Sales Navigator people search: richer facets than the regular engine (seniority, function, tenure, headcount, company type), no commercial-use limit, SN URNs (sn_id) on the rows. Every row carries the lead's current position and company (with the numeric company_ln_id), region, degree, seniority, tenure, About text and Sales Navigator badges, read from the search page's own answer at no extra cost, and paging.total is LinkedIn's count of the search. Addressed EITHER by `filters`, which carry the COMPLETE SN facet vocabulary, OR by a pasted /sales/search/people `url`: exactly one of the two. Typeahead members take [{id, text, exclude}] values from scrape_linkedin_sales_nav_param_id_lookup; the static-enum members list their ids inline and need no lookup. Needs an SN-capable executor (a non-SN own account gets 422 sales_nav_required; the auto-pick filters to SN seats).
 
         Contract:
         - MCP tool `scrape_linkedin_search_sales_nav_people`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
@@ -41349,19 +41349,19 @@ components:
                   headline:
                     type: string
                     nullable: true
-                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's headline line on the regular and Recruiter engines; null on the Sales Navigator people search, which carries position and company_name instead.
                   position:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured position (read the headline).
+                    description: Sales Navigator (the title of the current position) and Recruiter engines; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured company (read the headline).
+                    description: Sales Navigator (the current position's company) and Recruiter engines; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
-                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's location line on the regular and Recruiter engines; the member's region on Sales Navigator.
                   avatar_url:
                     type: string
                     nullable: true
@@ -41369,7 +41369,62 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
+                    description: "The degree as the engine prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; 1st, 2nd, 3rd or out_of_network on Sales Navigator (its 3rd covers the 3rd degree and beyond) and Recruiter."
+                  first_name:
+                    type: string
+                    nullable: true
+                  last_name:
+                    type: string
+                    nullable: true
+                    description: 'As LinkedIn shows it: an initial ("K.") for some members, by their choice or out of network.'
+                  company_ln_id:
+                    type: string
+                    nullable: true
+                    description: The numeric id of the current company, the one every company tool and /company/N/ take; null when the position names a company without a LinkedIn page.
+                  company_industry:
+                    type: string
+                    nullable: true
+                  about:
+                    type: string
+                    nullable: true
+                    description: The profile's About text, whole.
+                  months_in_position:
+                    type: integer
+                    nullable: true
+                    description: Time in the current position, in months.
+                  months_at_company:
+                    type: integer
+                    nullable: true
+                    description: Time at the current company, in months.
+                  seniority:
+                    type: string
+                    nullable: true
+                    description: The first seniority Sales Navigator assigns ("Vice President", "CXO", "Director").
+                  premium:
+                    type: boolean
+                    nullable: true
+                    description: The member holds a LinkedIn Premium subscription.
+                  open_profile:
+                    type: boolean
+                    nullable: true
+                    description: "An Open Profile: the member takes InMail from anyone, with no credit spent."
+                  pending_invitation:
+                    type: boolean
+                    nullable: true
+                    description: The executor has a connection invitation out to this member.
+                  spotlights:
+                    type: array
+                    items:
+                      type: string
+                    description: "Sales Navigator's badges on the lead, lowercased: recently_hired, recently_promoted, posted_on_linkedin (in the last 30 days), follows_your_company, second_degree_connection (a mutual connection with the executor). Empty when none."
+                  sales_navigator_url:
+                    type: string
+                    nullable: true
+                    description: The lead's page in Sales Navigator.
+                  profile_url:
+                    type: string
+                    nullable: true
+                    description: The member's LinkedIn profile, addressed by the sn id (/in/ACwAA…), which LinkedIn resolves to their own page.
                 required:
                   - ln_member_id
                   - ln_id
@@ -41382,6 +41437,20 @@ components:
                   - location
                   - avatar_url
                   - connection_degree
+                  - first_name
+                  - last_name
+                  - company_ln_id
+                  - company_industry
+                  - about
+                  - months_in_position
+                  - months_at_company
+                  - seniority
+                  - premium
+                  - open_profile
+                  - pending_invitation
+                  - spotlights
+                  - sales_navigator_url
+                  - profile_url
               description: The transient result list, in LinkedIn’s order; NOTHING persisted.
             paging: {}
             data_request:
@@ -41529,19 +41598,19 @@ components:
                   headline:
                     type: string
                     nullable: true
-                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's headline line on the regular and Recruiter engines; null on the Sales Navigator people search, which carries position and company_name instead.
                   position:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured position (read the headline).
+                    description: Sales Navigator (the title of the current position) and Recruiter engines; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured company (read the headline).
+                    description: Sales Navigator (the current position's company) and Recruiter engines; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
-                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's location line on the regular and Recruiter engines; the member's region on Sales Navigator.
                   avatar_url:
                     type: string
                     nullable: true
@@ -41549,7 +41618,7 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
+                    description: "The degree as the engine prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; 1st, 2nd, 3rd or out_of_network on Sales Navigator (its 3rd covers the 3rd degree and beyond) and Recruiter."
                 required:
                   - ln_member_id
                   - ln_id
@@ -44012,19 +44081,19 @@ components:
                   headline:
                     type: string
                     nullable: true
-                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's headline line on the regular and Recruiter engines; null on the Sales Navigator people search, which carries position and company_name instead.
                   position:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured position (read the headline).
+                    description: Sales Navigator (the title of the current position) and Recruiter engines; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured company (read the headline).
+                    description: Sales Navigator (the current position's company) and Recruiter engines; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
-                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's location line on the regular and Recruiter engines; the member's region on Sales Navigator.
                   avatar_url:
                     type: string
                     nullable: true
@@ -44032,7 +44101,7 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
+                    description: "The degree as the engine prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; 1st, 2nd, 3rd or out_of_network on Sales Navigator (its 3rd covers the 3rd degree and beyond) and Recruiter."
                 required:
                   - ln_member_id
                   - ln_id
@@ -45320,19 +45389,19 @@ components:
                   headline:
                     type: string
                     nullable: true
-                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's headline line on the regular and Recruiter engines; null on the Sales Navigator people search, which carries position and company_name instead.
                   position:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured position (read the headline).
+                    description: Sales Navigator (the title of the current position) and Recruiter engines; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured company (read the headline).
+                    description: Sales Navigator (the current position's company) and Recruiter engines; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
-                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's location line on the regular and Recruiter engines; the member's region on Sales Navigator.
                   avatar_url:
                     type: string
                     nullable: true
@@ -45340,7 +45409,7 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
+                    description: "The degree as the engine prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; 1st, 2nd, 3rd or out_of_network on Sales Navigator (its 3rd covers the 3rd degree and beyond) and Recruiter."
                   recruiter_id:
                     type: string
                     description: "The Recruiter (talent) profile id, AEMAA…: what send_linkedin_recruiter_message addresses as recipient_profile_id. Same member as ln_member_id."
@@ -46405,19 +46474,19 @@ components:
                   headline:
                     type: string
                     nullable: true
-                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's headline line on the regular and Recruiter engines; null on the Sales Navigator people search, which carries position and company_name instead.
                   position:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured position (read the headline).
+                    description: Sales Navigator (the title of the current position) and Recruiter engines; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured company (read the headline).
+                    description: Sales Navigator (the current position's company) and Recruiter engines; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
-                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's location line on the regular and Recruiter engines; the member's region on Sales Navigator.
                   avatar_url:
                     type: string
                     nullable: true
@@ -46425,7 +46494,62 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
+                    description: "The degree as the engine prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; 1st, 2nd, 3rd or out_of_network on Sales Navigator (its 3rd covers the 3rd degree and beyond) and Recruiter."
+                  first_name:
+                    type: string
+                    nullable: true
+                  last_name:
+                    type: string
+                    nullable: true
+                    description: 'As LinkedIn shows it: an initial ("K.") for some members, by their choice or out of network.'
+                  company_ln_id:
+                    type: string
+                    nullable: true
+                    description: The numeric id of the current company, the one every company tool and /company/N/ take; null when the position names a company without a LinkedIn page.
+                  company_industry:
+                    type: string
+                    nullable: true
+                  about:
+                    type: string
+                    nullable: true
+                    description: The profile's About text, whole.
+                  months_in_position:
+                    type: integer
+                    nullable: true
+                    description: Time in the current position, in months.
+                  months_at_company:
+                    type: integer
+                    nullable: true
+                    description: Time at the current company, in months.
+                  seniority:
+                    type: string
+                    nullable: true
+                    description: The first seniority Sales Navigator assigns ("Vice President", "CXO", "Director").
+                  premium:
+                    type: boolean
+                    nullable: true
+                    description: The member holds a LinkedIn Premium subscription.
+                  open_profile:
+                    type: boolean
+                    nullable: true
+                    description: "An Open Profile: the member takes InMail from anyone, with no credit spent."
+                  pending_invitation:
+                    type: boolean
+                    nullable: true
+                    description: The executor has a connection invitation out to this member.
+                  spotlights:
+                    type: array
+                    items:
+                      type: string
+                    description: "Sales Navigator's badges on the lead, lowercased: recently_hired, recently_promoted, posted_on_linkedin (in the last 30 days), follows_your_company, second_degree_connection (a mutual connection with the executor). Empty when none."
+                  sales_navigator_url:
+                    type: string
+                    nullable: true
+                    description: The lead's page in Sales Navigator.
+                  profile_url:
+                    type: string
+                    nullable: true
+                    description: The member's LinkedIn profile, addressed by the sn id (/in/ACwAA…), which LinkedIn resolves to their own page.
                 required:
                   - ln_member_id
                   - ln_id
@@ -46438,6 +46562,20 @@ components:
                   - location
                   - avatar_url
                   - connection_degree
+                  - first_name
+                  - last_name
+                  - company_ln_id
+                  - company_industry
+                  - about
+                  - months_in_position
+                  - months_at_company
+                  - seniority
+                  - premium
+                  - open_profile
+                  - pending_invitation
+                  - spotlights
+                  - sales_navigator_url
+                  - profile_url
               description: The transient result list, in LinkedIn’s order; NOTHING persisted.
             paging:
               type: object
@@ -46456,7 +46594,7 @@ components:
                 - page_size
                 - has_more
                 - total
-              description: "Page-numbered paging: re-call with page + 1 while has_more."
+              description: "Page-numbered paging: re-call with page + 1 while has_more. total is LinkedIn's own count of the search, exact on a small search and an estimate on a large one; Sales Navigator serves 100 pages of 25 at most whatever it says."
             data_request:
               type: object
               properties: {}
@@ -46826,19 +46964,19 @@ components:
                   headline:
                     type: string
                     nullable: true
-                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's headline line on the regular and Recruiter engines; null on the Sales Navigator people search, which carries position and company_name instead.
                   position:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured position (read the headline).
+                    description: Sales Navigator (the title of the current position) and Recruiter engines; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured company (read the headline).
+                    description: Sales Navigator (the current position's company) and Recruiter engines; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
-                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's location line on the regular and Recruiter engines; the member's region on Sales Navigator.
                   avatar_url:
                     type: string
                     nullable: true
@@ -46846,7 +46984,7 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
+                    description: "The degree as the engine prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; 1st, 2nd, 3rd or out_of_network on Sales Navigator (its 3rd covers the 3rd degree and beyond) and Recruiter."
                 required:
                   - ln_member_id
                   - ln_id
@@ -47203,19 +47341,19 @@ components:
                   headline:
                     type: string
                     nullable: true
-                    description: The card's headline line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's headline line on the regular and Recruiter engines; null on the Sales Navigator people search, which carries position and company_name instead.
                   position:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured position (read the headline).
+                    description: Sales Navigator (the title of the current position) and Recruiter engines; the regular card prints no structured position (read the headline).
                   company_name:
                     type: string
                     nullable: true
-                    description: Recruiter search only; the regular card prints no structured company (read the headline).
+                    description: Sales Navigator (the current position's company) and Recruiter engines; the regular card prints no structured company (read the headline).
                   location:
                     type: string
                     nullable: true
-                    description: The card's location line on the regular and Recruiter engines; null on Sales Navigator people search.
+                    description: The card's location line on the regular and Recruiter engines; the member's region on Sales Navigator.
                   avatar_url:
                     type: string
                     nullable: true
@@ -47223,7 +47361,7 @@ components:
                   connection_degree:
                     type: string
                     nullable: true
-                    description: "The degree badge as the card prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; Recruiter spells 1st, 2nd, 3rd, out_of_network."
+                    description: "The degree as the engine prints it: 1st, 2nd, 3rd or 3rd+ on the regular engines; 1st, 2nd, 3rd or out_of_network on Sales Navigator (its 3rd covers the 3rd degree and beyond) and Recruiter."
                 required:
                   - ln_member_id
                   - ln_id

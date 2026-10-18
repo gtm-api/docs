@@ -44,7 +44,8 @@ A mass action is a bulk dispatch on the Orchestration service: up to 100 items, 
 What the validator enforces:
 
 - **Step vocabulary.** Only step-eligible verbs can appear in `plan.steps[].tool`. Anything else fails with `validation_failed` and a `field_errors` entry naming the authorable set, so the plan is repairable in one pass.
-- **One sender per run.** A send-class step names the account it sends from in `args.linkedin_account_sid`. A target's payload carries the target (`ln_id`, the profile URN) and its per-send extras (`note`, `client_reference`), never the sender: a plan that leaves the sender out of `args` fails preview with `sender_required`.
+- **One sender per run.** A step that acts as one of the team's accounts names it in its args: `linkedin_account_sid` for a connect, message, follow, react or comment step, `email_account_sid` for an email step. A target's payload carries the target (`ln_id`, the profile URN) and its per-send extras (`note`, `client_reference`), never the sender: a plan that leaves the sender out of `args` fails preview with `sender_required`.
+- **One text per run.** A message or a comment step carries the text every target gets in `args.text`; a plan without it fails preview with `text_required` instead of dying on its first item.
 - **Scope shape.** `objects` (existing rows by sid), `targets` (per-item payload identities), `generate` (N slots, step 1 must create the object), or `none` (a standing run an auto-scrape feeds later). All bounded at 100 items.
 - **A target is one person.** Name them by `ln_id` (the profile URN, `ACoAA...`) or `sn_id` (the Sales Navigator id, `ACwAA...`); `profile_id` takes either. Or name them by their vanity slug in `nickname` (a `linkedin.com/in/...` link works too): the send step resolves it to the URN when it runs, for free when the team already knows the person (a connection, an invitation, a follower, a lookup of the last day) or the corpus holds their profile from the last 30 days, otherwise with a lite-profile read on the sending account, which spends that account's `enrichment` budget and waits for the budget to reset when it is spent. `ln_member_id` is the decoded member number (digits only), and no send step can dispatch on it alone. A slug in `ln_member_id`, an id that does not decode, or a Recruiter id where a member verb wants a profile URN fails the preview on that target (`scope.targets.3.ln_member_id`, `ln_member_id_not_numeric`), and the same person named twice (their URN and their Sales Navigator id, or their slug and its link) counts once.
 - **Every target is reachable.** A connect, message or follow step needs a URN or a slug in each target; a message also takes an existing thread (`linkedin_conversation_sid`). A target with a member number alone, a company id or no person at all fails the preview with `target_identity_required` on `scope.targets.N`, a company page or a Recruiter id in `nickname` fails it with `public_identifier_not_resolvable`, and the same holds for a lead appended to a running run (`identities.N`).
@@ -61,7 +62,13 @@ Two behaviors to design around:
 - **The run is always asynchronous**, even for one item. The returned `sid` is your monitoring handle.
 - **A still-valid token can be replayed**, and a replay creates a second identical run. Discard the token the moment the commit succeeds.
 
-With `canary_mode: "first_item"`, only item 1 dispatches until it succeeds. A canary failure pauses the whole run with `paused_reason: canary_failed`, so a broken template costs you one send, not a hundred.
+With `canary_mode: "first_item"`, only item 1 dispatches until it succeeds. A canary failure pauses the whole run with `paused_reason: canary_failed`, so a broken template costs you one send, not a hundred. The run then waits for your call, one of three:
+
+- Fix what the item needed and retry it by its `sid` (`POST /api/mass-action-items/retry`), then `POST /api/mass-actions/{sid}/resume`: the retried canary goes alone, and its success opens the gate for the rest.
+- Accept the failure: `POST /api/mass-actions/{sid}/release` opens the gate by hand, then `/resume`.
+- Delete the run and start over with a corrected plan (plans are immutable).
+
+A canary run nobody decides on within 7 days settles itself: its pending items are cancelled and `mass-actions.settled` fires.
 
 ## 3. Monitor to settlement
 
@@ -85,8 +92,11 @@ Over the API:
 - `GET /api/mass-actions/{sid}?include[]=metrics` returns the run with per-status item counts.
 - `POST /api/mass-action-items/search` with `filter: { "mass_action_sid": { "eq": "..." } }` lists the individual items and their step logs.
 - Or skip polling: subscribe a [webhook](/guides/receive-webhooks) to the `mass-actions.settled` and `mass-actions.paused` events.
+- `POST /api/mass-actions/search` lists the runs; `filter.title` (`eq`, `in`) finds one by the label you gave it, and `filter.q` searches the titles.
 
-Control verbs while it runs: `POST /api/mass-actions/{sid}/pause` and `/resume`, and `/release` for a standing run.
+**A spent daily budget pauses the run, not each item.** When the sending account's smart limit is spent, or LinkedIn refuses for the day, the run pauses with `paused_reason: limit_reached` and `hold_till` at the moment the budget comes back: the next midnight in the account's own timezone (its `sync_config.timezone`, UTC when it keeps none). The scheduler resumes the run then and re-plans the remaining items onto a fresh pacing chain from that moment, so they neither hammer the limit nor all go out at the reset in one burst. `mass-actions.paused` and `mass-actions.resumed` fire on the way. Resuming by hand before `hold_till` only parks the run again at the first item the budget refuses; pausing by hand replaces the hold and waits for your resume.
+
+Control verbs while it runs: `POST /api/mass-actions/{sid}/pause` and `/resume`, `/release` to open a closed canary gate by hand, and `/append-items` to feed more leads into a run that is going. A run held for a spent limit still takes them; a run paused for any other reason, or deleted, answers `409 run_not_active` with `context.reason_detail` saying which and `context.detail` what to do.
 
 ## 4. Retry failures
 

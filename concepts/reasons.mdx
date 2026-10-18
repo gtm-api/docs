@@ -195,12 +195,12 @@ reason is thrown without a sentence). 232 reasons across 4 services.
 | `reply_check_unavailable` | The thread could not be read from LinkedIn right now, and stop_if_replied_after asks for that read before the send; nothing was sent, retry after retry_after. | linkedin |
 | `report_end_not_supported` | Only a share reports its end; a transfer completes on its own. | id |
 | `requester_has_no_email` | The requester's account has no email to reply to; add one before opening a support request. | id |
-| `resend_not_available` | An earlier connection request from this account to this member stands in the way: it is pending, accepted, cooling down or left on record by a sync reset (context.cause says which). Withdraw a pending one, message an accepted member, or wait for context.resend_available_at. | linkedin |
+| `resend_not_available` | An earlier connection request from this account to this member stands in the way: it is pending, accepted, cooling down, left on record by a sync reset, or one LinkedIn alone knows of (context.cause says which). Withdraw a pending one, message an accepted member, wait for context.resend_available_at, or sync the account's connection requests when the cause is linkedin. | linkedin |
 | `resend_unverified_needs_sid` | resend_unverified is your word that one send nobody could confirm did not arrive: give it with the sid of the item you checked, never with a filter. | orchestration |
 | `resolver_unavailable` | The subject profile could not be resolved right now; retry later. | linkedin |
 | `retry_limit_exceeded` | This item has been retried 10 times, the most one item takes; check why its step keeps failing (error_message), then create a new run for this target if it should still go. | orchestration |
 | `run_in_progress` | A run of this auto-scrape is still in flight; wait for it to finish or stop it. | linkedin |
-| `run_not_active` | This run does not take new items (see context.detail: it is paused or deleted); resume it, or create a new run. | orchestration |
+| `run_not_active` | This run does not take new items: context.reason_detail says why (deleted, or the pause's reason) and context.detail what to do. A run held for a spent limit still takes them; a canary_failed run needs its canary retried and the gate released, or a new run. | orchestration |
 | `run_not_failed` | Only a failed provisioning run can be retried; this one has not failed. | orchestration |
 | `run_window_expired` | More than 15 minutes passed since the login was confirmed; open a new session. | linkedin |
 | `sales_nav_required` | This source reads Sales Navigator and the account has no Sales Navigator seat; pick an account with one, or a LinkedIn-search source. | linkedin |
