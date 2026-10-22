@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 232 reasons across 4 services.
+reason is thrown without a sentence). 238 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -61,6 +61,7 @@ reason is thrown without a sentence). 232 reasons across 4 services.
 | `channel_unreachable` | The channel service could not be reached; retry in a minute. | id |
 | `client_reference_frozen` | This message was already sent (or tried) under its client_reference, which its repeat and check-sent find it by; the client_reference cannot be set, changed or cleared now. | email |
 | `comment_not_deleted` | LinkedIn did not delete this comment: it is not this account's, or it is already gone. | linkedin |
+| `comment_urn_not_activity_thread` | comment_urn must name a comment on an activity thread, urn:li:comment:(activity:&lt;postId>,&lt;commentId>) or the fsd form urn:li:fsd_comment:(&lt;commentId>,urn:li:activity:&lt;postId>); the replies under a comment on a ugcPost, share or groupPost thread cannot be read. | linkedin |
 | `commit_in_progress` | This commit_token is being committed by another request right now; wait a moment and send the same commit again, it answers the run that request created. | orchestration |
 | `commit_token_expired` | commit_token has expired; run the preview again and commit with the new token. | orchestration |
 | `company_anchor_not_numeric` | source_input.anchor_company_ln_id must be the numeric LinkedIn company id, not a slug or a URL. | linkedin |
@@ -193,6 +194,11 @@ reason is thrown without a sentence). 232 reasons across 4 services.
 | `release_not_supported` | A share is recalled, not released; use recall. | linkedin |
 | `replied` | The person wrote in this thread after stop_if_replied_after, so nothing was sent; read their message (context.linkedin_message_sid) before you send again. | linkedin |
 | `reply_check_unavailable` | The thread could not be read from LinkedIn right now, and stop_if_replied_after asks for that read before the send; nothing was sent, retry after retry_after. | linkedin |
+| `reply_target_deleted` | The quoted message was deleted for everyone on LinkedIn, and a deleted message cannot be quoted; reply without the quote. | linkedin |
+| `reply_target_not_found` | No message of this workspace has the sid reply_to_linkedin_message_sid names; quote a message sid the thread's rows carry (get-my-latest or search lists them). | linkedin |
+| `reply_target_not_quotable` | This message cannot be quoted: LinkedIn's own notice in the thread, a message of another messenger surface, or a row without a LinkedIn message id (a send that never landed). Quote a regular message of the thread. | linkedin |
+| `reply_target_other_thread` | The quoted message lives in another thread or belongs to another account than the send addresses; quote a message of the thread you send into, or omit linkedin_conversation_sid and let the quoted message name the thread. | linkedin |
+| `reply_target_sender_unknown` | The quoted message names no member as its author (a page or a company wrote it, or the row predates the sender columns), and LinkedIn's quote needs a member; reply without the quote, or quote another message. | linkedin |
 | `report_end_not_supported` | Only a share reports its end; a transfer completes on its own. | id |
 | `requester_has_no_email` | The requester's account has no email to reply to; add one before opening a support request. | id |
 | `resend_not_available` | An earlier connection request from this account to this member stands in the way: it is pending, accepted, cooling down, left on record by a sync reset, or one LinkedIn alone knows of (context.cause says which). Withdraw a pending one, message an accepted member, wait for context.resend_available_at, or sync the account's connection requests when the cause is linkedin. | linkedin |

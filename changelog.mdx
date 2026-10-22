@@ -3,6 +3,32 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-22" description="A reply carries the message it quotes, a send can quote one, and the replies under a comment are readable">
+  **A message says which message it replies to.** Every message of the basic messenger now carries
+  `reply_to`: the quote LinkedIn shows under a reply, or `null`. It names the quoted message by its
+  LinkedIn id (`message_hash`) and, once that message is stored on your side, by its own sid
+  (`linkedin_message_sid`), and it carries who the quote names as the author, the quoted words and
+  their time, as the replying client wrote them. LinkedIn vouches for the id alone, so treat the
+  words as a quote, not as the message. `linkedin-messages.received` and `linkedin-messages.sent`
+  carry the same block. Rows stored before today read `null` until the next sync of their thread
+  fills them. Sales Navigator and Recruiter messages carry no quote.
+
+  **`send` can quote a message of the thread.** Pass `reply_to_linkedin_message_sid`, the sid of
+  the message to quote, and the reply goes out as LinkedIn's own Reply does. The quote is filled
+  from the stored message, never from the request, and the quoted message names the thread, so
+  `linkedin_conversation_sid` may be omitted. A message deleted for everyone, a LinkedIn notice, a
+  message a page wrote, or one of another thread is refused with a `422` naming the reason
+  (`reply_target_deleted`, `reply_target_not_quotable`, `reply_target_sender_unknown`,
+  `reply_target_other_thread`) before anything reaches LinkedIn.
+
+  **The replies under a comment.** `POST /api/linkedin-scraping/get-comment-replies` reads one page
+  of the replies under a comment, live, in the same row shape as `get-post-comments`, whose
+  `replies_count` was only a count until now. Address the comment by the `comment_ln_id` the
+  comments read returns; comments on activity threads only. LinkedIn picks the page size: the first
+  page holds the newest replies, and `cursor` walks to older ones while `paging.has_more` is true.
+  Details on [Inbox and message sync](/kb/inbox-and-message-sync).
+</Update>
+
 <Update label="2026-10-18" description="A mass action holds for a spent budget as one run, a canary run left alone settles itself, and preview catches a missing text">
   **A spent daily budget pauses the run, not each item.** When the sending account's smart limit is
   spent, or LinkedIn refuses for the day, the run pauses with `paused_reason: limit_reached` and

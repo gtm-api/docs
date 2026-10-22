@@ -226,6 +226,15 @@ either side stays a row marked `is_deleted: true`, its text emptied, told once a
 `linkedin-messages.deleted`. There are no read receipts and no open tracking, and marking a
 thread read changes the state on LinkedIn only.
 
+A reply carries the message it quotes. On the basic messenger a message that was sent as a reply
+to another one carries `reply_to`: the quoted message's LinkedIn id (`message_hash`), your own sid
+of it once it is stored (`linkedin_message_sid`), who the quote names as the author, and the quoted
+words and their time as the replying client wrote them. LinkedIn vouches for the id alone, so read
+the words as a quote. `null` means the message is not a reply. To send a reply that quotes a
+message, pass its sid as `reply_to_linkedin_message_sid` to `linkedin-messages/send`; the quote is
+filled from the stored message, and the quoted message names the thread, so the conversation sid
+may be omitted. Sales Navigator and Recruiter messages carry no quote.
+
 There is no export button and no CSV. `linkedin-messages/search` and
 `linkedin-conversations/search` page by cursor and touch neither the browser nor the budget
 (filters and sorts are in the [API reference](/api-reference/overview)), and a conversation

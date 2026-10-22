@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 191 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 192 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -177,7 +177,7 @@ paths:
       operationId: check_antidetect_browser_proxy_location
       summary: Check proxy location
       description: |-
-        Run a multi-vendor geo + fraud check on one or many proxies. Target EXACTLY ONE of sid (ab_px_) or filter; filter mode checks up to an inline cap and reports total_matched (truncated:true when the cap was hit). A verdict moves the row: an exit country that disagrees with country_code flips it to country_mismatch, a fraud score over the threshold to fraud_flagged (each emits its event). Rows the vendors could not settle are listed in inconclusive with a reason (no_ip_port / exit_unreachable / no_corroboration) and left untouched, so total_checked counts only rows that got a verdict.
+        Run a multi-vendor geo + fraud check on one or many proxies. Target EXACTLY ONE of sid (ab_px_) or filter; filter mode checks up to an inline cap and reports total_matched (truncated:true when the cap was hit). An exit country that disagrees with country_code is listed in country_mismatched and never written (a proxy's country follows only what LinkedIn shows for a session through it); a fraud score over the threshold flips the row to fraud_flagged (emits its event). Rows the vendors could not settle are listed in inconclusive with a reason (no_ip_port / exit_unreachable / no_corroboration) and left untouched, so total_checked counts only rows that got a verdict.
 
         Contract:
         - MCP tool `check_antidetect_browser_proxy_location`, registry package `mcp.linkedin/antidetect_browser_proxies`, mount `linkedin.browsers`.
@@ -6816,7 +6816,7 @@ paths:
       operationId: send_linkedin_message
       summary: Send LinkedIn message
       description: |-
-        Send one outbound regular LinkedIn DM on the basic messenger (outward action). Reply to an existing thread via linkedin_conversation_sid, or open a new thread to a 1st-degree connection via ln_id / sn_id or by public_identifier (slug or linkedin.com/in/ URL). Guards run first: send_messages daily cap, 8000-char body cap, block guard (a member who blocked this account is refused 422 target_blocked, no browser call), connection guard, attachment https:// reachability, basic-messenger surface guard. Fire-on-success: a row only on terminal success. Sends once per client_reference and place (the thread, else the person): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. When NOT: InMail to a non-connection → send_linkedin_inmail; voice note → send_linkedin_voice_message; Sales Navigator thread → send_linkedin_sales_nav_message; the connection note lives on linkedin-connection-requests. Bulk: loop client-side within the daily cap.
+        Send one outbound regular LinkedIn DM on the basic messenger (outward action). Reply to an existing thread via linkedin_conversation_sid, or open a new thread to a 1st-degree connection via ln_id / sn_id or by public_identifier (slug or linkedin.com/in/ URL). Quote a message of the thread via reply_to_linkedin_message_sid. Guards run first: send_messages daily cap, 8000-char body cap, block guard (422 target_blocked, no browser call), connection guard, attachment https:// reachability, basic-messenger surface guard. Fire-on-success: a row only on terminal success. Sends once per client_reference and place (the thread, else the person): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. When NOT: InMail to a non-connection → send_linkedin_inmail; voice note → send_linkedin_voice_message; Sales Navigator thread → send_linkedin_sales_nav_message; the connection note lives on linkedin-connection-requests. Bulk: loop client-side within the daily cap.
 
         Contract:
         - MCP tool `send_linkedin_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -7707,6 +7707,48 @@ paths:
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
+      x-gtm-paced-bucket: scraping
+  /api/linkedin-scraping/get-comment-replies:
+    post:
+      operationId: scrape_linkedin_get_comment_replies
+      summary: Scrape comment replies
+      description: |-
+        Direct LinkedIn read (bypasses our DB): one page of the REPLIES under ONE comment, live, the half scrape_linkedin_get_post_comments cannot read (its wire fetches no replies; replies_count there is a count). Same row shape as the comments read: the reply AND who wrote it (content, posted_at, comment_permalink, reactions_count + member id, nickname, name, headline), annotated with is_own. Target the comment by its urn as the comments read returns it in comment_ln_id (urn:li:comment:(activity:<postId>,<commentId>)), or in LinkedIn's fsd form (urn:li:fsd_comment:(<commentId>,urn:li:activity:<postId>)); the replies under a comment on a ugcPost, share or groupPost thread are not readable this way (422 comment_urn_not_activity_thread, nothing dispatched). LinkedIn picks the page size, there is no page_size here: the first page holds the newest replies, oldest first, and cursor walks to OLDER ones while paging.has_more says some remain. is_pinned and is_edited are always false on a reply.
+
+        Contract:
+        - MCP tool `scrape_linkedin_get_comment_replies`, registry package `mcp.linkedin/linkedin_scraping`, mount `linkedin.scraping`.
+        - Operation `action`, response envelope `action`.
+        - Flags: paced: a call spends the `scraping` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_scraping
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ScrapeLinkedinGetCommentRepliesRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScrapeLinkedinGetCommentRepliesResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: scrape_linkedin_get_comment_replies
+      x-gtm-mcp-mount: linkedin.scraping
+      x-gtm-entity: linkedin_scraping
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: complex
       x-gtm-paced-bucket: scraping
   /api/linkedin-scraping/get-post-comments:
     post:
@@ -11035,6 +11077,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -11070,6 +11142,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -13011,6 +13084,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -13046,6 +13149,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -21325,6 +21429,7 @@ components:
                 - search_posts
                 - search_posts_by_url
                 - get_post_comments
+                - get_comment_replies
                 - get_post_reactors
                 - get_post_resharers
                 - search_param_id_lookup
@@ -34022,6 +34127,36 @@ components:
                         - first_reacted_at
                   is_deleted:
                     type: boolean
+                  reply_to:
+                    type: object
+                    nullable: true
+                    properties:
+                      linkedin_message_sid:
+                        type: string
+                        nullable: true
+                        description: Our row of the quoted message, when this account holds it; null until it is stored.
+                      message_hash:
+                        type: string
+                        description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                      sender_ln_id:
+                        type: string
+                        nullable: true
+                      sender_ln_member_id:
+                        type: string
+                        nullable: true
+                      text:
+                        type: string
+                        description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                      sent_at:
+                        type: string
+                        nullable: true
+                    required:
+                      - linkedin_message_sid
+                      - message_hash
+                      - sender_ln_id
+                      - sender_ln_member_id
+                      - text
+                      - sent_at
                   message_hash:
                     type: string
                   sent_at:
@@ -34057,6 +34192,7 @@ components:
                   - attachments
                   - reactions
                   - is_deleted
+                  - reply_to
                   - message_hash
                   - sent_at
                   - custom_content
@@ -34347,6 +34483,36 @@ components:
                         - first_reacted_at
                   is_deleted:
                     type: boolean
+                  reply_to:
+                    type: object
+                    nullable: true
+                    properties:
+                      linkedin_message_sid:
+                        type: string
+                        nullable: true
+                        description: Our row of the quoted message, when this account holds it; null until it is stored.
+                      message_hash:
+                        type: string
+                        description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                      sender_ln_id:
+                        type: string
+                        nullable: true
+                      sender_ln_member_id:
+                        type: string
+                        nullable: true
+                      text:
+                        type: string
+                        description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                      sent_at:
+                        type: string
+                        nullable: true
+                    required:
+                      - linkedin_message_sid
+                      - message_hash
+                      - sender_ln_id
+                      - sender_ln_member_id
+                      - text
+                      - sent_at
                   message_hash:
                     type: string
                   sent_at:
@@ -34382,6 +34548,7 @@ components:
                   - attachments
                   - reactions
                   - is_deleted
+                  - reply_to
                   - message_hash
                   - sent_at
                   - custom_content
@@ -34672,6 +34839,36 @@ components:
                         - first_reacted_at
                   is_deleted:
                     type: boolean
+                  reply_to:
+                    type: object
+                    nullable: true
+                    properties:
+                      linkedin_message_sid:
+                        type: string
+                        nullable: true
+                        description: Our row of the quoted message, when this account holds it; null until it is stored.
+                      message_hash:
+                        type: string
+                        description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                      sender_ln_id:
+                        type: string
+                        nullable: true
+                      sender_ln_member_id:
+                        type: string
+                        nullable: true
+                      text:
+                        type: string
+                        description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                      sent_at:
+                        type: string
+                        nullable: true
+                    required:
+                      - linkedin_message_sid
+                      - message_hash
+                      - sender_ln_id
+                      - sender_ln_member_id
+                      - text
+                      - sent_at
                   message_hash:
                     type: string
                   sent_at:
@@ -34707,6 +34904,7 @@ components:
                   - attachments
                   - reactions
                   - is_deleted
+                  - reply_to
                   - message_hash
                   - sent_at
                   - custom_content
@@ -36785,6 +36983,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -36820,6 +37048,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -41658,6 +41887,220 @@ components:
             - rows
             - paging
             - data_request
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    ScrapeLinkedinGetCommentRepliesRequest:
+      type: object
+      description: Request body of `scrape_linkedin_get_comment_replies`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "Executor account (ln_ac_...). OPTIONAL everywhere on this surface. Given: the call runs on that account ONLY; a saturated or held scraping bucket refuses 429 bucket_saturated (with retry_after). Omitted: the service auto-picks one of your connected accounts with remaining capacity (SN verbs pick only Sales-Navigator seats; 422 no_connected_accounts when none is ready, 429 when all are at capacity)."
+        idempotency_key:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: "Ledger replay guard: a repeat call with the same (team, key) returns the stored outcome; no re-execution. Recommended on every search run. The KEY ALONE decides: the probe does not compare arguments, so reusing one key after changing the arguments hands back the FIRST result. On the twelve search verbs that matters twice over, because switching a call from filters to url (or back) under one key replays instead of running the new search. New search, new key."
+        comment_urn:
+          type: string
+          maxLength: 512
+          description: "The comment whose replies to read: urn:li:comment:(activity:<postId>,<commentId>) as scrape_linkedin_get_post_comments returns it in comment_ln_id, or the fsd form urn:li:fsd_comment:(<commentId>,urn:li:activity:<postId>). Comments on activity threads only."
+        cursor:
+          type: string
+          nullable: true
+          description: Opaque resume token from paging.next_cursor; null = the first page, the newest replies. Each page is older than the one before.
+      required:
+        - comment_urn
+    ScrapeLinkedinGetCommentRepliesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  commenter_ln_member_id:
+                    type: string
+                  commenter_ln_id:
+                    type: string
+                    nullable: true
+                  commenter_nickname:
+                    type: string
+                    nullable: true
+                  commenter_full_name:
+                    type: string
+                    nullable: true
+                  commenter_headline:
+                    type: string
+                    nullable: true
+                  commenter_picture_url:
+                    type: string
+                    nullable: true
+                  comment_ln_id:
+                    type: string
+                  content:
+                    type: string
+                  posted_at:
+                    type: string
+                    nullable: true
+                  reactions_count:
+                    type: integer
+                    description: SUM of every reaction bucket on the comment, not a like count.
+                  comment_permalink:
+                    type: string
+                    nullable: true
+                    description: Public deep link to this comment.
+                  replies_count:
+                    type: integer
+                    description: "How many replies the comment has. A COUNT ONLY: this verb queries the post's comment list and fetches no replies, so there is no way to read them and no replies array to ask for."
+                  is_pinned:
+                    type: boolean
+                  is_edited:
+                    type: boolean
+                  is_own:
+                    type: boolean
+                    description: Commenter matches one of the team’s managed accounts (same rule as sync).
+                required:
+                  - commenter_ln_member_id
+                  - commenter_ln_id
+                  - commenter_nickname
+                  - commenter_full_name
+                  - commenter_headline
+                  - commenter_picture_url
+                  - comment_ln_id
+                  - content
+                  - posted_at
+                  - reactions_count
+                  - comment_permalink
+                  - replies_count
+                  - is_pinned
+                  - is_edited
+                  - is_own
+              description: The transient result list, in LinkedIn’s order; NOTHING persisted.
+            paging:
+              type: object
+              properties:
+                page_size:
+                  type: integer
+                next_cursor:
+                  type: string
+                  nullable: true
+                has_more:
+                  type: boolean
+                total:
+                  type: integer
+                  nullable: true
+              required:
+                - page_size
+                - next_cursor
+                - has_more
+                - total
+              description: "Cursor paging: feed next_cursor back verbatim; null = terminal page."
+            data_request:
+              type: object
+              properties: {}
+              description: 'The kind="scrape" DataRequest journal row for this call (terminal completed), embedded as result.data_request; served_from_cache always false. A receipt: its result_ref is null here, the page is result.rows next to it; get_data_request by sid reads the stored payload back. Full DataRequestDomain shape owned by ./data_requests.md, so it is left passthrough here.'
+            post:
+              type: object
+              properties:
+                post_ln_id:
+                  type: string
+              required:
+                - post_ln_id
+              description: The activity the comment threads under (post_ln_id = urn:li:activity:<postId>), lifted off the comment urn.
+            comment:
+              type: object
+              properties:
+                comment_ln_id:
+                  type: string
+              required:
+                - comment_ln_id
+              description: The comment the replies were read under, in the public urn form.
+            skipped_invalid_rows:
+              type: integer
+              description: Wire replies with urn=null / no decodable author skipped.
+          required:
+            - rows
+            - paging
+            - data_request
+            - post
+            - comment
+            - skipped_invalid_rows
         meta:
           type: object
           properties:
@@ -47915,7 +48358,6 @@ components:
                     enum:
                       - active
                       - no_connect
-                      - country_mismatch
                       - fraud_flagged
                       - replaced
                   last_health_check_at:
@@ -49286,6 +49728,7 @@ components:
                     - search_posts
                     - search_posts_by_url
                     - get_post_comments
+                    - get_comment_replies
                     - get_post_reactors
                     - get_post_resharers
                     - search_param_id_lookup
@@ -49349,6 +49792,7 @@ components:
                       - search_posts
                       - search_posts_by_url
                       - get_post_comments
+                      - get_comment_replies
                       - get_post_reactors
                       - get_post_resharers
                       - search_param_id_lookup
@@ -49412,6 +49856,7 @@ components:
                       - search_posts
                       - search_posts_by_url
                       - get_post_comments
+                      - get_comment_replies
                       - get_post_reactors
                       - get_post_resharers
                       - search_param_id_lookup
@@ -49784,6 +50229,7 @@ components:
                       - search_posts
                       - search_posts_by_url
                       - get_post_comments
+                      - get_comment_replies
                       - get_post_reactors
                       - get_post_resharers
                       - search_param_id_lookup
@@ -57728,6 +58174,36 @@ components:
                         - first_reacted_at
                   is_deleted:
                     type: boolean
+                  reply_to:
+                    type: object
+                    nullable: true
+                    properties:
+                      linkedin_message_sid:
+                        type: string
+                        nullable: true
+                        description: Our row of the quoted message, when this account holds it; null until it is stored.
+                      message_hash:
+                        type: string
+                        description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                      sender_ln_id:
+                        type: string
+                        nullable: true
+                      sender_ln_member_id:
+                        type: string
+                        nullable: true
+                      text:
+                        type: string
+                        description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                      sent_at:
+                        type: string
+                        nullable: true
+                    required:
+                      - linkedin_message_sid
+                      - message_hash
+                      - sender_ln_id
+                      - sender_ln_member_id
+                      - text
+                      - sent_at
                   message_hash:
                     type: string
                   sent_at:
@@ -57763,6 +58239,7 @@ components:
                   - attachments
                   - reactions
                   - is_deleted
+                  - reply_to
                   - message_hash
                   - sent_at
                   - custom_content
@@ -58831,6 +59308,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -58866,6 +59373,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -59000,6 +59508,13 @@ components:
                 description: "Advisory only: the backend measures the real size and sends that."
             description: Exactly one of file_base64 / file_url per item. Decoded bytes across ALL attachments of one send may not exceed 35 MB, derived from the node's own 50 MB body limit and base64's 4/3 inflation; over it the send is refused with attachments_too_large before a browser dispatch is spent.
           description: Exactly one of file_base64 / file_url per item; 35 MB decoded total per send. An item whose file_type is video/* is delivered as a playable video in the thread; any other type arrives as a generic file attachment.
+        reply_to_linkedin_message_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ms_
+          description: "Quote one message of the thread under this one, as LinkedIn's own Reply does: our sid of the quoted message (the rows of get_my_latest_linkedin_messages and search_linkedin_messages carry it). The quote (its author and words) is filled from the stored row, never from you. It may stand alone: the quoted message names the thread, so linkedin_conversation_sid can be omitted; given both, they must name the same thread (422 reply_target_other_thread). Refused for a message deleted for everyone (422 reply_target_deleted), for LinkedIn's own notice or a row without a LinkedIn message id (422 reply_target_not_quotable), for a message a page or a company wrote (422 reply_target_sender_unknown), and next to ln_id / sn_id / public_identifier. The sent row carries the quote in reply_to. Regular messenger only."
         stop_if_replied_after:
           type: string
           nullable: true
@@ -59152,6 +59667,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -59187,6 +59732,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -59467,6 +60013,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -59502,6 +60078,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -59778,6 +60355,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -59813,6 +60420,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -60064,6 +60672,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -60099,6 +60737,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
@@ -62913,6 +63552,36 @@ components:
                   - first_reacted_at
             is_deleted:
               type: boolean
+            reply_to:
+              type: object
+              nullable: true
+              properties:
+                linkedin_message_sid:
+                  type: string
+                  nullable: true
+                  description: Our row of the quoted message, when this account holds it; null until it is stored.
+                message_hash:
+                  type: string
+                  description: The quoted message's LinkedIn id, the one part of the quote LinkedIn vouches for.
+                sender_ln_id:
+                  type: string
+                  nullable: true
+                sender_ln_member_id:
+                  type: string
+                  nullable: true
+                text:
+                  type: string
+                  description: The quoted words as the replying client wrote them; LinkedIn does not check them against the message.
+                sent_at:
+                  type: string
+                  nullable: true
+              required:
+                - linkedin_message_sid
+                - message_hash
+                - sender_ln_id
+                - sender_ln_member_id
+                - text
+                - sent_at
             message_hash:
               type: string
             sent_at:
@@ -62948,6 +63617,7 @@ components:
             - attachments
             - reactions
             - is_deleted
+            - reply_to
             - message_hash
             - sent_at
             - custom_content
