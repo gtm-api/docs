@@ -44,9 +44,9 @@ One restart attempt is worth it; if it escalates again, open a ticket.
 
 | Proxy status | Meaning | Who can clear it |
 |---|---|---|
-| **active** | The last probe went through | Nothing to do |
-| **no connection** | The last probe failed, or the browser reported a proxy error | Clears itself on the next successful probe |
-| **country mismatch** | The proxy's real exit country is not the country it is registered as | Support only |
+| **active** | The proxy answers. One or two failed probes in a row do not change it | Nothing to do |
+| **no connection** | Five probes in a row failed (about five minutes), the connectivity check found it down, or the browser reported a proxy error | Clears itself on the next successful probe, retried every minute |
+| **country mismatch** | The location check found the exit in another country, and no LinkedIn session has confirmed the registered one | Clears itself once a LinkedIn session seen through the proxy shows its country |
 | **fraud flagged** | The exit IP scored at or above 75 on a fraud database | Support only |
 | **replaced** | Retired. It will never be handed out again | Terminal |
 
@@ -93,17 +93,21 @@ answered, `null` when none did) and `failed[]`, where each entry has an `error_k
 
 | `error_kind` | Meaning |
 |---|---|
-| `timeout` | The proxy accepted nothing within the probe budget |
-| `tls` | The TLS handshake through the proxy failed |
-| `network` | The connection could not be established at all |
-| `http_error` | The proxy itself rejected the request, typically HTTP 407 authentication |
+| `no_connect` | The proxy could not be reached, or it refused the tunnel with a status other than 407 |
+| `auth_refused` | The proxy refused the credentials: HTTP `407` on the tunnel |
+| `timeout` | Nothing answered in time |
+| `other` | Anything else: a TLS failure or a reset after the tunnel opened, or a row the check could not judge (no address, or our side could not reach the targets without a proxy either) |
 
 <Warning>
-The probe times out at **30 seconds** for both connect and read. Only an HTTP `407` from the
-proxy counts as a failure; any other status, including a `5xx` from the probe target, counts as
-success, because it proves the request was routed. A failed probe flips the proxy to
-`no_connect` and a later successful one flips it back to `active`, but rows already in
-`country_mismatch`, `fraud_flagged` or `replaced` only get their latency refreshed.
+The check asks three HTTPS targets through the proxy, then the same three through a second
+path, waiting **5 seconds** to connect and **10 seconds** per request. Any HTTP status from a
+target counts as up, including a `5xx`, because it proves the request was routed. When nothing
+answered, the same targets are asked without a proxy: if they answer, the proxy is down; if they
+do not, the fault is ours and nothing about the proxy is written. A down verdict of this check
+flips an `active` proxy to `no_connect` at once (the background monitor probes it again within
+a minute and flips it back on its first success), an up verdict flips `no_connect` back to
+`active`, and rows in `country_mismatch`, `fraud_flagged` or `replaced` only get their latency
+refreshed.
 </Warning>
 
 Send **exactly one** of `sid` or `filter`. Both or neither returns `422` with
@@ -120,14 +124,19 @@ above with the endpoint swapped for `check-proxy-location`, same `sid` or `filte
 
 - **Country mismatch.** The verdict is the real exit country, measured through the proxy, not a
   vote among IP databases. If it disagrees with the country the proxy is registered as, the
-  proxy is flagged `country_mismatch`. The `disagreement_pct` is context only.
+  proxy is flagged `country_mismatch`, unless a LinkedIn session seen through it has already
+  confirmed its country: what LinkedIn shows outranks the geo vendors. The `disagreement_pct` is
+  context only.
 - **Fraud flag.** The aggregated score is the highest score any responding database returned.
 
 <Warning>
 A proxy is flagged `fraud_flagged` at an aggregated score of **75 or above**. Rows in
-`country_mismatch` or `fraud_flagged` are never handed out to a new browser, and no automatic
-process returns them to `active`. Move the affected browser onto another proxy yourself
-(Check 5) and tell support about the flagged one.
+`country_mismatch` or `fraud_flagged` are never handed out to a new browser; browsers already on
+them keep running. A `country_mismatch` proxy goes back to `active` on its own once a LinkedIn
+session seen through it shows its country, and if LinkedIn shows another country, the proxy is
+registered in that one from then on. A `fraud_flagged` proxy stays flagged until support clears
+it. The browser keeps the country chosen for it either way, so to put it on a proxy of that
+country, move it yourself (Check 5).
 </Warning>
 
 Inconclusive rows are skipped, never flagged: the check needs the through-proxy reading plus at
@@ -211,19 +220,26 @@ explicit start.
 
 ## What the platform already does on its own
 
-- **Every active and no-connection proxy is probed on a 15 minute cycle**, 100 rows per tick,
-  coldest first, and flagged or replaced rows are skipped entirely. **Geo and fraud are re-checked
-  daily**, also 100 rows per tick.
+- **Every active proxy is probed every 5 minutes**, and one that fails is probed again every
+  minute. It turns `no_connect` only after **five failed probes in a row**, so a blip of a minute
+  or two leaves it and your browsers alone, and it is `active` again on the first probe that goes
+  through. When most of the proxies probed in one minute fail at once, the fault is on the path,
+  not in the proxies, and nothing is changed. Flagged and replaced proxies are not probed. **Geo
+  and fraud are re-checked daily**, 100 rows per run.
+- **A browser keeps the country chosen for it.** When a LinkedIn session seen through a proxy
+  shows another country, the proxy is registered in that country and the browser on it keeps
+  yours, so the next swap or rotation picks a proxy in your country again.
 - **A browser that reports a proxy error is rotated automatically**, but never restarted (Check 2).
 - **Integrations get told** by the `antidetect-browsers.proxy-issue` and
   `antidetect-browsers.proxy-back-alive` webhook events, both carrying
-  `antidetect_browser_proxy_sid`. There is no separate proxy-level webhook.
+  `antidetect_browser_proxy_sid`: one when a proxy turns `no_connect`, one when it is back. There
+  is no separate proxy-level webhook.
 
 ## When to contact support
 
 | Case | Why you cannot fix it |
 |---|---|
-| Proxy status **country mismatch** or **fraud flagged** | Nothing user-facing returns a proxy to `active`. Rotate onto another proxy to unblock yourself, then report the flagged one so it can be retired |
+| Proxy status **fraud flagged**, or a **country mismatch** that does not clear | Nothing you do returns such a proxy to `active`. Rotate onto another proxy to unblock yourself, then report the flagged one so it can be retired |
 | `proxy_pool_empty` or `proxy_replacement_unavailable`, or the **Change proxy** dialog offers no country at all | The pool has no other active proxy there. Widening it is an internal, money-spending operation. Name the country in the ticket |
 | Code `777` `server_unreachable`, or status **maintenance** | Our automation host, not your proxy |
 | Verification challenges keep coming back right after a genuine re-login | LinkedIn challenging the account, especially after a country change. The remedy is account-side, not network-side |

@@ -38,6 +38,28 @@ description: "What's new in the GTM API platform and this documentation."
   limit sits well above any legitimate use seen so far (the busiest API key peaked at 232 calls
   in a minute); it exists because one integration looped at 23 calls a second for 41 hours and
   nothing said no.
+
+  **A proxy turns `no_connect` after five failed probes, not one.** Every active proxy is probed
+  every 5 minutes and a failing one every minute; it flips to `no_connect` only on the fifth failed
+  probe in a row, about five minutes of confirmed outage, and the first probe that goes through
+  brings it back. Until now a single failed probe flipped it, and nine flips in ten were undone by
+  the next probe. `antidetect-browsers.proxy-issue` follows the flip, so integrations get far fewer
+  of them, each one a real outage. The connectivity check you run yourself still answers on one
+  probe. Details on [Proxy problems](/kb/proxy-troubleshooting).
+
+  **A browser keeps the country you chose.** A browser's `proxy_country_code` is the country
+  chosen for it and no longer follows its proxy. When a LinkedIn session seen through a proxy shows
+  another country, the proxy is registered in that country and the browser on it keeps yours, so
+  the next swap or rotation picks a proxy in your country again. A proxy whose exit the location
+  check finds in another country is set aside as `country_mismatch` (never handed to a new
+  browser) until a LinkedIn session through it settles the country.
+
+  **Attachments of older messages download again, and so do voice notes you sent.**
+  `POST /api/linkedin-messages/download-attachment` finds messages sent before 2025-05-28 again:
+  most of them answered `message ... not found in conversation`. A voice note sent through
+  `send-voice` now keeps the file LinkedIn names in its row's `attachments`
+  (`{ "id", "urn", "content_type": "audio" }`, without a `content_url`), so the download finds it
+  too; rows of voice notes sent before today keep an empty list.
 </Update>
 
 <Update label="2026-10-18" description="A mass action holds for a spent budget as one run, a canary run left alone settles itself, and preview catches a missing text">
