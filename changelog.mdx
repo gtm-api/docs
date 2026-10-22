@@ -27,6 +27,17 @@ description: "What's new in the GTM API platform and this documentation."
   comments read returns; comments on activity threads only. LinkedIn picks the page size: the first
   page holds the newest replies, and `cursor` walks to older ones while `paging.has_more` is true.
   Details on [Inbox and message sync](/kb/inbox-and-message-sync).
+
+  **A per-client rate limit on the LinkedIn API.** One client (a user, an API key, or an OAuth
+  client acting for a user, within one workspace) may make 600 calls a minute on the LinkedIn
+  API. The call past that answers `429 rate_limited` with reason `client_rate_limited`,
+  `error.context.retry_after` (the moment the same call goes through again), `context.limit` and
+  `context.window_seconds`, plus a `Retry-After` header. Every answer under the limit carries
+  `X-RateLimit-Limit` and `X-RateLimit-Remaining`, so a client can pace itself before it is
+  refused. The window is a fixed minute: a burst inside one second is fine, a loop is not. The
+  limit sits well above any legitimate use seen so far (the busiest API key peaked at 232 calls
+  in a minute); it exists because one integration looped at 23 calls a second for 41 hours and
+  nothing said no.
 </Update>
 
 <Update label="2026-10-18" description="A mass action holds for a spent budget as one run, a canary run left alone settles itself, and preview catches a missing text">

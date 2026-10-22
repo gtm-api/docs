@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 238 reasons across 4 services.
+reason is thrown without a sentence). 239 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -59,6 +59,7 @@ reason is thrown without a sentence). 238 reasons across 4 services.
 | `channel_no_cross_cluster` | The two workspaces live on different clusters and this channel cannot hand an account across clusters. | id |
 | `channel_unavailable` | The channel service did not answer; retry in a minute. | id |
 | `channel_unreachable` | The channel service could not be reached; retry in a minute. | id |
+| `client_rate_limited` | This client made more requests in one minute than the API allows (context.limit); wait until retry_after, then spread the calls out or page in larger steps. | linkedin |
 | `client_reference_frozen` | This message was already sent (or tried) under its client_reference, which its repeat and check-sent find it by; the client_reference cannot be set, changed or cleared now. | email |
 | `comment_not_deleted` | LinkedIn did not delete this comment: it is not this account's, or it is already gone. | linkedin |
 | `comment_urn_not_activity_thread` | comment_urn must name a comment on an activity thread, urn:li:comment:(activity:&lt;postId>,&lt;commentId>) or the fsd form urn:li:fsd_comment:(&lt;commentId>,urn:li:activity:&lt;postId>); the replies under a comment on a ugcPost, share or groupPost thread cannot be read. | linkedin |
