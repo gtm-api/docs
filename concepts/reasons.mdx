@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 239 reasons across 4 services.
+reason is thrown without a sentence). 240 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -219,6 +219,7 @@ reason is thrown without a sentence). 239 reasons across 4 services.
 | `send_as_denied` | from_email is not an address this account owns or is allowed to send as. | email |
 | `send_outcome_settled` | confirmed_sent names an attempt that was already proven not sent (context.activity_log_sid, why in context.check_reason), so the word cannot be taken; nothing was sent. | email |
 | `send_outcome_unknown` | **linkedin:** The answer of an attempt of this send never came back, so it may or may not be on LinkedIn, and nothing more is sent until that is known. Repeat the same request after retry_after, or settle it with confirmed_not_sent or confirmed_sent naming context.activity_log_sid.<br/>**email:** This message may already have gone out (the provider gave no verdict), so it is not sent again until the mailbox shows whether it left; ask again after context.retry_after, or ask check-sent (context.activity_log_sid names the attempt). | linkedin, email |
+| `sender_not_ready` | The run's sending account cannot send right now: context.linkedin_account_sid names it, context.state says why (not_found, initial_sync_pending, shared_out, subscription_required, signed_out, restricted, error_investigation) and context.detail what to do; preview refuses such a sender on plan.steps.{i}.args.linkedin_account_sid with the same rule. | orchestration |
 | `session_already_disconnected` | This session is already disconnected. | linkedin |
 | `shadowban_check_not_pending` | This check is not pending, so its send cannot be confirmed. | linkedin |
 | `share_not_active` | This share is not active, so it cannot be recalled or returned. | id |

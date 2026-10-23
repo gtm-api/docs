@@ -3,6 +3,23 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-10-23" description="A mass action refuses a sender that cannot send, at preview and at append">
+  **The preview asks whether the sender can send.** `POST /api/mass-actions/preview` and the create
+  now ask the LinkedIn service about every sender a plan names in `args.linkedin_account_sid`. An
+  account still in its first sync (`initial_sync_pending`), lent to another team (`shared_out`),
+  parked by the subscription (`subscription_required`), signed out of LinkedIn (`signed_out`),
+  restricted (`restricted`), parked for an error investigation (`error_investigation`) or not
+  connected in this workspace (`not_found`) fails with a `422` and `sender_not_ready` on
+  `plan.steps.N.args.linkedin_account_sid`; the message names the state and the way out. Until now
+  such a run was created and died on its first item: the usual case was a run created minutes after
+  its account was connected, before the first sync had finished.
+
+  **`append-items` asks too.** A run whose sender cannot send right now takes no leads: `409`
+  `sender_not_ready` with `context.linkedin_account_sid`, `context.state` and `context.detail`. A
+  run that is paused or stopped still answers `run_not_active` first, as before. Details on
+  [Run a mass action](/guides/run-a-mass-action).
+</Update>
+
 <Update label="2026-10-22" description="A reply carries the message it quotes, a send can quote one, and the replies under a comment are readable">
   **A message says which message it replies to.** Every message of the basic messenger now carries
   `reply_to`: the quote LinkedIn shows under a reply, or `null`. It names the quoted message by its
