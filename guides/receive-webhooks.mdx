@@ -25,7 +25,7 @@ Webhooks live on the Orchestration service and cover events from the whole platf
 
 - `name` is required (1 to 255 characters). Omitting it fails validation.
 - `target_url` must be `https://` and must not resolve to a loopback, private or link-local address. DNS names are resolved and checked too, not just IP literals.
-- Each `events[]` value is validated against the platform event catalog, which currently carries 105 types across the services.
+- Each `events[]` value is validated against the platform event catalog, which currently carries 108 types across the services.
 - The same `target_url` cannot be registered twice in one team.
 - `events: ["*"]` subscribes to the entire catalog, including event types added later.
 
@@ -175,6 +175,38 @@ Both `retry` and `cancel` answer `409` with `invalid_transition` when the row is
 - `nickname`, the profile's vanity URL slug, is present only where LinkedIn exposes it: the connections list and received invitations. Followers, conversations, messages and sent invitations name people by hash id, so those rows carry `nickname` only once the same person is also a 1st-degree connection of the account. Match on `ln_member_id` (stable) or `ln_id` (the `ACoAA...` profile id, present on every event) rather than on the slug.
 - `linkedin-account-activity-log.task-failed` fires once for each call an account dispatched that ended `failed`. Its payload is the activity-log row (`sid`, `linkedin_account_sid`, `action_type`, `error_message`, `duration_ms`, `created_at`, `updated_at`, `trace_id`) with `pending_age_seconds`, how long the call was pending, and `failure_source`, what failed it: `plugin` (the call's own answer), `reconcile` (nobody finished the call in time) or `browser_deleted` (its browser was deleted while it ran). On a send's row, `send_outcome` and `send_outcome_reason` say what came of the send, and they are `null` on every other action. `not_sent` (`refused`) means nothing reached LinkedIn. `unknown` (`answer_lost`) means the send may be out: a failed call is not a send that did not go out, so ask check-sent before you send it again ([Sending once](/concepts/sending-once)). To receive only the sends in doubt, subscribe with `"filters": {"where": {"field": "payload.send_outcome", "op": {"eq": "unknown"}}}`. One kind of failed call does not fire it: a Sales Navigator call that LinkedIn refused with `SALES_SEAT_REQUIRED` while the seat is live. The platform reopens the Sales Navigator session and runs the call once more, and that second call's own outcome is what you get (a sync run retries on its next pass instead). The refused first attempt stays in the activity log. When the seat is really gone, the failure fires as usual.
 - `deleted_at` on a terminal `linkedin-connection-requests.*` event (`accepted`, `withdrawn`, `expired-detected`) is the moment we detected the transition, not LinkedIn's own timestamp of it. Acceptance is detected by the next sync of the account's pending invitations, so it can trail the real acceptance by up to the sync interval. `removal_kind` says which transition it was.
+- `linkedin-accounts.restriction-lifted` and its browser-level twin `antidetect-browsers.restriction-lifted` fire once when a restricted account comes back: a scheduled re-read (day 3, 7, 14, 21 and 30 after the sign-out, then every 30 days to day 180) found the member's public profile again, and the browser went from `restricted` back to `login_issue`. The account still needs a re-login, so read the event as "ask the holder to log in", not as "the sender works again". Both payloads carry `restricted_for_days` (whole days from the sign-out to the read), `rechecks_count` (how many reads this restriction took, the one that found the profile included) and `observed_at`, when that read ran. The account event names the account in `sid` and its browser in `antidetect_browser_sid`. The browser event names the browser in `sid` and its account in `linkedin_account_sid`, and adds `logout_count` and `last_logout_at`, still those of the sign-out the restriction began with, and `error_reason`, the read's result in words for a person (the wording may change, so do not parse it). What happens around the lift is on [browser troubleshooting](/kb/browser-troubleshooting#when-linkedin-lifts-the-restriction).
+
+The two `restriction-lifted` payloads, as they arrive under `payload`:
+
+<CodeGroup>
+
+```json linkedin-accounts.restriction-lifted
+{
+  "sid": "ln_ac_Hx7kQ3mN2pL4",
+  "team_sid": "ts_tm_Bv9nK4xP1sD7",
+  "antidetect_browser_sid": "ab_br_Tz6mW2qJ8rC5",
+  "restricted_for_days": 14,
+  "rechecks_count": 3,
+  "observed_at": "2026-11-09T09:12:41.000000Z"
+}
+```
+
+```json antidetect-browsers.restriction-lifted
+{
+  "sid": "ab_br_Tz6mW2qJ8rC5",
+  "team_sid": "ts_tm_Bv9nK4xP1sD7",
+  "linkedin_account_sid": "ln_ac_Hx7kQ3mN2pL4",
+  "logout_count": 1,
+  "last_logout_at": "2026-10-26T08:40:02.000000Z",
+  "restricted_for_days": 14,
+  "rechecks_count": 3,
+  "error_reason": "LinkedIn shows this member's public profile again (profile_id ACoAA..., public_identifier some-public-profile-slug), read from another LinkedIn account on 2026-11-09: the restriction is over. The session here is still gone; log in again through the cloud browser and the account picks up where it stopped.",
+  "observed_at": "2026-11-09T09:12:41+00:00"
+}
+```
+
+</CodeGroup>
 
 ## Rotating the secret
 

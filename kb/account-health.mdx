@@ -221,7 +221,7 @@ Read it per sender, in this order:
 
 | Dimension | Where in the response | Healthy looks like |
 |---|---|---|
-| Login state | included `antidetect_browser.status` | Anything but `login_issue` or `restricted`. `login_issue` = signed out of LinkedIn, a re-login fixes it; `restricted` = signed out and the public profile is gone from LinkedIn, so the holder has to sort it out with LinkedIn first. `error_reason` and `last_logout_at` say what and when. NOT the account's own `status`, which is lifecycle and stays `active` through a logout |
+| Login state | included `antidetect_browser.status` | Anything but `login_issue` or `restricted`. `login_issue` = signed out of LinkedIn, a re-login fixes it; `restricted` = signed out and the public profile is gone from LinkedIn, so the holder has to sort it out with LinkedIn first (the platform checks the profile again for six months and turns the browser back into `login_issue` when LinkedIn shows it). `error_reason` and `last_logout_at` say what and when. NOT the account's own `status`, which is lifecycle and stays `active` through a logout |
 | Warmup | included `linkedin_account_snapshot.warmup_score` | 90 or above; unhealthy signals are listed in `warmup_breakdown` |
 | Budgets | included `linkedin_account_smart_limits` | `active` rows; `held` / `linkedin_blocked` mean a budget is parked |
 | Blocks | included `linkedin_account_block_log_counts` | `last_7d_count` of 3 or fewer; more says the targeting is the problem |
@@ -265,6 +265,7 @@ Paste this to your coding agent to read the whole fleet at once:
 | `linkedin-account-block-log.recorded` | A target was confirmed to be blocking an account |
 | `linkedin-accounts.logged-out` | LinkedIn signed a sender out; `antidetect-browsers.logged-out` is the browser-level twin |
 | `linkedin-accounts.restricted` | Right after the logout, the sender's public profile no longer answered from another LinkedIn account: a restricted (or closed) account. Follows `.logged-out`, never replaces it; `antidetect-browsers.restricted` is the browser-level twin |
+| `linkedin-accounts.restriction-lifted` | A scheduled re-read found the restricted sender's public profile again (day 3, 7, 14, 21 and 30 after the sign-out, then every 30 days to day 180): the restriction is over and the browser is back at `login_issue`, waiting for a re-login. Once per lift, after `.restricted`. `antidetect-browsers.restriction-lifted` is the browser-level twin ([the payloads](/guides/receive-webhooks#6-read-the-payload)) |
 | `linkedin-account-activity-log.task-failed` | A call the account dispatched ended `failed`, once per call: `failure_source` says what failed it, and on a send `send_outcome` says whether it may still be out ([the payload](/guides/receive-webhooks#6-read-the-payload)) |
 
 ## Related

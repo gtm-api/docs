@@ -1978,6 +1978,7 @@ components:
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
               - linkedin-accounts.restricted
+              - linkedin-accounts.restriction-lifted
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
@@ -2023,6 +2024,7 @@ components:
               - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
               - antidetect-browsers.restricted
+              - antidetect-browsers.restriction-lifted
               - antidetect-browsers.started
               - antidetect-browsers.stopped
               - antidetect-browsers.start-failed
@@ -4495,6 +4497,7 @@ components:
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
               - linkedin-accounts.restricted
+              - linkedin-accounts.restriction-lifted
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
@@ -4540,6 +4543,7 @@ components:
               - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
               - antidetect-browsers.restricted
+              - antidetect-browsers.restriction-lifted
               - antidetect-browsers.started
               - antidetect-browsers.stopped
               - antidetect-browsers.start-failed
@@ -7637,6 +7641,7 @@ components:
               - linkedin-accounts.login-failed
               - linkedin-accounts.logged-out
               - linkedin-accounts.restricted
+              - linkedin-accounts.restriction-lifted
               - linkedin-accounts.recruiter-signed-out
               - linkedin-accounts.recruiter-signed-in
               - linkedin-accounts.heartbeat-stale
@@ -7682,6 +7687,7 @@ components:
               - antidetect-browsers.login-failed
               - antidetect-browsers.logged-out
               - antidetect-browsers.restricted
+              - antidetect-browsers.restriction-lifted
               - antidetect-browsers.started
               - antidetect-browsers.stopped
               - antidetect-browsers.start-failed

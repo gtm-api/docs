@@ -20,6 +20,29 @@ description: "What's new in the GTM API platform and this documentation."
   [Run a mass action](/guides/run-a-mass-action).
 </Update>
 
+<Update label="2026-10-23" description="A restricted account is checked again, and you hear when it comes back">
+  **A restriction is no longer final.** Until now a browser marked `restricted` kept that status
+  after LinkedIn lifted the restriction, and only a re-login by hand cleared it. The platform
+  now reads a restricted member's public profile again from another LinkedIn account on day 3, 7,
+  14, 21 and 30 after the sign-out, then every 30 days to day 180, and stops there. When LinkedIn
+  shows the profile again, the browser goes back to `login_issue` (the session LinkedIn ended is
+  still gone, so the account needs one re-login) and the person who connected it gets **Your
+  LinkedIn account is back: log in again**.
+
+  **Two new webhook events.** `linkedin-accounts.restriction-lifted` and its browser-level twin
+  `antidetect-browsers.restriction-lifted` fire once per lift, after the `.restricted` pair of the
+  same episode. Both carry `restricted_for_days`, `rechecks_count` and `observed_at`, and the
+  browser event adds `logout_count`, `last_logout_at` (the original sign-out, kept) and
+  `error_reason`. A subscription on `events: ["*"]` receives them with no change. Any other names
+  them in `events[]` like every other type. The browser event log gains
+  `account_restriction_rechecked`, one `info` row per read that still found no profile (the day,
+  the next read, or that the checks stopped), and `account_restriction_lifted`. Accounts that were
+  already restricted are read again in the hours after the release, except those signed out more
+  than 180 days ago. Details on
+  [Browser troubleshooting](/kb/browser-troubleshooting#when-linkedin-lifts-the-restriction), the
+  payloads on [Receive webhooks](/guides/receive-webhooks#6-read-the-payload).
+</Update>
+
 <Update label="2026-10-22" description="A reply carries the message it quotes, a send can quote one, and the replies under a comment are readable">
   **A message says which message it replies to.** Every message of the basic messenger now carries
   `reply_to`: the quote LinkedIn shows under a reply, or `null`. It names the quoted message by its
