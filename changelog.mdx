@@ -43,6 +43,20 @@ description: "What's new in the GTM API platform and this documentation."
   payloads on [Receive webhooks](/guides/receive-webhooks#6-read-the-payload).
 </Update>
 
+<Update label="2026-10-23" description="Cloud browser login: the session saves itself, nothing to press">
+  **The cloud browser login no longer waits for a button.** The login window in the app and the
+  re-login link's page used to hold an **I have logged in** button that unlocked only once the
+  platform had seen the login. Now the footer reads the save as it happens: **Session auto-save:
+  waiting for login**, **login detected, saving**, **saved**. A saved login stays on screen as
+  **Your LinkedIn session is saved** with a **Got it, close** button instead of the window closing
+  by itself, and the re-login link's page ends on **Sign-in confirmed** as before.
+
+  **I signed in is still there, as a word of the hint.** The **i** mark next to the footer explains
+  the automatic save, and while a manual save makes sense its hint ends with **I signed in** as a
+  link. Before a login was seen it asks you to confirm first, because a save with no login stores a
+  signed-out profile; after a save that did not go through it saves again at once. The window's
+  Cancel button is gone; the close control keeps its guard. Nine interface languages carry the new
+  copy.
 <Update label="2026-10-22" description="A reply carries the message it quotes, a send can quote one, and the replies under a comment are readable">
   **A message says which message it replies to.** Every message of the basic messenger now carries
   `reply_to`: the quote LinkedIn shows under a reply, or `null`. It names the quoted message by its

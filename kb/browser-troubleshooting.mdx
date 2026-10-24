@@ -153,12 +153,19 @@ again and the row goes straight back to `login_issue` with another power-off.
 2. Click **Log into LinkedIn** and complete the login in that window, including any
    verification LinkedIn asks for. You are typing into the account's own browser, on its
    own proxy, so the device and location LinkedIn sees do not change.
-3. Click **I have logged in** and keep the window open while the profile uploads to
-   secure storage. The upload is confirmed from the launcher log within about 90 seconds;
-   the app then closes the window and watches the browser every 3 seconds for up to 4
+3. Keep the window open: the session saves itself. The footer reads **Session auto-save:
+   waiting for login** until LinkedIn signs you in, then **login detected, saving** while
+   the profile uploads to secure storage (confirmed from the launcher log within about 90
+   seconds), then **saved**, with **Your LinkedIn session is saved** on screen and a
+   **Got it, close** button. The app then watches the browser every 3 seconds for up to 4
    minutes. Reaching `running` reports **LinkedIn session restored, the browser is back
    up**; hitting the 4-minute deadline reports **Still verifying the session, we'll keep
    working in the background**.
+4. Signed in, but the footer still says waiting? Open the hint behind the **i** mark next
+   to it and press **I signed in**. Before the platform has seen your login it asks you to
+   confirm first, because a save with no login stores a signed-out profile and the browser
+   then fails to start. The re-login link's page reads the same header and ends on
+   **Sign-in confirmed**.
 
 Syncing and automations resume on their own once the browser is running again, from where
 they stopped.
