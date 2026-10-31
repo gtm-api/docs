@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 249 reasons across 4 services.
+reason is thrown without a sentence). 251 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -32,6 +32,8 @@ reason is thrown without a sentence). 249 reasons across 4 services.
 | `acme_unreachable` | The certificate authority did not answer; retry in a minute. | id |
 | `addon_not_on_subscription` | This add-on is not on the subscription, so there is nothing to remove or change. | id |
 | `already_erased` | This account was erased; nothing of it remains to act on. | id |
+| `app_access_denied` | The tenant does not let this application reach the mailbox: an Exchange application access policy excludes it, or the admin consent for Mail.ReadWrite and Mail.Send is missing. | email |
+| `app_only_credential_rejected` | Entra does not accept this application's client secret, or the application is unknown to the tenant (expired or rotated secret, wrong tenant); fix it at the provider and update the secret with email-oauth-apps.update. | email |
 | `archive_folder_missing` | This IMAP mailbox mirrors no folder with the archive role, so there is nowhere to archive to; move the message to a folder of your choice with email-messages.update instead. | email |
 | `attachment_fetch_failed` | The attachment could not be downloaded from the provider (see context.detail). | email |
 | `attachment_too_large` | The attachments together exceed the size a send may carry (context.max_bytes). | email |
