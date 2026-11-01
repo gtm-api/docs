@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 251 reasons across 4 services.
+reason is thrown without a sentence). 254 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -236,7 +236,10 @@ reason is thrown without a sentence). 251 reasons across 4 services.
 | `sid_xor_filter_required` | Provide sid for one item or filter for a set, not neither. | orchestration |
 | `skill_discovery_failed` | Reading the target's skills from LinkedIn failed; retry, or endorse a skill by id. | linkedin |
 | `slug_collision` | Another product already carries this slug; the catalog cannot map two products to one slug. | id |
+| `source_fetch_failed` | The provider did not hand over the raw source (see context.detail); retry shortly. | email |
+| `source_not_available` | This message has no raw source to download (see context.detail): a scheduled message has not been sent yet, and a hosted mailbox keeps the parsed message only. | email |
 | `source_not_parked` | The source rows are not parked under a handover; park them before exporting. | linkedin |
+| `source_too_large` | The raw source is larger than the download cap (context.size_bytes against context.max_bytes); read the message through get and get-attachment instead. | email |
 | `subject_already_connected` | The subject is already connected to every canary; the check needs a canary that is not connected to them. | linkedin |
 | `subscription_canceled` | This subscription is canceled and cannot be changed. | id |
 | `subscription_locked_pending_changes` | This subscription has a scheduled change pending; wait for it to apply or cancel it first. | id |
