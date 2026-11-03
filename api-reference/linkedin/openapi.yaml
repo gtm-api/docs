@@ -5855,7 +5855,7 @@ paths:
       operationId: enrich_linkedin_person_full_profile
       summary: Enrich person full profile
       description: |-
-        The complete person dossier: identity, headline/position/company, location, about, follower/connection counts, premium/verification flags, plus truncated heads of experience/education/skills/recent posts. cached 24h. One full profile beats separate subset calls when you need profile + 2 or more sections. Full sub-record lists still need the dedicated paginated methods. picture_url is normalized to avatar_url.
+        The complete person dossier: identity, headline/position/company, location, about, follower/connection counts, premium/verification flags, plus truncated heads of experience/education/skills (no posts since 2026-11-03: the feed is person-posts). cached 24h. One full profile beats separate subset calls when you need profile + 2 or more sections. Full sub-record lists still need the dedicated paginated methods. picture_url is normalized to avatar_url.
 
         Contract:
         - MCP tool `enrich_linkedin_person_full_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -17560,11 +17560,6 @@ components:
                     type: object
                     properties: {}
                 skills:
-                  type: array
-                  items:
-                    type: object
-                    properties: {}
-                posts:
                   type: array
                   items:
                     type: object
