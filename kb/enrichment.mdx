@@ -135,7 +135,9 @@ A call has a hard deadline of 90 seconds; typical latency is 30 seconds at p95 e
 that window the replay returns the `running` row, so poll `GET /api/data-requests/{sid}`
 until the status is terminal. To follow results without polling, subscribe to the
 `data-requests.completed` and `data-requests.failed` webhooks; the completed payload adds
-`result_ref` and `completed_at` to the receipt fields. Refusals have no
+`result_ref`, `result_omitted` and `completed_at` to the receipt fields. A result too large for
+a webhook (past 63 KB) arrives with `result_ref` null and `result_omitted` true: read it with
+`GET /api/data-requests/{sid}`. Refusals have no
 event: a rejection appears only as the synchronous HTTP error.
 
 ## Daily budget
