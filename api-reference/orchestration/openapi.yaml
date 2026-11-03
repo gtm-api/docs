@@ -2043,6 +2043,7 @@ components:
               - webhooks.failed
               - email-accounts.connected
               - email-accounts.reconnect-required
+              - email-accounts.connect-error
               - email-accounts.sending-paused
               - email-accounts.sending-resumed
               - email-accounts.disconnected
@@ -2056,6 +2057,7 @@ components:
               - email-messages.complained
               - email-messages.failed
               - email-messages.deleted
+              - email-messages.updated
               - email-threads.updated
               - email-engagements.opened
               - email-engagements.clicked
@@ -4562,6 +4564,7 @@ components:
               - webhooks.failed
               - email-accounts.connected
               - email-accounts.reconnect-required
+              - email-accounts.connect-error
               - email-accounts.sending-paused
               - email-accounts.sending-resumed
               - email-accounts.disconnected
@@ -4575,6 +4578,7 @@ components:
               - email-messages.complained
               - email-messages.failed
               - email-messages.deleted
+              - email-messages.updated
               - email-threads.updated
               - email-engagements.opened
               - email-engagements.clicked
@@ -7706,6 +7710,7 @@ components:
               - webhooks.failed
               - email-accounts.connected
               - email-accounts.reconnect-required
+              - email-accounts.connect-error
               - email-accounts.sending-paused
               - email-accounts.sending-resumed
               - email-accounts.disconnected
@@ -7719,6 +7724,7 @@ components:
               - email-messages.complained
               - email-messages.failed
               - email-messages.deleted
+              - email-messages.updated
               - email-threads.updated
               - email-engagements.opened
               - email-engagements.clicked

@@ -417,7 +417,7 @@ paths:
       operationId: replace_antidetect_browser_proxy
       summary: Rotate antidetect browser proxy
       description: |-
-        Rotate an antidetect browser onto another MANAGED proxy of the SAME country. Geo-binding is preserved, so this is the safe way to drop a flagged IP. Omit antidetect_browser_proxy_sid to take the least-loaded active proxy of that country, or pin one (a pin from another country is refused, 422 proxy_country_mismatch). Platform-owned browsers only, 422 managed_proxy_forbidden_for_owner; a platform row that never got a proxy is 422 proxy_not_managed; a country with no other active proxy is 422 proxy_replacement_unavailable. A running browser is stopped and started again so the new IP takes effect; result.restarted reports whether it came back.
+        Rotate an antidetect browser onto another MANAGED proxy of the SAME country. Geo-binding is preserved, so this is the safe way to drop a flagged IP. Omit antidetect_browser_proxy_sid to take the least-loaded active proxy of that country, or pin one (a pin from another country is refused, 422 proxy_country_mismatch). Only a browser whose profile we hold (browser_owner=platform or adopted): a profile you own at GoLogin keeps its proxy there, 422 managed_proxy_forbidden_for_owner; a row that never got a managed proxy is 422 proxy_not_managed; a country with no other active proxy is 422 proxy_replacement_unavailable. A running browser is stopped and started again so the new IP takes effect; result.restarted reports whether it came back.
 
         Contract:
         - MCP tool `replace_antidetect_browser_proxy`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -657,7 +657,7 @@ paths:
       operationId: update_antidetect_browser_proxy
       summary: Change antidetect browser proxy
       description: |-
-        Change the proxy of an existing antidetect browser, country included. Supply EXACTLY ONE source: antidetect_browser_proxy_sid, proxy_country_code or custom_proxy_config. EVERY arm needs browser_owner=platform: a profile bound by id keeps its proxy in the vendor (422 managed_proxy_forbidden_for_owner / 422 custom_proxy_forbidden_for_owner). custom_proxy_config is probed first (422 custom_proxy_unreachable_* changes nothing), takes the exit country measured there, and RELEASES any armed 5G slot. Zero sources 422 proxy_assignment_missing, more than one 422 proxy_assignment_conflict, empty pool 422 proxy_pool_empty, 5G on a BYO proxy 422 proxy_5g_requires_managed_proxy. proxy_5g alone is a valid body: it moves the add-on binding only. DANGEROUS twice over: a location flip mid-campaign can trip a LinkedIn risk check, and a running browser is restarted, since a live session keeps the old proxy until it respawns. Read result.restarted. To rotate the IP in place, use replace_antidetect_browser_proxy.
+        Change the proxy of an existing antidetect browser, country included. Supply EXACTLY ONE source: antidetect_browser_proxy_sid, proxy_country_code or custom_proxy_config. EVERY arm needs browser_owner=platform or adopted: a profile you own at GoLogin keeps its proxy there (422 managed_proxy_forbidden_for_owner / 422 custom_proxy_forbidden_for_owner). custom_proxy_config is probed first (422 custom_proxy_unreachable_* changes nothing), takes the exit country measured there, and RELEASES any armed 5G slot. Zero sources 422 proxy_assignment_missing, more than one 422 proxy_assignment_conflict, empty pool 422 proxy_pool_empty, 5G on a BYO proxy 422 proxy_5g_requires_managed_proxy. proxy_5g alone is a valid body: it moves the add-on binding only. DANGEROUS twice over: a location flip mid-campaign can trip a LinkedIn risk check, and a running browser is restarted, since a live session keeps the old proxy until it respawns. Read result.restarted. To rotate the IP in place, use replace_antidetect_browser_proxy.
 
         Contract:
         - MCP tool `update_antidetect_browser_proxy`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -756,7 +756,7 @@ paths:
       operationId: delete_antidetect_browser
       summary: Delete antidetect browser
       description: |-
-        Decommission (soft-delete) a single antidetect browser by sid: outward, destructive, one-way through MCP. A browser in an active-run status is stopped FIRST and the node must confirm: the call can take up to ~20s waiting for that confirm, and if it does not arrive the delete is refused with 409 conflict (context.reason=browser_stop_unconfirmed) and NOTHING is deleted - retry in a minute rather than assuming success. Variant B cascade: the bound linkedin-account is soft-deleted and pending plugin tasks transition to failed; the cascade block reports the counts. A platform-minted GoLogin profile is reclaimed (deleted) at the vendor unless another live browser row still holds it; customer BYO vendor profiles are left intact.
+        Decommission (soft-delete) a single antidetect browser by sid: outward, destructive, one-way through MCP. A browser in an active-run status is stopped FIRST and the node must confirm: the call can take up to ~20s waiting for that confirm, and if it does not arrive the delete is refused with 409 conflict (context.reason=browser_stop_unconfirmed) and NOTHING is deleted - retry in a minute rather than assuming success. Variant B cascade: the bound linkedin-account is soft-deleted and pending plugin tasks transition to failed; the cascade block reports the counts. A platform-minted GoLogin profile is reclaimed (deleted) at the vendor unless another live browser row still holds it; customer BYO and adopted vendor profiles (bound by id) are left intact.
 
         Contract:
         - MCP tool `delete_antidetect_browser`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -11378,7 +11378,7 @@ components:
           type: string
           nullable: true
           pattern: ^[0-9a-f]{24}$
-          description: "Bind an EXISTING vendor profile (BYO): the GoLogin profile id, 24 hex characters. NOT a profile URL, share link or LinkedIn slug. Omit to mint a fresh one. The profile must be shared with our GoLogin account, or the create is 422 vendor_profile_not_found; if the owning GoLogin account is over its plan the create is 402 vendor_profile_plan_limit and retrying will not help."
+          description: "Bind an EXISTING vendor profile (BYO): the GoLogin profile id, 24 hex characters. NOT a profile URL, share link or LinkedIn slug. Omit to mint a fresh one. The profile must be shared with our GoLogin account, or the create is 422 vendor_profile_not_found; if the owning GoLogin account is over its plan the create is 402 vendor_profile_plan_limit and retrying will not help. A profile held in our own GoLogin account (no share needed) is adopted (browser_owner=adopted), and when its proxy is one of ours it is linked to that proxy at create."
         os:
           type: string
           enum:
@@ -11479,6 +11479,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
@@ -12137,15 +12139,18 @@ components:
               profile_id:
                 type: string
                 minLength: 1
-                description: "Who to mention: a bare ACoA… profile id (as get-post-comments and the profile readers return) or the full urn:li:fsd_profile:<id>."
+                description: "A member to mention: a bare ACoA… profile id (as get-post-comments and the profile readers return) or the full urn:li:fsd_profile:<id>. Exactly one of profile_id or company_id."
+              company_id:
+                type: string
+                minLength: 1
+                description: "A company page to mention: the bare numeric company id (same form get_linkedin_company_posts takes) or the full urn:li:fsd_company:<id>. Exactly one of profile_id or company_id."
               name:
                 type: string
                 minLength: 1
-                description: The exact substring of text that becomes the clickable link (usually the profile name).
+                description: The exact substring of text that becomes the clickable link (usually the member's or the page's name).
             required:
-              - profile_id
               - name
-          description: Profile mentions (2026-08-21). Names are matched in text left to right in list order, each search starting after the previous mention. The node computes the character offsets itself.
+          description: Mentions of members (profile_id) and company pages (company_id, 2026-10-29). Names are matched in text left to right in list order, each search starting after the previous mention. The node computes the character offsets itself.
         client_reference:
           type: string
           nullable: true
@@ -12348,7 +12353,7 @@ components:
               nullable: true
               minLength: 1
               maxLength: 255
-          description: "ONE video, image-shaped minus alt_text. Mutually exclusive with images (LinkedIn does not mix them in a share - 422 here). Shares the 35 MB media budget. The upload is a single large PUT through the browser and is SLOW: the synchronous call can outlive your client timeout while the post still publishes, so repeat it only under the same client_reference."
+          description: "ONE video, image-shaped minus alt_text. Mutually exclusive with images (LinkedIn does not mix them in a share - 422 here). Shares the 35 MB media budget. Plays 3 seconds to 15 minutes, as its MP4 / MOV / WEBM container states (LinkedIn's own rule, checked here before the upload: 422 video_duration on the member otherwise; a container that states no length passes). The upload runs through the browser (one PUT up to 10 MiB, 4 MiB parts above it) and is SLOW: the synchronous call can outlive your client timeout while the post still publishes, so repeat it only under the same client_reference."
         scheduled_at:
           type: string
           description: "Schedule the post instead of publishing now: ISO 8601 with timezone, must be in the future (a strictly-past time is a 422; within a minute of now is passed through for LinkedIn to judge). A SCHEDULED share legitimately answers with null activity_urn/url - post_urn is the handle. Read and clean the queue with get_linkedin_scheduled_posts / delete_linkedin_scheduled_post. Scheduling is LinkedIn-side: the draft lives in ITS queue, nothing is stored here. The slot is no part of a key: a retry under the same client_reference that computes a new scheduled_at is the same post. Without a key the slot tells two posts apart."
@@ -12360,7 +12365,11 @@ components:
               profile_id:
                 type: string
                 minLength: 1
-                description: "Who to mention: a bare ACoA… profile id or the full urn:li:fsd_profile:<id>."
+                description: "A member to mention: a bare ACoA… profile id or the full urn:li:fsd_profile:<id>. Exactly one of profile_id or company_id."
+              company_id:
+                type: string
+                minLength: 1
+                description: "A company page to mention: the bare numeric company id (same form get_linkedin_company_posts takes) or the full urn:li:fsd_company:<id>. Exactly one of profile_id or company_id."
               start:
                 type: integer
                 minimum: 0
@@ -12370,10 +12379,9 @@ components:
                 minimum: 1
                 description: Span length in UTF-16 code units. start+length must fit inside text - out of bounds is a 422 here, not a spent dispatch.
             required:
-              - profile_id
               - start
               - length
-          description: Profile mentions as READY POSITIONS over text (2026-08-21) - unlike create_linkedin_comment's {profile_id, name} search pairs. Require non-blank text.
+          description: Mentions of members (profile_id) and company pages (company_id, 2026-10-29) as READY POSITIONS over text (2026-08-21) - unlike create_linkedin_comment's {profile_id, name} search pairs. Each entry names exactly one of the two ids. Require non-blank text.
         brand_partnership:
           type: boolean
           description: true adds LinkedIn's "Brand partnership" label (paid endorsement). false and absent both send nothing - the wire's own shape.
@@ -12428,22 +12436,26 @@ components:
             activity_urn:
               type: string
               nullable: true
-              description: The published post as an activity urn.
+              description: "The published post as an activity urn. Null for a scheduled post, and for a video post LinkedIn had not finished transcoding within the node's ~15 s read-back (lifecycle_state MEDIA_PROCESSING): read it later with enrich_linkedin_post_details by post_urn."
             post_urn:
               type: string
               nullable: true
-              description: The same post as urn:li:share:<id>.
+              description: The same post as urn:li:share:<id>, or urn:li:ugcPost:<id> for a video post.
             url:
               type: string
               nullable: true
-              description: Public post URL, query string already stripped.
+              description: Public post URL, query string already stripped. Null when LinkedIn answered none (scheduled, media still processing).
             created_at:
               type: string
               nullable: true
-              description: Publication time, ISO 8601.
+              description: Publication time, ISO 8601 (from the post id while a video post is still processing).
             text:
               type: string
-              description: The body LinkedIn actually published, read back off the wire. Empty for an image-only post.
+              description: The body LinkedIn actually published, read back off the wire. Empty for an image-only post and for a video post still processing.
+            lifecycle_state:
+              type: string
+              nullable: true
+              description: "The share's lifecycle state: PUBLISHED (LinkedIn said so, or the node's read-back found the post live within ~15 s); MEDIA_PROCESSING for a video post still transcoding past that (the post exists, activity_urn / url come later); null when the answer named no state (a scheduled post)."
             activity_log:
               type: object
               properties: {}
@@ -12460,6 +12472,7 @@ components:
             - url
             - created_at
             - text
+            - lifecycle_state
             - activity_log
         meta:
           type: object
@@ -17603,7 +17616,6 @@ components:
                 - experience
                 - educations
                 - skills
-                - posts
                 - top_voices
                 - featured
             data_request:
@@ -20159,6 +20171,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
@@ -20576,6 +20590,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
@@ -37877,6 +37893,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
@@ -38244,20 +38262,23 @@ components:
               profile_id:
                 type: string
                 minLength: 1
-                description: The mentioned member's profile id (ACoA... or urn:li:fsd_profile:<id>).
+                description: "A member to mention: a bare ACoA… profile id or the full urn:li:fsd_profile:<id>. Exactly one of profile_id or company_id."
+              company_id:
+                type: string
+                minLength: 1
+                description: "A company page to mention: the bare numeric company id (same form get_linkedin_company_posts takes) or the full urn:li:fsd_company:<id>. Exactly one of profile_id or company_id."
               start:
                 type: integer
                 minimum: 0
-                description: Offset of the mention in text, UTF-16 code units.
+                description: Span start in text, in UTF-16 code units (JS String offsets).
               length:
                 type: integer
                 minimum: 1
-                description: Length of the mention span in UTF-16 code units.
+                description: Span length in UTF-16 code units. start+length must fit inside text - out of bounds is a 422 here, not a spent dispatch.
             required:
-              - profile_id
               - start
               - length
-          description: "With text only: profile mentions as ready positions over text, as create_linkedin_post takes them."
+          description: "With text only: mentions of members (profile_id) and company pages (company_id) as ready positions over text, as create_linkedin_post takes them."
         client_reference:
           type: string
           nullable: true
@@ -39399,6 +39420,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
@@ -39781,6 +39804,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
@@ -48062,6 +48087,8 @@ components:
                       - server_unreachable
                       - error_escalation
                       - account_restricted
+                      - account_restriction_rechecked
+                      - account_restriction_lifted
                       - proxy_replaced
                   code:
                     type: number
@@ -48811,6 +48838,8 @@ components:
                     enum:
                       - platform
                       - customer
+                      - adopted
+                    description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
                   status:
                     type: string
                     enum:
@@ -63753,6 +63782,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
@@ -66728,6 +66759,8 @@ components:
               enum:
                 - platform
                 - customer
+                - adopted
+              description: "Who holds the vendor profile. platform: minted by us. customer: bound by id from your own GoLogin account, its proxy managed there. adopted: bound by id but held in our own GoLogin account, so its proxy is ours to set; the profile is never deleted at the vendor and never shared from here."
             status:
               type: string
               enum:
