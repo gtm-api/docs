@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 254 reasons across 4 services.
+reason is thrown without a sentence). 255 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -109,6 +109,7 @@ reason is thrown without a sentence). 254 reasons across 4 services.
 | `holder_team_unavailable` | The receiving workspace does not exist or is not active. | id |
 | `idempotency_key_busy` | A send with this idempotency_key is in progress; ask again after context.retry_after. | email |
 | `idempotency_key_reused` | This idempotency_key was used for a different send; use a new key for a new message. | email |
+| `incident_tally_busy` | The provider incident tally is busy for this provider; retry shortly. | id |
 | `infrastructure_maintenance` | The automation fleet is in maintenance; browsers cannot be started until it ends. | linkedin |
 | `infrastructure_unavailable` | The automation infrastructure did not answer; retry in a minute. | linkedin |
 | `initial_sync_pending` | The account's initial sync has not finished; the latest-* reads work once it has. | linkedin |
