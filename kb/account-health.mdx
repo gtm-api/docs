@@ -50,7 +50,7 @@ account. The table itself always lists all six signals, the healthy ones marked 
 | `account_age` | **Account age** | Months since the account's earliest known connection | `0` at 4 months or older, otherwise `0.80 * (4 - age) / 4` |
 | `limit_hits` | **Limit hits** | Rows in the limit-hit log over the last 30 days | `0` up to 3 hits, then `7.14%` per extra hit, capped at `70%` |
 | `blocks` | **Blocks** | Rows in the block log over the last 30 days | `1 - 0.60^blocks`, capped at `85%` |
-| `activity` | **Activity** | Connection requests and messages this account sent through the platform in the last 30 days | `0.90 * (1 - activity / 80)`, so `0` at 80 sends or more |
+| `activity` | **Activity** | Connection requests and messages this account sent on LinkedIn in the last 30 days, from any channel: the platform, the cloud browser or LinkedIn itself | `0.90 * (1 - activity / 80)`, so `0` at 80 sends or more |
 | `sessions_ip` | **Sessions & IP** | Concurrent LinkedIn sessions read from the account itself | `0` up to 2, `10%` for 3 or 4, `20%` above 4 |
 | `completeness` | **Completeness** | Profile completeness percentage | `0` at 80% or above, `10%` for 50% to 79%, `20%` below 50% |
 
@@ -60,13 +60,18 @@ the number is presentation only, nothing in the engine keys off it: `New` below 
 
 ### What counts as activity, and what does not
 
-The floor is **80 platform-executed sends per 30 days**, read from the platform's own activity log. It
-deliberately ignores the connection and message tables, because a freshly connected account imports a
-backlog of previously sent invitations whose timestamps would make a dormant account look busy. So sends
-you make by hand in LinkedIn earn **no activity credit**, and they **do** show up in **Sessions & IP** as
-a second device or IP. A refusal LinkedIn hands you in its own UI is never logged here: a block you
-provoke by hand surfaces only later, if one of the platform's own actions against that same target is
-refused and the two-browser check runs.
+The floor is **80 sends per 30 days**: connection requests plus messages the account sent on LinkedIn,
+whatever sent them. A request or message you send by hand in LinkedIn, one sent from the cloud browser
+and one the platform sent are the same LinkedIn action, so **all of them count**. The count is read from
+the account's synced invitations and messages, where platform sends land too, so nothing is counted
+twice. An invitation is dated by when it was sent (for one sent outside the platform, LinkedIn's own
+"Sent N weeks ago" label, read once at sync), so the backlog a freshly connected account imports does
+not make a dormant account look busy. Requests that were later accepted, withdrawn or expired still
+count if they were sent inside the window. Two limits of that read: LinkedIn's label is day-granular,
+and a send made outside the platform counts once a sync has read it. Signing in to LinkedIn on your own
+laptop or phone is still a separate session, which **Sessions & IP** counts. A refusal LinkedIn hands
+you in its own UI is never logged here: a block you provoke by hand surfaces only later, if one of the
+platform's own actions against that same target is refused and the two-browser check runs.
 
 **Profile completeness** is scored backend-side over twelve weighted fields: `experience` (8), `about`
 (5), `educations` (4), `location` and `skills` (3 each), `full_name`, `position`, `headline`,
@@ -192,7 +197,7 @@ release a hold are in [smart limits and warmup](/kb/smart-limits-and-warmup).
 |---|---|
 | Everything reads fine but the sender does nothing | Check the browser first: a sender signed out of LinkedIn keeps `status: "active"` on the account row, and its score and logs freeze at their last values. The **Signed out of LinkedIn** state on the row (browser `status: "login_issue"`) is the tell; re-login is the only fix ([browser troubleshooting](/kb/browser-troubleshooting)) |
 | The score dropped overnight | Read the **Comment** column of the rows that are not `ok`; a drop is always one of the six signals. The score moves only on a capture, so a fix shows up at the next snapshot, up to 22 hours later |
-| **Activity** penalises an account that is sending | The floor counts only actions the platform executed. Sends you made by hand in LinkedIn are not in it. Route the volume through the platform, or accept the penalty as accurate |
+| **Activity** penalises an account that is sending | The floor counts every connection request and message the account sent in the last 30 days, by hand or through the platform. The score moves only when a snapshot lands, up to 22 hours later, and a send made outside the platform counts once a sync has read it. If it still reads under 80 after that, the account really sent fewer than 80 in 30 days: the penalty shrinks as it sends more |
 | **Blocks** shows 1 or more | One block removes 40% of the remaining score, two remove 64%, capped at 85%. They age out of the 30-day window on their own: slow down or change the segment you contact, and never retry a target that is already blocking you |
 | **Limit hits** shows 4 or more | Three hits in 30 days are free, then about 7.14% each. Hits age out of the window. Lower the daily budget for the action being refused instead of pushing into the same wall |
 | **Sessions & IP** is flagged | These are real LinkedIn sessions read from the account, phone included, so a laptop plus a phone plus our browser is already 3. Sign out where you do not need to be signed in |
