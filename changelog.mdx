@@ -3,6 +3,20 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-04" description="Invite members to follow a company page">
+  **`invite-to-follow-company` invites up to 25 members to follow a LinkedIn company page, in one
+  call.** It is the "Invite connections" of the page's admin dashboard: send the page's numeric id
+  (`company_ln_id`, the number in the page's `/company/<id>/` URL) and a list of people, each by
+  member id (`ln_id`) or by nickname, exactly as `invite-to-event` takes them. The whole list goes
+  out as one invitation batch from the account's open LinkedIn tab and spends one
+  `networking_general` unit. The account must administer the page; LinkedIn decides who may be
+  invited (it offers the account's 1st-degree connections) and keeps a monthly budget of invitation
+  credits per page, a credit coming back when the invitation is accepted. The answer is one flag for
+  the batch, and a refused batch is `409 company_follow_invite_rejected` with the ids that were sent.
+  On MCP the tool is `invite_linkedin_members_to_follow_company` on the `/mcp/linkedin/network` mount,
+  next to the event invitation.
+</Update>
+
 <Update label="2026-11-04" description="A comment says how many times LinkedIn showed it, on your own comments">
   **Every comment read carries its impressions.** The rows of
   `POST /api/linkedin-scraping/get-post-comments` and `get-comment-replies` carry
