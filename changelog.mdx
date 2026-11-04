@@ -3,6 +3,17 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-04" description="A comment says how many times LinkedIn showed it, on your own comments">
+  **Every comment read carries its impressions.** The rows of
+  `POST /api/linkedin-scraping/get-post-comments` and `get-comment-replies` carry
+  `impressions_count`, and the comments of `POST /api/linkedin-enrichment/person-comment-activity`
+  carry `num_impressions`: the number LinkedIn shows under a comment next to the analytics icon.
+  LinkedIn tells impressions for the viewing account's own comments alone, so the number is filled
+  on the comments and replies the executing LinkedIn account wrote and is `null` on everyone
+  else's. Null means "not yours", not zero. The count is LinkedIn's live figure at the time of the
+  read, and a comment you just wrote reads `0`.
+</Update>
+
 <Update label="2026-11-03" description="A page post with an image or a video publishes, and a video plays 3 seconds to 15 minutes">
   **A post as a company page with an image or a video publishes again.** Such a post
   (`author_organization_id` with media) used to answer success with an empty `post_urn` and never

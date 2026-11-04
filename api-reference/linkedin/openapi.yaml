@@ -16708,6 +16708,10 @@ components:
                   created_at:
                     type: string
                     nullable: true
+                  num_impressions:
+                    type: integer
+                    nullable: true
+                    description: "How many times LinkedIn showed the comment. Filled only when the executing account is the member whose comments are read: LinkedIn tells impressions for one's own comments alone, so a read of another member carries null throughout."
                 required:
                   - comment_urn
                   - activity_urn
@@ -16715,6 +16719,7 @@ components:
                   - post_author
                   - text
                   - created_at
+                  - num_impressions
             paging:
               type: object
               properties:
@@ -42048,6 +42053,10 @@ components:
                   replies_count:
                     type: integer
                     description: "How many replies the comment has. A COUNT ONLY: this verb queries the post's comment list and fetches no replies, so there is no way to read them and no replies array to ask for."
+                  impressions_count:
+                    type: integer
+                    nullable: true
+                    description: "How many times LinkedIn showed the comment. LinkedIn tells it for the executing account's OWN comments only, so the field is null on everyone else's comment: null means \"not ours\", not zero."
                   is_pinned:
                     type: boolean
                   is_edited:
@@ -42068,6 +42077,7 @@ components:
                   - reactions_count
                   - comment_permalink
                   - replies_count
+                  - impressions_count
                   - is_pinned
                   - is_edited
                   - is_own
@@ -42274,6 +42284,10 @@ components:
                   replies_count:
                     type: integer
                     description: "How many replies the comment has. A COUNT ONLY: this verb queries the post's comment list and fetches no replies, so there is no way to read them and no replies array to ask for."
+                  impressions_count:
+                    type: integer
+                    nullable: true
+                    description: "How many times LinkedIn showed the comment. LinkedIn tells it for the executing account's OWN comments only, so the field is null on everyone else's comment: null means \"not ours\", not zero."
                   is_pinned:
                     type: boolean
                   is_edited:
@@ -42294,6 +42308,7 @@ components:
                   - reactions_count
                   - comment_permalink
                   - replies_count
+                  - impressions_count
                   - is_pinned
                   - is_edited
                   - is_own
