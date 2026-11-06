@@ -3,6 +3,19 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-06" description="A search card's full_name holds the name, not an internal reference">
+  **`full_name` is the person's name again.** On `search-people`, and on `company-employees` and
+  `search-service-providers`, which read their cards the same way, a person whose name carries a
+  LinkedIn badge (Verified, Premium) could come back with `full_name` holding an internal token
+  such as `$L278`. The card now answers the name. An auto-scrape result already stored with such a
+  name is corrected the next time a run sees that person. A card whose name cannot be read is left
+  out of the page, as a card with no name always was.
+
+  **A card with a relative profile link stays on the page.** LinkedIn prints some profile links as
+  `/in/<slug>/` instead of a full URL. Those cards were missing from the page and now come back with
+  their `nickname`.
+</Update>
+
 <Update label="2026-11-04" description="Invite members to follow a company page">
   **`invite-to-follow-company` invites up to 25 members to follow a LinkedIn company page, in one
   call.** It is the "Invite connections" of the page's admin dashboard: send the page's numeric id
