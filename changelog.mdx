@@ -3,6 +3,29 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-06" description="A post can carry one PDF">
+  **`create-post` publishes a PDF as a LinkedIn document.** `POST /api/linkedin-posting/create-post`
+  and the MCP tool `create_linkedin_post` take `document`: a `title`, the file as `file_base64` or
+  `url` (exactly one of the two), and an optional `file_name`. The title is required, because
+  LinkedIn creates nothing without one. The file is PDF only, up to 300 pages, typed by its content,
+  and it counts against the post's 35 MB media budget. A URL is downloaded by the platform over https
+  from a public host, as for images and video. An upload slot from `request_media_upload` does not
+  hold a PDF, so a local file goes in as base64 from a tool or at a public https URL of your own.
+
+  **One kind of media per post.** A `document` next to `images` or `video` is a `422`, and `text` may
+  be empty next to it. Scheduling, `mentions`, `brand_partnership`, `author_organization_id` and
+  `visibility` work as on any post. A document into a group (`group_id`) goes out the same way and is
+  not verified on the wire yet. LinkedIn normally reads a file within seconds and the call answers
+  the published post. A post it is still reading after that answers as a video post does:
+  `lifecycle_state: MEDIA_PROCESSING` with `post_urn`, and the activity and URL come later.
+
+  **A file that cannot become a document is refused.** A file that is not a PDF answers `422` on
+  `document.file_base64` or `document.url` with rule `document_format_unrecognized`, before anything
+  is sent. A PDF LinkedIn cannot process (one that asks for a password, damaged, or over 300 pages) is
+  `409 linkedin_refused` with `plugin_error_code: linkedin_422` and `send_outcome: not_sent`. Nothing
+  is published, the send is not in doubt, and a repeat of the same file is refused the same way.
+</Update>
+
 <Update label="2026-11-06" description="A search card's full_name holds the name, not an internal reference">
   **`full_name` is the person's name again.** On `search-people`, and on `company-employees` and
   `search-service-providers`, which read their cards the same way, a person whose name carries a

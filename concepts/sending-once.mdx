@@ -31,7 +31,7 @@ A key and its place make one send. The place depends on what is sent:
 - A repeat to the same place is the same send, whatever its text says. If the first send went out, the repeat answers `200` with what it made (the message or the connection request row, the comment, the post or the repost) and `result.idempotent_replay: true`, plus `result.content_differs: true` when the repeat said something else (a re-rendered template, an edited draft). Nothing is sent.
 - The same key at another place is another send. That is how a bulk run can tag all of its sends with one value.
 - The time of a scheduled post is not part of its place under a key: a retry that computes a new `scheduled_at` is the same post.
-- A send without a key gets a weaker net. One that matches an earlier send's words and place (for a post, its pictures or video too) is held while that send is on its way or in doubt, and answered with it for an hour after it went out. To send the same words twice on purpose, use two keys.
+- A send without a key gets a weaker net. One that matches an earlier send's words and place (for a post, its pictures, video or document too) is held while that send is on its way or in doubt, and answered with it for an hour after it went out. To send the same words twice on purpose, use two keys.
 
 ## Four outcomes
 
