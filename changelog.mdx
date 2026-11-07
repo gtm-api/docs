@@ -3,6 +3,139 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-03" description="A page post with an image or a video publishes, and a video plays 3 seconds to 15 minutes">
+  **A post as a company page with an image or a video publishes again.** Such a post
+  (`author_organization_id` with media) used to answer success with an empty `post_urn` and never
+  reach the page or its queue: the media went up as the member, so LinkedIn took the share without a
+  post. The upload now names the page, and a page post with one image or one video publishes, now or
+  scheduled. A page post with two or more images is not covered by this fix yet.
+
+  **A scheduled post LinkedIn did not create is no longer reported as sent.** When LinkedIn takes a
+  scheduled share without a post, `create_linkedin_post` now answers the same `409`
+  `post_not_created` as an immediate post: the send outcome is unknown, so repeat it after
+  `retry_after` under the same `client_reference`. Until now such a post was recorded as sent.
+
+  **A video plays 3 seconds to 15 minutes.** LinkedIn refuses a video outside that range only after
+  the upload, so the post died in processing with no error. `create_linkedin_post` now reads the
+  length off the MP4, MOV or WEBM container before anything is sent and answers `422`
+  `video_duration` on `video.file_base64` or `video.url`. A file whose container states no length
+  still goes through.
+</Update>
+
+<Update label="2026-11-03" description="A full profile no longer carries posts, and an enrichment result too large for a webhook still arrives">
+  **Enrich person full profile no longer returns `posts`.** The live profile read stopped returning
+  the member's recent posts, and the `posts` property left the response. The feed is
+  `enrich_linkedin_person_posts` (`POST /api/linkedin-enrichment/person-posts`).
+
+  **A result too large for a webhook still arrives.** `data-requests.completed` carried the whole
+  `result_ref`, and an event past the webhook size limit was refused, so a large result never came
+  by webhook. A result past 63 KB now arrives with `result_ref` null and `result_omitted` true: read
+  it with `GET /api/data-requests/{sid}`. Smaller results arrive as before. Details on
+  [Enrichment](/kb/enrichment).
+</Update>
+
+<Update label="2026-11-03" description="The sync keeps long subjects and the reactions put in LinkedIn itself">
+  **A message with a long subject is kept.** Recruiter and Sales Navigator threads can carry a
+  subject longer than the 200 characters a send allows, and the sync skipped those messages. The
+  stored `subject` now takes up to 511 characters; a send still caps it at 200 (`422`
+  `subject_too_long`).
+
+  **A reaction put in LinkedIn itself reaches the message.** A reaction added in LinkedIn to a
+  message that was already stored stayed out of its `reactions`, because LinkedIn does not move the
+  conversation's activity time for a reaction. The sync now reads reactions off the conversations
+  page. Details on [Inbox and message sync](/kb/inbox-and-message-sync).
+</Update>
+
+<Update label="2026-11-03" description="An MCP client that refreshes its token twice keeps its connection">
+  **A repeated refresh gets the same new tokens.** Some MCP clients, claude.ai and Claude Code among
+  them, can send the same refresh token twice within seconds from two workers. The second use read
+  as a stolen credential and revoked the grant, so the client had to connect again. A repeat of the
+  same refresh within 5 minutes now gets the same new tokens; a reuse after that still revokes the
+  grant.
+</Update>
+
+<Update label="2026-11-03" description="A cloud browser take-over shows at once, and a withdrawn GoLogin share stops the browser for you">
+  **The login window says at once when another window took the browser.** A take-over used to turn
+  the cloud browser black and offer a Reconnect that could only fail, with the explanation up to a
+  minute later. The login window and the re-login page now read the end of the session off the log
+  they poll every 2 seconds and show why it ended right away. A dropped stream asks the session
+  before it reconnects, and an ending that needs the link opened again gets a button for it.
+
+  **A GoLogin profile that is no longer shared stops for you.** When GoLogin refuses a profile
+  because it is no longer shared with our account, the browser now goes to
+  `client_error_investigation` on the first report instead of retrying every hour and waiting on our
+  support. Only the profile's owner can share it again, from their GoLogin account. See
+  [Browser troubleshooting](/kb/browser-troubleshooting).
+</Update>
+
+<Update label="2026-11-02" description="A long invitation note no longer stops the invitations sync">
+  **Notes past 300 characters are kept.** LinkedIn caps an invitation note at 300 characters as it
+  counts them, but a note can run longer in code points (emoji, older invitations), and from
+  2026-10-28 such a note stopped the received invitations or sent requests sync of the account that
+  had it. `note` on invitations and connection requests now stores up to 2000 characters, and the
+  stopped syncs finished on their own after the release.
+</Update>
+
+<Update label="2026-11-01" description="A GoLogin profile held in our own account connects as adopted, with its proxy changeable here">
+  **`browser_owner` has a third value, `adopted`.** `create_antidetect_browser` with a
+  `vendor_profile_id` now asks GoLogin who holds the profile. A profile that lives in our own
+  GoLogin account (one minted there by another application, re-connected by id) comes back as
+  `browser_owner: adopted`; a profile shared from your own account stays `customer`. When an adopted
+  profile's proxy is one of ours, the browser is linked to that proxy at create
+  (`antidetect_browser_proxy_sid` and `proxy_country_code` are filled); otherwise both stay null and
+  the profile keeps the proxy it has.
+
+  **The proxy of an adopted browser is yours to change.** `update_antidetect_browser_proxy` and
+  `replace_antidetect_browser_proxy` take `browser_owner` `platform` or `adopted`; a `customer`
+  profile still answers `422` `managed_proxy_forbidden_for_owner` / `custom_proxy_forbidden_for_owner`,
+  with the message naming that the proxy is managed in your own anti-detect account.
+
+  **What does not change for an adopted profile.** `delete_antidetect_browser` leaves it intact at
+  GoLogin, like a `customer` one, and sharing the vendor profile from the app still refuses it
+  (`vendor_profile_not_ours`). Details on
+  [Antidetect browsers and proxies](/kb/antidetect-browsers-and-proxies).
+</Update>
+
+<Update label="2026-11-01" description="Posts, comments and reposts mention company pages, and a video post says when it is still processing">
+  **Mention a company page.** `create_linkedin_post`, `create_linkedin_comment` and
+  `repost_linkedin_post` (with text) take a company page mention as `company_id`: the bare numeric
+  id, the form `enrich_linkedin_company_posts` takes, or `urn:li:fsd_company:<id>`. Each mention
+  names exactly one of `profile_id` and `company_id`.
+
+  **A video post says when LinkedIn is still processing it.** The `create_linkedin_post` answer
+  carries `lifecycle_state`: `PUBLISHED` once the post is live, `MEDIA_PROCESSING` while LinkedIn is
+  still transcoding a video after the read-back of about 15 seconds, null for a scheduled post. A
+  processing post exists, but its `activity_urn` and `url` come later: read them with
+  `enrich_linkedin_post_details`. A video post's `post_urn` is `urn:li:ugcPost:<id>`, and a video
+  over 10 MiB now uploads in 4 MiB parts.
+</Update>
+
+<Update label="2026-11-01" description="A member lent to another workspace stops the browser for you, and the owner's mail names the cause">
+  **Signing in to a lent member stops the browser at once.** When your workspace lent an account to
+  another workspace and then signs in to it again while the share runs, the browser now goes to
+  `client_error_investigation` on the first report instead of restarting into fresh LinkedIn
+  sessions and then waiting on our support.
+
+  **The owner's mail names the cause.** The mail sent when a browser is parked for you used to blame
+  repeated connectivity failures and the proxy whatever the cause. It now has a subject and text per
+  cause (the proxy, the vendor profile, the LinkedIn session, a LinkedIn restriction, another
+  workspace, another browser) and shows the account, the browser and the reason, without the
+  failure count. See [Browser troubleshooting](/kb/browser-troubleshooting).
+</Update>
+
+<Update label="2026-10-27" description="A member connected through another browser stops the browser at once, and logins skip a host that stopped answering">
+  **The same member on a second browser stops at once.** Connecting a member who is already
+  connected through another browser of your workspace is refused, and that refusal used to read as
+  a runtime error: the browser restarted again and again, each run a second LinkedIn session of the
+  member, then waited on our support. It now goes to `client_error_investigation` on the first
+  report, and its `error_reason` names the browser and the account that hold the member.
+
+  **Cloud browser logins skip a host that stopped answering.** On 2026-10-26 one cloud browser host
+  stopped opening sessions while new logins kept landing on it. Logins now prefer the hosts that
+  answer, and a host whose sessions keep ending unanswered is taken out of rotation until we bring
+  it back.
+</Update>
+
 <Update label="2026-10-23" description="A mass action refuses a sender that cannot send, at preview and at append">
   **The preview asks whether the sender can send.** `POST /api/mass-actions/preview` and the create
   now ask the LinkedIn service about every sender a plan names in `args.linkedin_account_sid`. An
