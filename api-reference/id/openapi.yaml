@@ -106,6 +106,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -147,6 +148,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -188,6 +190,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
@@ -229,6 +232,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
@@ -270,6 +274,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -283,7 +288,7 @@ paths:
         Issue a new API key and return the full secret in the create envelope's plaintext_token EXACTLY ONCE. It is unrecoverable, so hand it to the user immediately and never log or echo it; if lost, rotate. BOTH grant axes are clamped to the ISSUER's own current authority (403, reason grant_exceeds_ceiling): permissions must sit inside the caller's token set ('*' only for an unrestricted issuer; on delegation, inside the parent key's set), and account_sids inside the caller's account slice - a sliced caller cannot pass null ("all accounts") and must send an explicit list within their slice. Verify re-intersects both axes with the issuer's CURRENT authority, so narrowing the issuer narrows every key they minted. Default expires_at = now + 3 years; pass null for a perpetual key. Natural key (team_sid, name) among non-revoked keys → a duplicate returns already_exists with the existing key (and NO secret).
 
         Contract:
-        - MCP tool `create_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/api_keys`, surface api).
         - Operation `create`, response envelope `create`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -311,6 +316,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -324,7 +330,7 @@ paths:
         Period-bound counts of the team's keys by status, plus issuance / expiry tallies inside the window (created_in_period, expired_in_period). Requires period {from, to}. Optional filter. Counts key rows, not key traffic.
 
         Contract:
-        - MCP tool `get_api_keys_metrics`, registry package `mcp.id/api_keys`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/api_keys`, surface api).
         - Operation `metrics`, response envelope `metrics`.
         - Flags: read only.
       tags:
@@ -352,6 +358,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -393,6 +400,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -403,7 +411,7 @@ paths:
       operationId: get_api_key
       summary: Get API key
       description: |-
-        Fetch a single API key by sid, with optional metrics include. Returns token_prefix + token_last4 for display; the secret is unrecoverable (use rotate_api_key to mint a new one).
+        Fetch a single API key by sid, with optional metrics include. Returns token_prefix + token_last4 for display; the secret is unrecoverable (a new one is minted by the rotate route of the REST API or in Settings, never through a tool).
 
         Contract:
         - MCP tool `get_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
@@ -450,6 +458,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -462,7 +471,7 @@ paths:
         Partial update of name / permissions / account_sids (the key's identity and secret are untouched; use rotate_api_key to change the secret). Each list is a FULL replacement, clamped to the STORED issuer's current authority on its axis (403, reason grant_exceeds_ceiling): permissions inside their token set, account_sids inside their slice (null = all accounts, grantable only under an unrestricted issuer slice). At least one field is required. A change takes effect at once: id tells every channel service to forget the key's cached verdict (a peer the fan-out cannot reach falls back to its 5-minute cache).
 
         Contract:
-        - MCP tool `update_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/api_keys`, surface api).
         - Operation `update`, response envelope `update`.
         - Flags: none.
       tags:
@@ -501,6 +510,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -545,6 +555,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -558,7 +569,7 @@ paths:
         Swap the key's secret IN PLACE and return the new plaintext in result.plaintext_token EXACTLY ONCE: hand it to the user, never log it, unrecoverable. The key's sid / name / permissions / expires_at are unchanged. The previous secret stays valid until result.previous_token_expires_at (now + grace_seconds, default 24h) so the agent can update config without downtime. Use when a secret leaks or before offboarding. NOT idempotent: each call mints a brand-new secret. Rotating a revoked/expired key → 409.
 
         Contract:
-        - MCP tool `rotate_api_key`, registry package `mcp.id/api_keys`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/api_keys`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -597,6 +608,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -638,6 +650,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -679,6 +692,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -714,6 +728,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -724,7 +739,7 @@ paths:
       operationId: get_billing_payment_method_add_link
       summary: Get add-card link
       description: |-
-        Return a temporary Paddle Customer Portal deep link to add or replace a card for the workspace's applied subscription. This is the ONLY way to add a card: Paddle has no add-card API; the user enters card details on Paddle's hosted page. Never cached. Returns no_billing_account if the workspace has no applied subscription. Requires billing.manage.
+        Return a temporary Paddle Customer Portal deep link to add or replace a card, the ONLY way to add one: Paddle has no add-card API, the user enters the card on Paddle's hosted page. Without subscription_sid it is for the workspace's applied subscription (no_billing_account if none). With it, for that subscription: 403 not_subscription_owner unless it is the caller's or applied to this workspace, 422 if invoiced, 409 with no Paddle subscription. Never cached. Requires billing.manage.
 
         Contract:
         - MCP tool `get_billing_payment_method_add_link`, registry package `mcp.id/billing_payment_methods`, mount `id.billing`.
@@ -732,6 +747,12 @@ paths:
         - Flags: none.
       tags:
         - billing_payment_methods
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetBillingPaymentMethodAddLinkRequest"
       responses:
         "200":
           description: "`action` success envelope."
@@ -749,6 +770,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -762,7 +784,7 @@ paths:
         Remove a saved payment method: this only takes it off the paying user's saved list in Paddle. A method a live subscription uses is refused (409 conflict, payment_method_in_use) until that subscription is moved to another card via get_billing_payment_method_add_link: always the case for is_default:true while the plan bills it. A non-default card can be refused too, when it pays another subscription of the same payer (another workspace or a floating one). Idempotent. Requires billing.manage.
 
         Contract:
-        - MCP tool `delete_billing_payment_method`, registry package `mcp.id/billing_payment_methods`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_payment_methods`, surface api).
         - Operation `delete`, response envelope `delete_simple`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -793,6 +815,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -806,7 +829,7 @@ paths:
         List the Paddle-synced product catalog (the base plan, add-ons and any credits packs) with filtering, sorting and cursor pagination. Filter by type to split plan, add-on and credits_pack, is_active for the live catalog, or q for an infix match over name/slug. Each row carries the per-unit limits grant. Read-only: the catalog is authored in Paddle, never here. page_size:0 returns counts only.
 
         Contract:
-        - MCP tool `search_billing_products`, registry package `mcp.id/billing_products`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_products`, surface api).
         - Operation `search`, response envelope `search`.
         - Flags: read only.
       tags:
@@ -834,6 +857,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -847,7 +871,7 @@ paths:
         Start a self-serve purchase of a subscription. DANGEROUS (charges money): it pre-creates a billed Paddle transaction and returns a hosted checkout_url the buyer pays in the Paddle overlay (server-side preview→commit gate applies). Resolves the bracket price for the requested slot count, optionally applies to team_sid on activation (omit to buy floating), and can bundle add-ons in the same checkout. The real subscription row is born on the billing-subscriptions.activated webhook; poll get/search afterwards. Requires billing.manage.
 
         Contract:
-        - MCP tool `create_billing_subscription_checkout`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_subscriptions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -875,6 +899,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -916,6 +941,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -926,7 +952,7 @@ paths:
       operationId: get_billing_subscription
       summary: Get billing subscription
       description: |-
-        Fetch a single billing subscription by sid, with optional includes (price, product, team, latest_transactions).
+        Fetch one billing subscription by sid, with optional includes (price, product, team, latest_transactions). 404 outside the search's scope: the caller's own and the workspace's applied one.
 
         Contract:
         - MCP tool `get_billing_subscription`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
@@ -971,6 +997,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1023,6 +1050,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1075,6 +1103,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1088,7 +1117,7 @@ paths:
         Cancel the subscription at the end of the current period (terminal). DANGEROUS: the team loses capacity when the period ends, though data is retained and there is no immediate charge or refund. Server-side confirm gate applies. There is no delete verb; cancel is the canonical termination. Requires billing.manage.
 
         Contract:
-        - MCP tool `cancel_billing_subscription`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_subscriptions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -1121,6 +1150,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1131,7 +1161,7 @@ paths:
       operationId: change_billing_subscription
       summary: Change subscription
       description: |-
-        Commit a quantity / bracket-price change. DANGEROUS: an UPGRADE charges the owner's card immediately (prorated); a downgrade applies next period (no immediate charge). Server-side preview→commit gate applies; call preview_billing_subscription_change first. manual (sales) subscriptions are not re-bracketed (422). The committed state arrives via webhook; the response returns the optimistic post-change row. Provide at least one of quantity / price_sid. Requires billing.manage.
+        Change the plan's quantity or bracket price, in two calls. The first, without commit_token, is the preview and changes nothing: preview_result carries the money from Paddle's own pricing preview (immediate_charge, next_billed_amount, currency, proration_mode, new_price_sid, new_quantity, crosses_bracket) beside the commit_token; show it to the user. status unanswered means no quote came back: say so before committing. The second call, same arguments plus commit_token, commits: an UPGRADE charges the owner's card immediately (prorated), a downgrade applies next period with no immediate charge. manual (sales) subscriptions are not re-bracketed (422). The committed state arrives via webhook; the response returns the optimistic post-change row. Provide at least one of quantity / price_sid. Requires billing.manage.
 
         Contract:
         - MCP tool `change_billing_subscription`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
@@ -1173,6 +1203,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1186,7 +1217,7 @@ paths:
         Return a short-lived Paddle portal deep link to update the card for this subscription (the typical past_due recovery path). No charge, mutates nothing on our side. Requires billing.manage.
 
         Contract:
-        - MCP tool `get_billing_subscription_update_payment_method_link`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_subscriptions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: read only.
       tags:
@@ -1219,6 +1250,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1232,7 +1264,7 @@ paths:
         Pause the subscription effective the next billing period. DANGEROUS state change (server-side confirm gate); while paused the applied team is gated like suspended, slots/data retained, billing stops. No charge. The committed status arrives via webhook. Resume with resume_billing_subscription. Requires billing.manage.
 
         Contract:
-        - MCP tool `pause_billing_subscription`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_subscriptions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -1265,6 +1297,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1275,10 +1308,10 @@ paths:
       operationId: preview_billing_subscription_change
       summary: Preview subscription change
       description: |-
-        Read-only proration preview for a quantity / bracket-price change BEFORE committing. Calls Paddle Pricing Preview and returns the immediate charge (upgrade) or next-period credit (downgrade), the resolved new bracket price, and whether it crosses a bracket boundary. No state change, no charge. This is the confirmation gate to show the user before change_billing_subscription. Provide at least one of quantity / price_sid. Requires billing.view.
+        Read-only proration preview for a quantity / bracket-price change BEFORE committing. Calls Paddle Pricing Preview and returns the immediate charge (upgrade) or next-period credit (downgrade), the resolved new bracket price, and whether it crosses a bracket boundary. No state change, no charge. This is the confirmation gate to show the user before change_billing_subscription. Provide at least one of quantity / price_sid. Requires billing.manage.
 
         Contract:
-        - MCP tool `preview_billing_subscription_change`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_subscriptions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: read only.
       tags:
@@ -1317,6 +1350,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1369,6 +1403,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1382,7 +1417,7 @@ paths:
         Resume a paused subscription; billing continues from the next period and the applied team re-derives active. DANGEROUS state change (server-side confirm gate). No charge. The committed status arrives via webhook. Requires billing.manage.
 
         Contract:
-        - MCP tool `resume_billing_subscription`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_subscriptions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -1415,6 +1450,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1461,6 +1497,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1474,7 +1511,7 @@ paths:
         Drop a scheduled cancel before it takes effect; billing continues as if cancel was never asked. Decided on the live Paddle state: nothing pending is a success no-op (cleared:false), a scheduled pause or resume is refused with 409 scheduled_change_is_not_cancel naming the verb that clears it, and an already canceled subscription is too late to undo. Synchronous, no charge, no pending block. Also the unlock a 409 subscription_locked_pending_changes points at. Requires billing.manage.
 
         Contract:
-        - MCP tool `undo_cancel_billing_subscription`, registry package `mcp.id/billing_subscriptions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_subscriptions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: none.
       tags:
@@ -1507,6 +1544,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1520,7 +1558,7 @@ paths:
         Period-bound money sums over the caller's transactions. Requires period {from,to}. Money never crosses currencies; every sum lives inside a per-currency by_currency entry keyed by ISO 4217. Answers 'how much did I pay / tax this quarter'. Sums are GROSS (refunds not modeled in v1). Filter is the same object as search and every axis is applied; billed_at / created_at operators are dropped from the period-bound sums (period is the one window there) but they DO scope the counts block, which carries no period of its own. Requires billing.view.
 
         Contract:
-        - MCP tool `get_billing_transactions_metrics`, registry package `mcp.id/billing_transactions`, mount `id.billing`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/billing_transactions`, surface api).
         - Operation `metrics`, response envelope `metrics`.
         - Flags: read only.
       tags:
@@ -1548,6 +1586,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1589,6 +1628,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1644,6 +1684,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1690,6 +1731,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1731,6 +1773,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1772,6 +1815,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1813,6 +1857,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1868,6 +1913,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1880,7 +1926,7 @@ paths:
         Dismiss a notification from the inbox: a soft-delete that sets deleted_at. DESTRUCTIVE (removes the row from inbox lists). It does NOT cancel in-flight delivery: if the delivery worker already picked the row up, the email still goes out. The audit row is retained (recoverable via deleted_at filters).
 
         Contract:
-        - MCP tool `delete_notification`, registry package `mcp.id/notifications`, mount `id.platform`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/notifications`, surface api).
         - Operation `delete`, response envelope `delete_simple`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -1912,6 +1958,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1953,6 +2000,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1966,7 +2014,7 @@ paths:
         Partial self-service edit of the grant's mutable fields WITHOUT re-running the browser consent: team_scope_mode, consented_team_sids (full-replace, non-empty when mode=selected), and permissions (full-replace, must stay ⊆ the client ceiling). Each submitted team is re-checked against live membership (403 if not a member). Narrowing is security-positive; you can never exceed the ceiling via update. Changes are frozen-at-mint, so live tokens keep their claims until their short TTL; use revoke for an immediate cut. At least one field required. 404 if not the caller's own grant.
 
         Contract:
-        - MCP tool `update_oauth_authorization`, registry package `mcp.id/oauth_authorizations`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/oauth_authorizations`, surface api).
         - Operation `update`, response envelope `update`.
         - Flags: none.
       tags:
@@ -2005,6 +2053,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2051,6 +2100,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2064,7 +2114,7 @@ paths:
         Register a new OAuth application; the server generates client_id. v1 clients are public/PKCE (no secret). A confidential client (fast-follow) returns client_secret in the create envelope ONCE. Tell the user to store it; it is unrecoverable and must never be logged. permissions is the ceiling the client may request; redirect_uris is an exact-match https allow-list (closes open-redirect). Dedup (team_sid, name) → already_exists. Set platform:true (admin only) to register a platform client with no owning team.
 
         Contract:
-        - MCP tool `create_oauth_client`, registry package `mcp.id/oauth_clients`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/oauth_clients`, surface api).
         - Operation `create`, response envelope `create`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -2092,6 +2142,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2105,7 +2156,7 @@ paths:
         List registered OAuth applications for the caller's team (plus platform clients when team_sid.is_null). Filter by status, client_id, registration_kind, is_confidential; include:["active_sessions"] to see the agents connected through each app (requires sessions.view). No full-text: filter by name / client_id. page_size:0 returns counts only.
 
         Contract:
-        - MCP tool `search_oauth_clients`, registry package `mcp.id/oauth_clients`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/oauth_clients`, surface api).
         - Operation `search`, response envelope `search`.
         - Flags: read only.
       tags:
@@ -2133,6 +2184,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2146,7 +2198,7 @@ paths:
         Fetch one OAuth client by sid. include:["active_sessions"] lists agents connected through it (requires sessions.view). client_secret is never returned on a read.
 
         Contract:
-        - MCP tool `get_oauth_client`, registry package `mcp.id/oauth_clients`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/oauth_clients`, surface api).
         - Operation `get`, response envelope `get`.
         - Flags: read only.
       tags:
@@ -2190,6 +2242,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2202,7 +2255,7 @@ paths:
         Partial update. Editable: name, redirect_uris, permissions, grant_types, status (redirect_uris / permissions full-replace). status:"disabled" cascade-revokes the client's oauth grants and issued tokens. Tightening permissions affects only future mints: live tokens keep their frozen set; use disabled / delete for an immediate cut. client_id / is_confidential / registration_kind are not editable. At least one field required.
 
         Contract:
-        - MCP tool `update_oauth_client`, registry package `mcp.id/oauth_clients`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/oauth_clients`, surface api).
         - Operation `update`, response envelope `update`.
         - Flags: none.
       tags:
@@ -2241,6 +2294,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2253,7 +2307,7 @@ paths:
         Destructive. Soft-delete the client (sets deleted_at) and cascade-revoke every issued oauth session and grant, disconnecting all agents connected through this app immediately. The public OAuth flow rejects a soft-deleted client. Idempotent: re-deleting → already_deleted. The client's sessions survive as revoked-not-deleted (retained).
 
         Contract:
-        - MCP tool `delete_oauth_client`, registry package `mcp.id/oauth_clients`, mount `id.access`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/oauth_clients`, surface api).
         - Operation `delete`, response envelope `delete_simple`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -2285,6 +2339,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2298,7 +2353,7 @@ paths:
         List sessions. Default scope is the caller's own active sessions ("Active sessions"); pass kind:{eq:"oauth"} for "Connected agents", or status to see revoked/expired history. Each row carries the derived is_current flag (true for the caller's own request) so "log out everywhere except this device" can skip it. Returns a counts block. page_size:0 returns counts only.
 
         Contract:
-        - MCP tool `search_sessions`, registry package `mcp.id/sessions`, mount `id.identity`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/sessions`, surface api).
         - Operation `search`, response envelope `search`.
         - Flags: read only.
       tags:
@@ -2326,6 +2381,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2339,7 +2395,7 @@ paths:
         End a session immediately: status active → revoked. The token is rejected from the next request (verifier cache flushed within 30-60s). This is the canonical "delete" for this entity; there is no delete tool. Idempotent: revoking an already revoked/expired session returns the row with result.already_revoked:true.
 
         Contract:
-        - MCP tool `revoke_session`, registry package `mcp.id/sessions`, mount `id.identity`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/sessions`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -2372,6 +2428,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2413,6 +2470,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2454,6 +2512,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2509,6 +2568,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2554,6 +2614,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2598,6 +2659,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2644,6 +2706,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2690,6 +2753,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2731,6 +2795,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2772,6 +2837,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2827,6 +2893,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2837,7 +2904,7 @@ paths:
       operationId: create_team_member
       summary: Invite team member
       description: |-
-        Invite a person by email. Born status=invited, user_sid=null, with a one-time code (+7d expiry); dispatches the invite email. permissions is the explicit token list validated against the catalog (403 grant_exceeds_ceiling when it exceeds the CALLER's own grant; '*' is grantable only by the owner or a wildcard holder; can_view_teams is always added - the membership floor). account_sids is the optional profile slice (null/omitted = all team profiles; an explicit empty list is refused, and a sliced caller cannot grant beyond their own slice). Natural key (team, email) over live rows; re-inviting a live member returns already_exists:true.
+        Invite a person by email with exactly one of preset or permissions (both or neither is 422). preset names a grant: operator (runs outreach end to end, no org or billing management) or view_only (reads the workspace, acts on nothing). permissions is the explicit token list validated against the catalog. Either way: 403 grant_exceeds_ceiling when it exceeds the CALLER's own grant; '*' is grantable only by the owner or a wildcard holder; can_view_teams is always added - the membership floor. Born status=invited, user_sid=null, with a one-time code (+7d expiry); dispatches the invite email. account_sids is the optional profile slice (null/omitted = all team profiles; an explicit empty list is refused, and a sliced caller cannot grant beyond their own slice). Natural key (team, email) over live rows; re-inviting a live member returns already_exists:true.
 
         Contract:
         - MCP tool `create_team_member`, registry package `mcp.id/team_members`, mount `id.identity`.
@@ -2868,6 +2935,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2881,7 +2949,7 @@ paths:
         Accept a pending invite by its one-time code. Public REST: code-bearer, no team scope. Hashes the code, matches the row it belongs to and branches on that row: invited → flips invited → active, binds the authenticated user_sid, and sets users.default_team_sid if the user had none; already active for the SAME user → 200 already_accepted:true naming that same invite; already redeemed by another account → 409 invitation_already_redeemed; no row (unknown, cancelled, or the membership was removed) → 404. An expired code is 409 invitation_expired, a seatless plan 402.
 
         Contract:
-        - MCP tool `accept_team_member_invitation`, registry package `mcp.id/team_members`, mount `id.identity`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/team_members`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: none.
       tags:
@@ -2909,6 +2977,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2950,6 +3019,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2960,7 +3030,7 @@ paths:
       operationId: update_team_member
       summary: Update team member
       description: |-
-        Re-scope an existing member: replace permissions and/or account_sids. email / status / user_sid / team_sid are read-only (rejected silently). At least one field with an ACTUAL change required (a value-identical PATCH answers 422 nothing_to_update). The change applies immediately: the member's live tokens are invalidated and re-minted with the new grant on their next request (agents re-exchange). Bounded by the caller's own grant (403 grant_exceeds_ceiling); the structural owner's seat is not re-scopable (409 owner_cannot_be_rescoped - move ownership via transfer_team_ownership).
+        Re-scope an existing member: replace permissions and/or account_sids. email / status / user_sid / team_sid are read-only (rejected silently). At least one field with an ACTUAL change required (a value-identical PATCH answers 422 nothing_to_update). The change applies immediately: the member's live tokens are invalidated and re-minted with the new grant on their next request (agents re-exchange). Bounded by the caller's own grant (403 grant_exceeds_ceiling); the structural owner's seat is not re-scopable (409 owner_cannot_be_rescoped: ownership moves in the app's Workspace settings or by the transfer-ownership route of the REST API, no MCP tool since 2026-11-06).
 
         Contract:
         - MCP tool `update_team_member`, registry package `mcp.id/team_members`, mount `id.identity`.
@@ -3002,6 +3072,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3011,7 +3082,7 @@ paths:
       operationId: delete_team_member
       summary: Remove team member
       description: |-
-        Remove a pending invite OR kick an active member: one tool, soft-delete. DESTRUCTIVE. The structural owner is protected (409 conflict, owner_cannot_be_removed); move ownership via transfer_team_ownership first. Kicking a member revokes their sessions in this team only.
+        Remove a pending invite OR kick an active member: one tool, soft-delete. DESTRUCTIVE. The structural owner is protected (409 conflict, owner_cannot_be_removed); move ownership first, in the app's Workspace settings or by the transfer-ownership route of the REST API (no MCP tool since 2026-11-06). Kicking a member revokes their sessions in this team only.
 
         Contract:
         - MCP tool `delete_team_member`, registry package `mcp.id/team_members`, mount `id.identity`.
@@ -3046,6 +3117,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3092,6 +3164,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3133,6 +3206,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3174,6 +3248,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3233,6 +3308,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3284,6 +3360,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3296,7 +3373,7 @@ paths:
         Cascade soft-delete a workspace and its owned rows (members, keys, sessions, oauth clients, certs). Owner-only. DESTRUCTIVE. Blocked (409 delete_blocked) while a paid applied subscription is live. Unapply/cancel it first; clear soft blockers (active keys / members) with acknowledge[]. Deleting the owner's LAST workspace is allowed and leaves their ACCOUNT untouched: they are left with no workspace until their next sign-in provisions a replacement. Erasing an account is a separate deliberate act, never a side effect of this tool. There is no restore: the deleted workspace cannot be brought back, cascade.recovery_available_until is null, and its data is erased 30 days later.
 
         Contract:
-        - MCP tool `delete_team`, registry package `mcp.id/teams`, mount `id.identity`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/teams`, surface api).
         - Operation `delete`, response envelope `delete_cascade`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -3352,6 +3429,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_cascade
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3365,7 +3443,7 @@ paths:
         Move structural ownership of the team to another active member. Owner-only (an admin cannot transfer). Transferring to the current owner is a no-op. This is the only way to change owner_user_sid, and the prerequisite for the current owner to leave the team.
 
         Contract:
-        - MCP tool `transfer_team_ownership`, registry package `mcp.id/teams`, mount `id.identity`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/teams`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -3404,6 +3482,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3454,6 +3533,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3466,7 +3546,7 @@ paths:
         Patch the authenticated user's own profile: first_name / last_name / avatar_url / phone / timezone / country / config only. email (change-email flow), password (change-password flow), auth_provider, email_status and all sids are rejected if sent. At least one field required. config merges key-by-key. Same subject as get_current_user: an API key has no user to patch and answers 403 with context.reason=not_a_user_actor.
 
         Contract:
-        - MCP tool `update_current_user`, registry package `mcp.id/users`, mount `id.identity`.
+        - REST only: no MCP tool serves this route (registry package `mcp.id/users`, surface api).
         - Operation `update`, response envelope `update`.
         - Flags: none.
       tags:
@@ -3494,6 +3574,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5734,7 +5815,13 @@ components:
               - can_view_email_sending_domains
               - can_manage_email_sending_domains
               - "*"
-          description: Unified catalog tokens; the can_view_teams floor is always unioned in.
+          description: Unified catalog tokens, [] = membership only; the can_view_teams floor is always unioned in. This or preset, never both.
+        preset:
+          type: string
+          enum:
+            - operator
+            - view_only
+          description: "A named grant, expanded to its tokens: operator or view_only. This or permissions, never both."
         account_sids:
           type: array
           nullable: true
@@ -5748,7 +5835,6 @@ components:
           description: Profile slice; null/omitted = all team profiles. An empty list is refused (422).
       required:
         - email
-        - permissions
     CreateTeamMemberResponse:
       type: object
       properties:
@@ -7715,6 +7801,16 @@ components:
         - operation
         - metrics
         - meta
+    GetBillingPaymentMethodAddLinkRequest:
+      type: object
+      description: Request body of `get_billing_payment_method_add_link`.
+      properties:
+        subscription_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^bl_sb_
+          description: The subscription the card is for (bl_sb_...); omitted = the one the workspace draws from.
     GetBillingPaymentMethodAddLinkResponse:
       type: object
       properties:

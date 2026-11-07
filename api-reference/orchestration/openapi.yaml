@@ -80,6 +80,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
@@ -121,6 +122,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -166,6 +168,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -207,6 +210,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -250,6 +254,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -291,6 +296,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -348,6 +354,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -392,6 +399,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_cascade
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -448,6 +456,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -500,6 +509,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -546,6 +556,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -592,6 +603,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -605,7 +617,7 @@ paths:
         Period-bound aggregates over webhook deliveries: success_rate, failure_rate, p50/p95/p99 latency, total_retries, last_success_at / last_failure_at. The rates and the two timestamps count TERMINAL outcomes only (rows in status success / failed): a delivery still in its retry loop is neither, so it shows in counts.groups.status.retrying and total_retries here and in the webhook row's consecutive_failed_attempts / last_failure_at (which count every attempt), not in these rates; a period with nothing terminal reads null, not 0. Requires period {from,to} (≤ 90 days). Optional filter scopes the row set (created_at operators inside filter are ignored; period is the only time window) and an optional single group_by axis (status, event_type, response_code, webhook_sid, account_sid).
 
         Contract:
-        - MCP tool `get_webhook_logs_metrics`, registry package `mcp.orchestration/webhook_logs`, mount `orchestration.webhooks`.
+        - REST only: no MCP tool serves this route (registry package `mcp.orchestration/webhook_logs`, surface api).
         - Operation `metrics`, response envelope `metrics`.
         - Flags: read only.
       tags:
@@ -633,6 +645,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -643,7 +656,7 @@ paths:
       operationId: search_webhook_logs
       summary: Search webhook logs
       description: |-
-        List webhook delivery rows for the caller's team with filter, sort, include and group-counts. Deliveries from every producer service (LinkedIn, email, …) land in this one log; filter per webhook, per account_sid, per source_service, per event type, per HTTP code or status; include=webhook. Returns a counts block (groups by status / event_type / response_code / webhook_sid / account_sid). Use for delivery auditing and integrator-outage debugging. For period-bound success rates use get_webhook_logs_metrics; single-row lookup is a filter on sid.
+        List webhook delivery rows for the caller's team with filter, sort, include and group-counts. Deliveries from every producer service (LinkedIn, email, …) land in this one log; filter per webhook, per account_sid, per source_service, per event type, per HTTP code or status; include=webhook. Returns a counts block (groups by status / event_type / response_code / webhook_sid / account_sid). Use for delivery auditing and integrator-outage debugging. Period-bound success rates are the metrics route of the REST API (no MCP tool since 2026-11-06); single-row lookup is a filter on sid.
 
         Contract:
         - MCP tool `search_webhook_logs`, registry package `mcp.orchestration/webhook_logs`, mount `orchestration.webhooks`.
@@ -674,6 +687,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -687,7 +701,7 @@ paths:
         Cancel a webhook delivery (status → cancelled); no further retries. Allowed from pending / retrying / in_progress; terminal rows → 422 cannot_cancel_terminal. Cancelling an in_progress row may still flip back to success if the worker in-flight attempt returns 2xx (re-read the row; result.in_flight_attempt_pending signals this). Pass expected_status for a CAS write (409 on mismatch). Aborts a pending delivery; state-changing.
 
         Contract:
-        - MCP tool `cancel_webhook_log`, registry package `mcp.orchestration/webhook_logs`, mount `orchestration.webhooks`.
+        - REST only: no MCP tool serves this route (registry package `mcp.orchestration/webhook_logs`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -726,6 +740,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -739,7 +754,7 @@ paths:
         Manually re-arm a webhook delivery row: flips status to pending, sets scheduled_at=now(), clears cancel_reason. retry_count stays (it counts executed attempts, a re-arm is not one). error_message is preserved (cleared only on the next successful terminal outcome). Allowed from every state but in_progress (409 lease_in_progress), cancelled included whatever the reason; rejected on a soft-deleted / disabled parent webhook (422). Many rows at once: replay_webhook on the parent, paced. Pass expected_status for a CAS write (409 on mismatch). Re-delivers to the integrator; state-changing.
 
         Contract:
-        - MCP tool `retry_webhook_log`, registry package `mcp.orchestration/webhook_logs`, mount `orchestration.webhooks`.
+        - REST only: no MCP tool serves this route (registry package `mcp.orchestration/webhook_logs`, surface api).
         - Operation `action`, response envelope `action`.
         - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
       tags:
@@ -778,6 +793,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: api
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -819,6 +835,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -860,6 +877,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -918,6 +936,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -969,6 +988,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1013,6 +1033,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1065,6 +1086,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1075,7 +1097,7 @@ paths:
       operationId: test_webhook
       summary: Test webhook
       description: |-
-        Synchronously POST a synthetic payload to the webhook target_url and return the receiver response (HTTP status, duration, error kind). Verifies endpoint health / signature handling without waiting for a real event; does NOT write to webhook_logs and does NOT affect the consecutive-failure counter. Allowed while status=failed (revival flow); rejected while status=off. Rate-limited to 10 calls/min per webhook. Outward live HTTP probe.
+        Synchronously POST a synthetic payload to the webhook target_url and return the receiver response (HTTP status, duration, error kind, error message). sample_envelope dry-runs filters.where: filter_matched says if that event would be delivered. Verifies endpoint health / signature handling without waiting for a real event; does NOT write to webhook_logs and does NOT affect the consecutive-failure counter. Allowed while status=failed (revival flow); rejected while status=off. Rate-limited to 10 calls/min per webhook. Outward live HTTP probe.
 
         Contract:
         - MCP tool `test_webhook`, registry package `mcp.orchestration/webhooks`, mount `orchestration.webhooks`.
@@ -1117,6 +1139,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6900,7 +6923,11 @@ components:
                   - updated_at
               included:
                 type: object
-                additionalProperties: {}
+                properties:
+                  webhook:
+                    type: object
+                    additionalProperties: {}
+                    description: The parent subscription (WebhookDomain, secret masked), a soft-deleted one included.
             required:
               - item
               - included
@@ -7047,6 +7074,13 @@ components:
                     type: string
               additionalProperties: false
               description: "eq: webhooks subscribed to this event type; in: subscribed to ANY of these (JSON-contains on the events array)."
+            filters.account_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+              additionalProperties: false
+              description: The webhooks narrowed to this account (ln_ac_… / em_ac_…).
             name:
               type: object
               properties:
@@ -7389,6 +7423,10 @@ components:
         override_event_type:
           type: string
           description: "Test with a specific event type payload shape (default: webhooks.test synthetic)."
+        sample_envelope:
+          type: object
+          additionalProperties: {}
+          description: 'An envelope to judge against filters.where, e.g. {"type": "email-messages.sent", "payload": {"status": "sent"}}. Only filter_matched reads it; the POST stays the synthetic one.'
     TestWebhookResponse:
       type: object
       properties:
@@ -7558,6 +7596,7 @@ components:
             response_body:
               type: string
               nullable: true
+              description: "Always null: an answer is never read back, so a test cannot be turned into a read of what an address serves."
             duration_ms:
               type: number
             error_kind:
@@ -7571,12 +7610,18 @@ components:
             error_message:
               type: string
               nullable: true
+              description: "What went wrong, the delivery log's line: http_503, or the connection error; null on none."
+            filter_matched:
+              type: boolean
+              nullable: true
+              description: What filters.where says to sample_envelope, true with no gate; null without a sample.
           required:
             - http_status
             - response_body
             - duration_ms
             - error_kind
             - error_message
+            - filter_matched
         meta:
           type: object
           properties:
