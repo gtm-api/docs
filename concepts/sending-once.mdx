@@ -31,6 +31,7 @@ A key and its place make one send. The place depends on what is sent:
 - A repeat to the same place is the same send, whatever its text says. If the first send went out, the repeat answers `200` with what it made (the message or the connection request row, the comment, the post or the repost) and `result.idempotent_replay: true`, plus `result.content_differs: true` when the repeat said something else (a re-rendered template, an edited draft). Nothing is sent.
 - The same key at another place is another send. That is how a bulk run can tag all of its sends with one value.
 - The time of a scheduled post is not part of its place under a key: a retry that computes a new `scheduled_at` is the same post.
+- A comment or a reply made as a company page (`author_organization_id`) is another send than the member's, and than another page's, at the same place, under a key or without one. `check-sent` takes no author, so give each author its own key.
 - A send without a key gets a weaker net. One that matches an earlier send's words and place (for a post, its pictures, video or document too) is held while that send is on its way or in doubt, and answered with it for an hour after it went out. To send the same words twice on purpose, use two keys.
 
 ## Four outcomes
@@ -131,7 +132,7 @@ The platform settles a send in doubt by reading what LinkedIn shows, by the acco
 | A company page's post | The page's feed. LinkedIn ranks it by relevance, so a read can find the post but never prove it absent |
 | A post into a group | Nothing: no read serves a group's feed |
 
-A post into a group whose answer was lost stays `unknown` until a person looks and gives their word, and so does a page post the page's feed has not shown.
+A post into a group whose answer was lost stays `unknown` until a person looks and gives their word, and so does a page post the page's feed has not shown. So does a comment or a reply made as a company page: no read lists a comment as the page's.
 
 ## A person's word
 

@@ -3,6 +3,27 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-09" description="A comment can go out as a company page">
+  **`comment` writes a comment as a company page.** `POST /api/linkedin-posting/comment` and the MCP
+  tool `create_linkedin_comment` take `author_organization_id`: the page's bare numeric id, the name
+  and form `create-post` takes for posting as a page (the id `company-posts` takes). The comment, a
+  reply included, goes out as that company page the account administers. LinkedIn decides whether
+  the account may act for the page, and its refusal comes back as any comment's refusal does.
+  Without the field the comment is the member's, as before. Anything but a string of digits is a
+  `422` on the field, with nothing sent and no unit spent.
+
+  **The author is part of which comment it is.** The member and a company page are two authors, so
+  their comments at one place are two sends, under a key or without one. Give each author its own
+  `client_reference`: `check-sent` takes no author, and asked by a key both share it answers for
+  whichever comment went out. No read lists a comment as a page's, so a page's comment whose answer
+  was lost stays `unknown` until a person gives their word on the same request,
+  `author_organization_id` included, as [Sending once](/concepts/sending-once) describes.
+
+  **What stays the same.** A page's comment spends the account's `comment_posts` limit like any
+  other comment, and the response does not move: `comment_urn` and the activity log row. A
+  mass-action comment step comments as the member and refuses `author_organization_id`.
+</Update>
+
 <Update label="2026-11-06" description="A post can carry one PDF">
   **`create-post` publishes a PDF as a LinkedIn document.** `POST /api/linkedin-posting/create-post`
   and the MCP tool `create_linkedin_post` take `document`: a `title`, the file as `file_base64` or
