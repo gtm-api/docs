@@ -3,6 +3,28 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-11" description="A full profile says whether the member shows the #OpenToWork or #Hiring frame">
+  **The full profile carries `is_open_to_work` and `is_hiring`.**
+  `POST /api/linkedin-enrichment/person-full-profile` and the MCP tool
+  `enrich_linkedin_person_full_profile` return `profile.is_open_to_work`, `true` when the member's
+  photo wears LinkedIn's public #OpenToWork frame, and `profile.is_hiring`, `true` when it wears
+  the #Hiring frame. Each is `false` when the photo wears no frame or another one. Your account's
+  own profile has them too, in `result.data` of
+  `POST /api/linkedin-accounts/{sid}/get-my-full-profile` (`get_linkedin_account_my_full_profile`).
+
+  **`false` does not mean the person is not looking or not hiring.** LinkedIn lets a member share
+  Open to Work with recruiters only, and that member shows no frame, so `is_open_to_work` says
+  `false` for them. The `open_to_work` of a `search-recruiter-people` row is a different signal, and
+  the two can disagree. The #Hiring frame is optional too, so `is_hiring: false` only says the photo
+  has no #Hiring frame. A photo shows one frame at a time, so `is_open_to_work` and `is_hiring` are
+  never both `true`.
+
+  **Null or missing means unknown.** When LinkedIn sends no photo for the member the fields have no
+  value, and a profile served from a cache filled before this release does not have them either
+  (the 24-hour cache, or an older copy you accepted with `trust_cache_max_age_days`). Read them as
+  unknown, not as `false`.
+</Update>
+
 <Update label="2026-11-09" description="A comment can go out as a company page">
   **`comment` writes a comment as a company page.** `POST /api/linkedin-posting/comment` and the MCP
   tool `create_linkedin_comment` take `author_organization_id`: the page's bare numeric id, the name
