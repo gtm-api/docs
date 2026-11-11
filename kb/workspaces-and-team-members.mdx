@@ -184,6 +184,10 @@ curl -X POST "https://app.gtm-api.com/id/v4/api/team-members" \
   -d '{"email": "teammate@company.com", "permissions": ["*"]}'
 ```
 
+An invite names its grant with exactly one of two fields: `permissions`, the token list, or
+`preset`, which takes `operator` or `view_only` for the app's Operator and View only presets.
+Both or neither is a `422`.
+
 Search filters on `{"user_sid": {"is_null": true}}` for pending invitations only. Field names and
 the full request shape are in the [API reference](/api-reference/overview).
 

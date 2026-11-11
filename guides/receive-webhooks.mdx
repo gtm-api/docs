@@ -128,7 +128,9 @@ Compute the HMAC over the raw bytes you received, before any JSON re-serializati
 
 `POST /api/webhooks/{sid}/test` fires a synthetic delivery at your endpoint, so you can confirm reachability, signature handling and parsing without waiting for a real event.
 
-Three things to know about it: it is rate-limited to 10 calls per minute per caller (the budget is shared across all your webhooks), it is rejected with `invalid_transition` while the webhook's status is `off`, and it writes no row to the delivery log. It also sets a subset of the headers above, so build your verifier on the signature, timestamp, event and id headers rather than requiring all six.
+Three things to know about it: it is rate-limited to 10 calls per minute per caller (the budget is shared across all your webhooks), it is rejected with `invalid_transition` while the webhook's status is `off`, and it writes no row to the delivery log. It sends the same six headers as a real delivery, with `X-Webhook-Log-Id` set to `wh_lg_test00000000` because no row exists, and a body whose `type` is `webhooks.test` and whose `payload` is `{"test": true}`. The answer carries the HTTP status, the duration and, when the call failed, `error_message` (`http_503`, or the connection error). `response_body` is always null: a test never reads back what your address serves.
+
+To try a payload filter before real events reach it, add `sample_envelope` to the test: an event as a delivery would carry it, for example `{"type": "antidetect-browsers.restriction-lifted", "payload": {"restricted_for_days": 14}}`. The answer's `filter_matched` says whether `filters.where` would deliver that event, `true` when the webhook has no such filter and `null` when you sent no sample. The POST to your endpoint still carries the synthetic event.
 
 ## 4. Retries and auto-disable
 
@@ -158,7 +160,7 @@ Replay puts every delivery of that webhook created since `from` whose status is 
 
 The log holds **one row per event per subscription**, not one per attempt: a retry updates that row in place, bumping `retry_count` and overwriting the response code. The row is the delivery, and its history is the counter.
 
-- `POST /api/webhook-logs/search` lists deliveries with status, response code and timing; filter by webhook or event type.
+- `POST /api/webhook-logs/search` lists deliveries with status, response code, timing and the headers each one sent (`request_headers`). Filter by webhook or event type, and add `include: ["webhook"]` for the parent webhook of each row, the secret masked, a deleted one included.
 - `POST /api/webhook-logs/{sid}/retry` re-sends. Allowed from every state but `in_progress`: `pending`, `retrying`, `failed`, `success` (a manual re-send of a delivered event is legitimate) and `cancelled`, whatever cancelled it. It re-arms the row without counting as an attempt, so `retry_count` stays the number of attempts that actually went out (at most 5). Only while the parent subscription is still live: a deleted or `off` webhook rejects the retry.
 - `POST /api/webhook-logs/{sid}/cancel` stops a delivery that has not settled. Allowed from `pending`, `retrying` and `in_progress`.
 - `POST /api/webhook-logs/metrics` aggregates outcomes. `period` with `from` and `to` is required and may span at most 90 days.

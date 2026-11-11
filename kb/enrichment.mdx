@@ -21,18 +21,22 @@ a different surface.
 
 | | `person-contact-info` | `person-full-profile` |
 |---|---|---|
-| Contact fields | `email`, `phones[]` (typed), `websites[]`, `twitter_handles[]` | flat `email`, `phone`, `twitter`, `facebook` |
-| Everything else | nothing else | headline, position, company, about, experience, and the rest |
+| Contact fields | `email`, `phones[]` (typed), `websites[]`, `twitter_handles[]`, `birthday`, `address`, `instant_messengers[]`, `wechat` | `contact_info` in the same shape, the card as LinkedIn shows it to the reading account, plus the flat `email`, `phone`, `twitter`, `facebook` |
+| Everything else | nothing else | headline, position, company, about, the whole experience, education and skills lists, and the rest |
+| LinkedIn requests | one, for the card alone | eight or nine |
 | Cache TTL | 24 hours | 24 hours |
 | Where it can run | only an account of yours that is a 1st-degree connection | your pinned account, or one the service picks for you |
 
-Both ride the same read but cache under their own key: a cached full profile does not
-satisfy a contact-info call, and the reverse is also true.
+They are two different reads, and each caches under its own key: a cached full profile does
+not satisfy a contact-info call, and the reverse is also true.
 
 <Warning>
 The flat `phone` on `person-full-profile` keeps only the first mobile number. Home and
-work numbers are dropped. `person-contact-info` returns `phones[]` with a `type` on each
-entry (`MOBILE`, `HOME`, `WORK`, or `null`), so use it when the phone actually matters.
+work numbers are dropped from it. `contact_info.phones[]` on the same profile and `phones[]`
+on `person-contact-info` keep a `type` on each entry (`MOBILE`, `HOME`, `WORK`, or `null`).
+LinkedIn shows email addresses and phone numbers to 1st-degree connections only, so the full
+profile's card has them only when the reading account is connected to the person.
+`person-contact-info` always runs on such an account: use it when the phone actually matters.
 </Warning>
 
 ## Run it
@@ -54,8 +58,10 @@ no sequence step), one target per call.
 
 `contact_info` is always present, and every field inside it can be empty. An empty block
 means the connected account still cannot see those details, never that the call was
-blocked. `address`, `birthday` and connection date are not parsed. A phone with
-`type: null` is normal on older cached payloads, not a defect.
+blocked. `birthday` comes as a day and a month (LinkedIn sends no year) and `address` as the
+card's free text. The connection date is not on the card: `check-degree` answers it as
+`connected_at`, and so does a lite, basic or full profile read pinned to the connected
+account. A phone with `type: null` is normal on older cached payloads, not a defect.
 
 ## Which account runs the call
 
