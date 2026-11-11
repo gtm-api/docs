@@ -3,6 +3,236 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-11" description="Account administration stays on REST, a plan change on MCP previews first, and an invite takes a preset">
+  **Thirty account-administration tools leave the MCP server.** Their routes stay on the REST API
+  and in the app, unchanged. An agent no longer reaches:
+
+  - API keys: create, update, rotate and the metrics
+  - OAuth clients (all five verbs), the edit of an OAuth authorization, the session list and revoke
+  - billing: checkout, cancel, undo cancel, pause, resume, the plan change preview, the card update
+    link, deleting a payment method, the product catalog and the transaction metrics
+  - the workspace: deleting it, transferring its ownership, accepting an invitation, updating your
+    own user and deleting a notification
+  - webhook deliveries: retry, cancel and the metrics
+
+  Each operation in the OpenAPI documents of the [API reference](/api-reference/overview) names its
+  surface in `x-gtm-surface`: `both` (REST and MCP) or `api` (REST only).
+
+  **A plan change on MCP is two calls.** `change_billing_subscription` without `commit_token`
+  changes nothing and answers `preview_result`, the money from the payment provider's own pricing
+  preview (`immediate_charge`, `next_billed_amount`, `currency`, `proration_mode`,
+  `new_price_sid`, `new_quantity`, `crosses_bracket`), beside a `commit_token`. The same call with
+  that token commits. Over REST the flow stays `preview-change`, then `change`.
+
+  **The card link can name its subscription.** `POST /api/billing-payment-methods/get-add-link`
+  takes an optional `subscription_sid`. Without it the link is for the subscription the workspace
+  draws from, as before. With it the link is for that subscription, which must be yours or applied
+  to this workspace (`403 not_subscription_owner` otherwise). A subscription billed by invoice
+  answers `422`, and one the payment provider holds no subscription for answers `409`.
+
+  **A subscription is read in your scope.** `GET /api/billing-subscriptions/{sid}` answers the
+  subscriptions the search lists: your own and the one applied to the workspace. Any other sid
+  answers `404`, the same as an unknown one.
+
+  **An invite can name a preset.** `POST /api/team-members` takes `preset` in place of
+  `permissions`: `operator` (runs outreach on every account, no billing, keys, sessions or admin
+  surfaces) or `view_only` (reads everything, acts on nothing), the Operator and View only presets
+  of the app's permission picker. Send exactly one of the two fields: both or neither is a `422`.
+</Update>
+
+<Update label="2026-11-11" description="MCP: a page that does not fit comes back shorter, a slow call gets its answer, and a connection keeps every permission it asked for">
+  **A search page that does not fit comes back shorter, and the walk loses nothing.** A tool answer
+  has a size budget. A search page over it used to lose its tail while `has_more` and
+  `next_cursor` still pointed past the rows that were cut, so a loop on the cursor skipped rows
+  without a word. A read-only search tool with a `page_size` now asks again at the size that fits,
+  with the same filter, sort and cursor, and returns that page whole: `truncation` reads
+  `truncated: false` and `page_shortened: true`, and the cursor goes on right after the last row
+  you got. The `get_my_latest_*` tools and the paid scrape and enrichment pages keep the trimmed
+  answer, because asking again would mean asking LinkedIn again.
+
+  **A slow call gets its answer.** The MCP server now waits up to 55 seconds for the platform,
+  where it gave up at 25. A call that drives a LinkedIn browser, such as a video post or the first
+  Sales Navigator search after an idle hour, now returns its result, or the platform's own `503`
+  with `retry_after`, instead of a timeout from the MCP server. Clients that wait a minute or more,
+  as Claude Code, claude.ai and the MCP SDKs do by default, receive it. A client with a shorter
+  limit of its own still ends the call there.
+
+  **A send cut at the limit tells you how to check it.** A send the limit cuts is in doubt, not
+  failed. Its answer now hands over the check call, filled in with the send's own account and
+  `client_reference`: `check_linkedin_posting_sent` for posts, comments and reposts,
+  `check_linkedin_message_sent` for messages and a new group conversation, and
+  `check_linkedin_connection_request_sent` for an invitation. Send again only when the check
+  answers `not_sent`, under the same key. A send without a key is told to read the account's
+  activity log first. [Sending once](/concepts/sending-once) explains the keys.
+
+  **A connection that asked for every permission keeps getting every permission.** An MCP client
+  that registered itself through OAuth, a claude.ai connector for one, and was granted everything
+  held the permission list of the day it connected, so the permissions added since never reached
+  it. Such a connection now holds everything as the list grows, with nothing to reconnect. A
+  connection granted a narrower set keeps exactly that set.
+</Update>
+
+<Update label="2026-11-11" description="The lite profile answers everything its one LinkedIn request states, and the basic profile takes a profile id">
+  **`person-lite-profile` returns the whole answer of its one request.**
+  `POST /api/linkedin-enrichment/person-lite-profile` and the MCP tool
+  `enrich_linkedin_person_lite_profile` still cost one LinkedIn request and still turn a slug, a
+  profile id or a Sales Navigator id into the identifier set. The profile now also carries the
+  name in its parts (`first_name`, `last_name`, `maiden_name`, and `localized` for each language
+  the member wrote it in), the `headline`, the photo as `avatar_url`, the cover as
+  `background_picture_url`, the location (`location`, `location_without_country`,
+  `location_geo_id`, `country`, `country_geo_id`, `postal_code`) and the profile's locales. The
+  marks come with it: premium, verified, influencer and creator (with `creator_hashtags` and
+  `creator_website`), `top_voice_badge`, `is_open_to_work` and `is_hiring`. So do the `pronoun`,
+  the member's `status` and `birthday`, `is_memorialized` and `is_email_required_to_connect`.
+
+  **What a few of them mean.** `avatar_url` is the photo re-hosted on our storage, a link that does
+  not expire, for any member who shows a photo, whatever the degree. `location_geo_id` is the value
+  LinkedIn's location search filter takes. `is_memorialized` marks the account of a member who
+  died: do not contact. `is_email_required_to_connect` says LinkedIn wants the member's email
+  address before a connection request, and it is stated only while the two are not connected and
+  no invitation is pending. `birthday` is what the member shares with the reading account.
+  `full_name` is now `first_name` and `last_name` joined, on every profile read. Read
+  `is_open_to_work` and `is_hiring` as the full profile entry below explains.
+
+  **A pinned account brings the relationship.** With `linkedin_account_sid`, `connected_at` (when
+  the two connected, for a 1st-degree connection) and `pending_invitation` (its direction and the
+  invitation id a withdrawal or a reply names) join `network_distance`, all three that account's.
+  Without a pinned account all three are null, because a degree relative to an account you did not
+  name is not an answer. The lite profile carries no contact card: ask `person-contact-info` for
+  it.
+
+  **`person-basic-profile` answers the same facts and takes a profile id.**
+  `POST /api/linkedin-enrichment/person-basic-profile` (`enrich_linkedin_person_basic_profile`)
+  reads the same one request and answers it under LinkedIn's own field names (`id`, `urn`,
+  `public_identifier`, `picture_url`). Address it by `profile_id` or `public_identifier`, exactly
+  one. A call with a profile id alone used to be refused with a `422` before anything ran.
+
+  **Your account's own profile and the degree check.**
+  `POST /api/linkedin-accounts/{sid}/get-my-lite-profile` (`get_linkedin_account_my_lite_profile`)
+  answers the account's identifiers, the name in its parts, the headline, the photo (`picture_url`,
+  a signed link that expires) and its own contact card in `result.data`, in two LinkedIn requests.
+  `POST /api/linkedin-connections/check-degree` (`check_linkedin_connection_degree`) answers
+  `connected_at` when the degree is 1st.
+
+  **A lite profile cached before today is read again.** A copy in the 24-hour cache from before
+  this release lacks these facts, so the next call for that person runs on LinkedIn instead of
+  being served from the cache.
+</Update>
+
+<Update label="2026-11-11" description="The full profile's lists come whole, education is a short read of its own, and the contact card has every field">
+  **`person-full-profile` returns the whole lists.** `experience`, `educations` and `skills` come
+  back whole, up to 100 rows each, where the read used to return the first rows of each and leave
+  the rest to the dedicated methods. The profile also carries every fact `person-lite-profile`
+  states (the entry above), `connected_at` and `pending_invitation` for a pinned account, and
+  `contact_info`: the contact card as LinkedIn shows it to the reading account, in the shape
+  `person-contact-info` answers. A full read costs eight or nine LinkedIn requests, the education
+  list one of them. The MCP tool is `enrich_linkedin_person_full_profile`.
+
+  **`person-education` lists every school in one or two requests.**
+  `POST /api/linkedin-enrichment/person-education` (`enrich_linkedin_person_education`) reads the
+  member's whole education list in one LinkedIn request by `profile_id`, two by
+  `public_identifier` (the list is keyed by the id, so the slug is resolved first), where it used
+  to cost a whole profile read. Each school now also carries its page's vanity as
+  `school_public_identifier` and its logo as `school_logo_url`. It is cached for 7 days under its
+  own key, as before.
+
+  **`person-contact-info` returns LinkedIn's whole contact card.** Next to `email`, `phones`,
+  `websites` and `twitter_handles`, the card now carries `birthday` (day and month, LinkedIn sends
+  no year), `address`, `instant_messengers` (the provider as LinkedIn names it, and the handle) and
+  `wechat` (the name and its QR links). The read is one LinkedIn request for the card alone, where
+  it used to run the whole profile. It still runs on an account of yours connected to the person,
+  because LinkedIn shows email addresses and phone numbers to connections only. Details on
+  [Find an email or phone number for a profile](/kb/enrichment).
+</Update>
+
+<Update label="2026-11-11" description="A proxy that moved country stays in service, and the browser says where its proxy exits now">
+  **`country_mismatch` is retired.** A managed proxy whose exit moved to another country is no
+  longer set aside, and the proxies that were set aside are `active` again. A proxy's status is
+  `active`, `no_connect`, `fraud_flagged` or `replaced`.
+
+  **The browser says where its proxy exits now.** Browser reads (search and get, the answers of
+  create, run, stop, the proxy swaps and the cloud browser access keys, and the
+  `antidetect_browser` include on accounts and on the browser event log) carry
+  `proxy_actual_country_code`: the country the managed proxy exits in, as LinkedIn last saw it,
+  next to `proxy_country_code`, the country chosen for the browser. It is null on your own proxy,
+  and webhook payloads leave it null. When the two differ, `replace-proxy` moves the browser to a
+  proxy in the chosen country. In the app the account drawer shows **The proxy's country changed**
+  with a **Change proxy** button.
+
+  **The location check reports and sets nothing.** `check-proxy-location`
+  (`check_antidetect_browser_proxy_location`) still lists an exit in another country under
+  `country_mismatched`, and that is all it does with it. A proxy's country moves only when a
+  LinkedIn session seen through it shows another one, and the browsers on it keep the country
+  chosen for them. A fraud score of 75 or above still flags the proxy `fraud_flagged`. The daily
+  geo check is gone: a weekly run sends 100 active proxies to the fraud databases. Details on
+  [Proxy problems](/kb/proxy-troubleshooting).
+</Update>
+
+<Update label="2026-11-11" description="Webhooks: a test dry-runs your filter, and the delivery log names its webhook">
+  **A test can dry-run your filter.** `POST /api/webhooks/{sid}/test` (`test_webhook`) takes
+  `sample_envelope`, an event as a delivery would carry it, and answers `filter_matched`: whether
+  the webhook's `filters.where` would deliver it, `true` when the webhook has no such filter and
+  `null` without a sample. The test still sends its own synthetic event, now with the same six
+  headers as a real delivery, and `error_message` says what went wrong (`http_503`, or the
+  connection error). `response_body` stays null on purpose: a test never reads back what your
+  address serves.
+
+  **The delivery log names its webhook.** `POST /api/webhook-logs/search` with
+  `include: ["webhook"]` returns the parent webhook of each delivery, the secret masked, a deleted
+  one included. It used to come back empty. A delivery row now keeps the headers it sent in
+  `request_headers`.
+
+  **A deleted webhook says who deleted it.** `DELETE /api/webhooks/{sid}` fills `deleted_by` on the
+  row and in the `webhooks.deleted` event. A webhook deleted before today reads null.
+
+  **Find the webhooks of one account.** The webhook search documents its `filters.account_sid`
+  filter (`{"filter": {"filters.account_sid": {"eq": "ln_ac_..."}}}`), which it applied all along,
+  so an agent on `search_webhooks` can use it too. In the app, the webhook form asks before it
+  throws away unsaved changes.
+</Update>
+
+<Update label="2026-11-11" description="The first Sales Navigator search after a quiet spell answers, and a refused one fails at once">
+  **The first Sales Navigator search after a quiet spell answers.** When the account's browser had
+  not opened a Sales Navigator page for a while, the search page could load a second time a few
+  seconds after it opened and take the search down with the first load. About a third of the
+  searches 15 to 30 minutes after the last Sales Navigator page timed out with nothing returned,
+  and three in four after an hour. The plugin now watches for that second load and runs the search
+  once more in a fresh tab, so it answers, a few seconds slower than a warm search. This covers the
+  Sales Navigator people and account searches.
+
+  **A search LinkedIn refuses fails at once.** The plugin reads LinkedIn's own refusal of the search
+  and answers with LinkedIn's status in seconds, where it used to wait 15 seconds and report a page
+  that did not render. A refusal for a missing Sales Navigator seat goes through the automatic
+  session re-arm and retry.
+</Update>
+
+<Update label="2026-11-11" description="A company page post with several images publishes, a bound browser starts on one request, and the snapshot finds the last post">
+  **A post as a company page with two or more images publishes.** `create-post` with
+  `author_organization_id` and two or more `images` was refused by LinkedIn with nothing created
+  (the 2026-11-03 fix covered one image or one video). It now goes out as the page, every image with
+  it.
+
+  **A bound browser checks its session with one request.** A browser starting for an account used
+  to load a LinkedIn page to check the session, and a slow page could fail the start of a sender
+  that worked. It now sends LinkedIn one request, and loads the page only when that request does
+  not answer.
+
+  **A page that never loads on your own proxy is yours to fix.** When the start check's page does
+  not load within a minute and the browser goes through the proxy inside your own GoLogin profile,
+  the browser is parked as `client_error_investigation`, and the account owner gets the email. It
+  used to be parked as `support_error_investigation`, waiting on our team for a cause only you can
+  fix. A browser on one of our proxies is parked as ours, as before. The statuses are on
+  [Browser troubleshooting](/kb/browser-troubleshooting).
+
+  **The account snapshot finds the last post.** `last_post_days` on the account snapshots
+  (`search_linkedin_account_snapshots`) read null for an account whose profile opens its Activity
+  tab on something other than posts. The snapshot now reads the account's own feed when the
+  profile names no post.
+
+  **In the app.** A greyed **Save** in the invite and API key dialogs says on hover what it waits
+  for.
+</Update>
+
 <Update label="2026-11-11" description="A full profile says whether the member shows the #OpenToWork or #Hiring frame">
   **The full profile carries `is_open_to_work` and `is_hiring`.**
   `POST /api/linkedin-enrichment/person-full-profile` and the MCP tool
