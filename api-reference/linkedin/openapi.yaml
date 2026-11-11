@@ -126,6 +126,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -167,6 +168,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
@@ -177,7 +179,7 @@ paths:
       operationId: check_antidetect_browser_proxy_location
       summary: Check proxy location
       description: |-
-        Run a multi-vendor geo + fraud check on one or many proxies. Target EXACTLY ONE of sid (ab_px_) or filter; filter mode checks up to an inline cap and reports total_matched (truncated:true when the cap was hit). An exit country that disagrees with country_code is listed in country_mismatched and parks the row as country_mismatch (emits antidetect-browser-proxies.country-mismatch) unless a LinkedIn session seen through the proxy confirmed its country: the geo vendors never write country_code, only that reading moves it or returns a parked row to active, and the browsers on the proxy keep the country their client chose; a fraud score over the threshold flips the row to fraud_flagged (emits its event). Rows the vendors could not settle are listed in inconclusive with a reason (no_ip_port / exit_unreachable / no_corroboration) and left untouched, so total_checked counts only rows that got a verdict.
+        Run a multi-vendor geo + fraud check on one or many proxies. Target EXACTLY ONE of sid (ab_px_) or filter; filter mode checks up to an inline cap and reports total_matched (truncated:true when the cap was hit). An exit country that disagrees with country_code is only reported, listed in country_mismatched: the geo vendors never write country_code, only a LinkedIn session seen through the proxy moves it, and the browsers on the proxy keep the country their client chose. A fraud score over the threshold flips the row to fraud_flagged (emits its event); a weekly fraud-only run does the same across the pool. Rows the vendors could not settle are listed in inconclusive with a reason (no_ip_port / exit_unreachable / no_corroboration) and left untouched, so total_checked counts only rows that got a verdict.
 
         Contract:
         - MCP tool `check_antidetect_browser_proxy_location`, registry package `mcp.linkedin/antidetect_browser_proxies`, mount `linkedin.browsers`.
@@ -208,6 +210,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: true
       x-gtm-step-eligible: false
@@ -249,6 +252,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -290,6 +294,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -331,6 +336,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -372,6 +378,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -407,6 +414,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -448,6 +456,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -489,6 +498,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -530,6 +540,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -571,6 +582,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -606,6 +618,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -647,6 +660,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -688,6 +702,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -747,6 +762,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -802,6 +818,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_cascade
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -843,6 +860,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -884,6 +902,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -919,6 +938,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -960,6 +980,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1018,6 +1039,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1059,6 +1081,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1100,6 +1123,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1141,6 +1165,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1182,6 +1207,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1223,6 +1249,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1275,6 +1302,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1321,6 +1349,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1362,6 +1391,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1403,6 +1433,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1444,6 +1475,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1503,6 +1535,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1544,6 +1577,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1612,6 +1646,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1663,6 +1698,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1715,6 +1751,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1768,6 +1805,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1821,6 +1859,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1874,6 +1913,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1927,6 +1967,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -1980,6 +2021,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2027,6 +2069,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2080,6 +2123,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2127,6 +2171,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2180,6 +2225,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2191,7 +2237,7 @@ paths:
       operationId: get_linkedin_account_my_lite_profile
       summary: Get my lite profile
       description: |-
-        Fetch the lite self-profile (name, headline, avatar) of the connected account.
+        Fetch the lite self-profile of the connected account in two LinkedIn requests: its identifiers, the name in its parts (first_name, last_name, and full_name computed from them), the headline, the photo (picture_url, a signed link that expires) and its own contact card, in result.data. get_linkedin_account_my_full_profile carries the rest (position, company, location, counts, premium flags).
 
         Contract:
         - MCP tool `get_linkedin_account_my_lite_profile`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -2227,6 +2273,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2280,6 +2327,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2327,6 +2375,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2374,6 +2423,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2427,6 +2477,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2474,6 +2525,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2521,6 +2573,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2568,6 +2621,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2621,6 +2675,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2674,6 +2729,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2727,6 +2783,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2780,6 +2837,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2833,6 +2891,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2886,6 +2945,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2938,6 +2998,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -2991,6 +3052,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: true
@@ -3043,6 +3105,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3096,6 +3159,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: true
@@ -3148,6 +3212,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3190,6 +3255,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3231,6 +3297,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3286,6 +3353,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3331,6 +3399,7 @@ paths:
       x-gtm-operation: create
       x-gtm-envelope: create
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3372,6 +3441,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3430,6 +3500,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3481,6 +3552,7 @@ paths:
       x-gtm-operation: update
       x-gtm-envelope: update
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3525,6 +3597,7 @@ paths:
       x-gtm-operation: delete
       x-gtm-envelope: delete_simple
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3571,6 +3644,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3617,6 +3691,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3663,6 +3738,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3715,6 +3791,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3761,6 +3838,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3796,6 +3874,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3837,6 +3916,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3879,6 +3959,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3920,6 +4001,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -3961,6 +4043,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4007,6 +4090,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4054,6 +4138,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4096,6 +4181,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4137,6 +4223,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4179,6 +4266,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4220,6 +4308,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4261,6 +4350,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: true
@@ -4303,6 +4393,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4349,6 +4440,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4360,7 +4452,7 @@ paths:
       operationId: check_linkedin_connection_degree
       summary: Check connection degree
       description: |-
-        Probe one contact's current connection degree (1st / 2nd / 3rd / 4_plus) from a managed account, and actualize a stale stored row: a live connection whose degree is no longer 1st is soft-deleted (removal_kind=removed) in the same call. Reuses the get-lite-profile getter (owner-only: it runs on the account you name). Supply exactly one target identifier.
+        Probe one contact's current connection degree (1st / 2nd / 3rd / 4_plus) from a managed account, and actualize a stale stored row: a live connection whose degree is no longer 1st is soft-deleted (removal_kind=removed) in the same call. When the degree is 1st, result.connected_at is the moment the two connected as LinkedIn states it (ISO 8601; null for any other degree). This is THE read for relationship facts: the degree and the connection date are facts about one account and one member, so they are answered here, by the account you name and never by a shared pool. Reuses the get-lite-profile getter. Supply exactly one target identifier.
 
         Contract:
         - MCP tool `check_linkedin_connection_degree`, registry package `mcp.linkedin/linkedin_connections`, mount `linkedin.network`.
@@ -4391,6 +4483,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4433,6 +4526,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4475,6 +4569,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4516,6 +4611,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4557,6 +4653,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4609,6 +4706,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4651,6 +4749,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4693,6 +4792,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4735,6 +4835,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4777,6 +4878,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4818,6 +4920,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4859,6 +4962,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4900,6 +5004,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4941,6 +5046,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action_async
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -4999,6 +5105,7 @@ paths:
       x-gtm-operation: get
       x-gtm-envelope: get
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5051,6 +5158,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5098,6 +5206,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5145,6 +5254,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5192,6 +5302,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5245,6 +5356,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5298,6 +5410,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5351,6 +5464,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5393,6 +5507,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5435,6 +5550,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5477,6 +5593,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5519,6 +5636,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5561,6 +5679,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5603,6 +5722,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5614,7 +5734,7 @@ paths:
       operationId: enrich_linkedin_person_basic_profile
       summary: Enrich person basic profile
       description: |-
-        The middle person read, between the lite identity stub and the full dossier: name PARTS (first / last, which no other read splits out), headline, country and display location, profile and background imagery, and the premium / influencer / creator / verified flags. One request, cached 24h. Reach for this when you want to know WHO someone is without pulling the experience and education cards you will not read. Addressed by public_identifier ONLY: the underlying query keys on the vanity slug, so a urn-only call is refused before any browser work (resolve the slug with enrich_linkedin_person_lite_profile first). NOTE primary_language and supported_languages are the profile's LOCALE settings, i.e. which language the profile is written in. They are NOT the Languages section and carry no proficiency; do not read them as 'this person speaks these languages'.
+        The same ONE LinkedIn request and the same facts as enrich_linkedin_person_lite_profile, under the wire's own names (id, urn, public_identifier, picture_url): the name, headline, location with its geo ids, locales, cover, the premium / influencer / creator / verified / Top Voice marks, the status, and the pinned account's degree, connection date and pending invitation (null when the read was not that account's). cached 24h. Address by profile_id XOR public_identifier. NOTE primary_language and supported_languages are the profile's LOCALE settings, i.e. which language the profile is written in. They are NOT the Languages section and carry no proficiency; do not read them as 'this person speaks these languages'.
 
         Contract:
         - MCP tool `enrich_linkedin_person_basic_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5645,6 +5765,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5687,6 +5808,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5729,6 +5851,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5740,7 +5863,7 @@ paths:
       operationId: enrich_linkedin_person_contact_info
       summary: Enrich person contact info
       description: |-
-        Contact details for ONE person: email, phones (typed, so HOME/WORK is kept, unlike the lossy flat `phone` on person-full-profile), websites and twitter handles. Cached 24h. IMPORTANT: LinkedIn reveals contacts to 1st-degree connections ONLY, so this runs from whichever of YOUR accounts is connected to the target (picked automatically, respecting limits; linkedin_account_sid is only a preference). If none of your accounts is connected it refuses 422 no_connected_account, so connect first (linkedin_connection_requests send), then retry after the invite is accepted. An empty block means the connected account still cannot see them.
+        Contact details for ONE person, LinkedIn's whole contact card: email, phones (typed, so HOME/WORK is kept, unlike the lossy flat `phone` on person-full-profile), websites, twitter handles, the birthday (day and month, LinkedIn sends no year), the address, messenger handles and WeChat. One LinkedIn request, cached 24h. IMPORTANT: LinkedIn reveals contacts to 1st-degree connections ONLY, so this runs from whichever of YOUR accounts is connected to the target (picked automatically, respecting limits; linkedin_account_sid is only a preference). If none of your accounts is connected it refuses 422 no_connected_account, so connect first (linkedin_connection_requests send), then retry after the invite is accepted. An empty block means the connected account still cannot see them.
 
         Contract:
         - MCP tool `enrich_linkedin_person_contact_info`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5771,6 +5894,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5782,7 +5906,7 @@ paths:
       operationId: enrich_linkedin_person_education
       summary: Enrich person education
       description: |-
-        Education history only, a subset projection of the full-profile wire call (NOT a stub: shares get-full-profile, no dedicated verb). cached 7d under its own method key (a cached full profile does NOT satisfy it). Not paginated. public_identifier passes straight through (native slug support).
+        Education history only, every school (the whole Show all educations list): ONE LinkedIn request by profile_id, two by public_identifier (the list takes the id alone, so the slug is resolved first). Each school: name, its page vanity and id, logo, degree and field of study apart, the years, the texts under it. cached 7d under its own method key (a cached full profile does NOT satisfy it). Not paginated.
 
         Contract:
         - MCP tool `enrich_linkedin_person_education`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5813,6 +5937,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5855,6 +5980,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5897,6 +6023,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5908,7 +6035,7 @@ paths:
       operationId: enrich_linkedin_person_full_profile
       summary: Enrich person full profile
       description: |-
-        The complete person dossier: identity, headline/position/company, location, about, follower/connection counts, premium/verification flags, plus truncated heads of experience/education/skills (no posts since 2026-11-03: the feed is person-posts). cached 24h. One full profile beats separate subset calls when you need profile + 2 or more sections. Full sub-record lists still need the dedicated paginated methods. picture_url is normalized to avatar_url.
+        The complete person dossier: every fact enrich_linkedin_person_lite_profile states (identity, headline, location with geo ids, locales, cover, premium / verified / creator / open-to-work / hiring / Top Voice marks), plus position/company, about, follower/connection counts, the contact card as LinkedIn shows it to the reading account (contact_info, in person-contact-info's shape), and the WHOLE experience, education and skills lists (up to 100 rows each; no posts since 2026-11-03: the feed is person-posts). Eight or nine LinkedIn requests (the education list one of them), cached 24h. One full profile beats separate subset calls when you need profile + 2 or more sections. picture_url is normalized to avatar_url.
 
         Contract:
         - MCP tool `enrich_linkedin_person_full_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -5939,6 +6066,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -5981,6 +6109,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6023,6 +6152,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6034,7 +6164,7 @@ paths:
       operationId: enrich_linkedin_person_lite_profile
       summary: Enrich person lite profile
       description: |-
-        Cheapest person read: existence check + full identifier resolution. THE tool for turning a vanity slug (/in/…) or a bare URN into the canonical identifier quad (ln_member_id + both URNs + nickname) that every deeper enrich and stored-domain join keys on. cached 24h. Pin linkedin_account_sid and the relationship degree comes back with it in network_distance, which saves the second dispatch to linkedin-connections.check-degree; without a pinned account that field is null, because a degree relative to an account you did not name is not an answer. Address by profile_id XOR public_identifier.
+        Cheapest person read, ONE LinkedIn request, and everything it states: existence check + full identifier resolution. THE tool for turning a vanity slug (/in/…) into the URNs, or a bare URN (a profile id or a Sales Navigator id) into the slug: it returns the canonical identifier quad (ln_member_id + both URNs + nickname). Also the name (full_name computed), the headline, the photo and cover, the location with its geo ids (location_geo_id feeds the location search filter), the locales, the premium, verified, creator, open-to-work, hiring and Top Voice marks, the status, is_memorialized (do not contact) and is_email_required_to_connect. Pin linkedin_account_sid and network_distance, connected_at and pending_invitation are that account's; unpinned they are null. No contact card: enrich_linkedin_person_contact_info. cached 24h. Address by profile_id XOR public_identifier.
 
         Contract:
         - MCP tool `enrich_linkedin_person_lite_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
@@ -6065,6 +6195,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6107,6 +6238,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6149,6 +6281,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6191,6 +6324,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6233,6 +6367,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6275,6 +6410,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6317,6 +6453,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6359,6 +6496,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6401,6 +6539,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6442,6 +6581,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6483,6 +6623,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: true
@@ -6525,6 +6666,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6567,6 +6709,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6608,6 +6751,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6650,6 +6794,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6692,6 +6837,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6734,6 +6880,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6776,6 +6923,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6818,6 +6966,7 @@ paths:
       x-gtm-operation: metrics
       x-gtm-envelope: metrics
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6859,6 +7008,7 @@ paths:
       x-gtm-operation: search
       x-gtm-envelope: search
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6900,6 +7050,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: true
@@ -6942,6 +7093,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -6984,6 +7136,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7026,6 +7179,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7068,6 +7222,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7110,6 +7265,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7157,6 +7313,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7210,6 +7367,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7252,6 +7410,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7293,6 +7452,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: true
       x-gtm-step-eligible: true
@@ -7335,6 +7495,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7377,6 +7538,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7419,6 +7581,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7461,6 +7624,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7503,6 +7667,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7545,6 +7710,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: true
       x-gtm-step-eligible: true
@@ -7587,6 +7753,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7629,6 +7796,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7671,6 +7839,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7713,6 +7882,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7755,6 +7925,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7797,6 +7968,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7839,6 +8011,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7881,6 +8054,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7923,6 +8097,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -7965,6 +8140,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8007,6 +8183,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8049,6 +8226,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8091,6 +8269,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8133,6 +8312,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8175,6 +8355,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8217,6 +8398,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8259,6 +8441,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8301,6 +8484,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8343,6 +8527,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8385,6 +8570,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8427,6 +8613,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8469,6 +8656,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8511,6 +8699,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8553,6 +8742,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8595,6 +8785,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8637,6 +8828,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -8679,6 +8871,7 @@ paths:
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
+      x-gtm-surface: both
       x-gtm-dangerous: false
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
@@ -11580,6 +11773,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -11798,6 +11995,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
@@ -16418,6 +16616,9 @@ components:
                 member_id:
                   type: string
                   nullable: true
+                member_urn:
+                  type: string
+                  nullable: true
                 public_identifier:
                   type: string
                 first_name:
@@ -16429,57 +16630,225 @@ components:
                 headline:
                   type: string
                   nullable: true
+                picture_url:
+                  type: string
+                  nullable: true
+                maiden_name:
+                  type: string
+                  nullable: true
+                localized:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      locale:
+                        type: string
+                      first_name:
+                        type: string
+                        nullable: true
+                      last_name:
+                        type: string
+                        nullable: true
+                      maiden_name:
+                        type: string
+                        nullable: true
+                      headline:
+                        type: string
+                        nullable: true
+                    required:
+                      - locale
+                      - first_name
+                      - last_name
+                      - maiden_name
+                      - headline
+                  description: The name and the headline in every language the member wrote them in.
+                background_picture_url:
+                  type: string
+                  nullable: true
+                  description: The cover image, a signed LinkedIn CDN link that expires.
+                location:
+                  type: string
+                  nullable: true
+                  description: The location as LinkedIn shows it ('Redmond, Washington, United States').
+                location_without_country:
+                  type: string
+                  nullable: true
+                  description: The location without its country ('Redmond, Washington').
+                location_geo_id:
+                  type: string
+                  nullable: true
+                  description: The location's geo id, the value LinkedIn's location search filter takes.
+                country:
+                  type: string
+                  nullable: true
+                country_geo_id:
+                  type: string
+                  nullable: true
+                postal_code:
+                  type: string
+                  nullable: true
+                primary_locale:
+                  type: string
+                  nullable: true
+                  description: The profile's primary locale ('en_US'), not a spoken language.
                 primary_language:
                   type: string
-                  description: Profile LOCALE, not a spoken language.
+                  nullable: true
+                  description: Profile LOCALE language, not a spoken language.
+                supported_locales:
+                  type: array
+                  items:
+                    type: string
                 supported_languages:
                   type: array
                   items:
                     type: string
                   description: Profile locales, not spoken languages, and no proficiency.
-                country:
-                  type: string
-                  nullable: true
-                location:
-                  type: string
-                  nullable: true
-                picture_url:
-                  type: string
-                  nullable: true
-                background_picture_url:
-                  type: string
-                  nullable: true
                 is_premium:
                   type: boolean
-                is_influencer:
-                  type: boolean
-                is_creator:
-                  type: boolean
-                is_memorialized:
-                  type: boolean
-                has_verified_profile:
-                  type: boolean
+                  nullable: true
                 has_premium_subscriber_badge:
                   type: boolean
+                  nullable: true
+                has_verified_profile:
+                  type: boolean
+                  nullable: true
+                  description: The verification badge.
+                is_influencer:
+                  type: boolean
+                  nullable: true
+                is_creator:
+                  type: boolean
+                  nullable: true
+                is_open_to_work:
+                  type: boolean
+                  nullable: true
+                  description: "The public #OpenToWork frame on the photo; false = no public frame (not 'not looking'); null with no photo."
+                is_hiring:
+                  type: boolean
+                  nullable: true
+                  description: "The public #Hiring frame on the photo; false = no #Hiring frame (not 'not hiring'); null with no photo."
+                top_voice_badge:
+                  type: string
+                  nullable: true
+                  description: LinkedIn's Top Voice badge text; null without one.
+                creator_hashtags:
+                  type: array
+                  items:
+                    type: string
+                creator_website:
+                  type: string
+                  nullable: true
+                pronoun:
+                  type: string
+                  nullable: true
+                status:
+                  type: object
+                  nullable: true
+                  properties:
+                    text:
+                      type: string
+                      nullable: true
+                    emoji:
+                      type: string
+                      nullable: true
+                    expires_at:
+                      type: string
+                      nullable: true
+                  required:
+                    - text
+                    - emoji
+                    - expires_at
+                birthday:
+                  type: object
+                  nullable: true
+                  properties:
+                    day:
+                      type: number
+                      nullable: true
+                    month:
+                      type: number
+                      nullable: true
+                    year:
+                      type: number
+                      nullable: true
+                  required:
+                    - day
+                    - month
+                    - year
+                  description: Shared with the reading account only.
+                is_memorialized:
+                  type: boolean
+                  nullable: true
+                is_email_required_to_connect:
+                  type: boolean
+                  nullable: true
+                network_distance:
+                  type: string
+                  nullable: true
+                  description: Relationship degree relative to the pinned executor account ('1st' / '2nd' / '3rd'…). Null when no linkedin_account_sid was pinned, when the payload came from a cache another account filled, or when the wire did not report one. Never a degree relative to an account you did not name.
+                connected_at:
+                  type: string
+                  nullable: true
+                pending_invitation:
+                  type: object
+                  nullable: true
+                  properties:
+                    direction:
+                      type: string
+                      nullable: true
+                      enum:
+                        - sent
+                        - received
+                    invitation_id:
+                      type: string
+                      nullable: true
+                  required:
+                    - direction
+                    - invitation_id
+                  description: The invitation pending between the pinned account and the member, with its exact id (what a withdrawal or a reply names). Null when none, or when the read was not the pinned account's.
               required:
                 - id
                 - urn
                 - member_id
+                - member_urn
                 - public_identifier
                 - first_name
                 - last_name
                 - full_name
                 - headline
-                - country
-                - location
                 - picture_url
+                - maiden_name
+                - localized
                 - background_picture_url
+                - location
+                - location_without_country
+                - location_geo_id
+                - country
+                - country_geo_id
+                - postal_code
+                - primary_locale
+                - primary_language
+                - supported_locales
+                - supported_languages
                 - is_premium
+                - has_premium_subscriber_badge
+                - has_verified_profile
                 - is_influencer
                 - is_creator
+                - is_open_to_work
+                - is_hiring
+                - top_voice_badge
+                - creator_hashtags
+                - creator_website
+                - pronoun
+                - status
+                - birthday
                 - is_memorialized
-                - has_verified_profile
-                - has_premium_subscriber_badge
+                - is_email_required_to_connect
+                - network_distance
+                - connected_at
+                - pending_invitation
             data_request:
               type: object
               properties: {}
@@ -16972,11 +17341,63 @@ components:
                   type: array
                   items:
                     type: string
+                birthday:
+                  type: object
+                  nullable: true
+                  properties:
+                    day:
+                      type: number
+                    month:
+                      type: number
+                  required:
+                    - day
+                    - month
+                  description: The day and month the member shares with connections. LinkedIn sends no year. Null when hidden.
+                address:
+                  type: string
+                  nullable: true
+                  description: The contact card's free-text address. Null when empty.
+                instant_messengers:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      provider:
+                        type: string
+                        nullable: true
+                      id:
+                        type: string
+                    required:
+                      - provider
+                      - id
+                  description: "Messenger handles: provider as LinkedIn names it (SKYPE, ...) and the handle."
+                wechat:
+                  type: object
+                  nullable: true
+                  properties:
+                    name:
+                      type: string
+                      nullable: true
+                    qr_url:
+                      type: string
+                      nullable: true
+                    qr_image_url:
+                      type: string
+                      nullable: true
+                  required:
+                    - name
+                    - qr_url
+                    - qr_image_url
+                  description: The WeChat name and its QR links. Null when the member set none.
               required:
                 - email
                 - phones
                 - websites
                 - twitter_handles
+                - birthday
+                - address
+                - instant_messengers
+                - wechat
             data_request:
               type: object
               properties: {}
@@ -17101,9 +17522,18 @@ components:
                   company_id:
                     type: string
                     nullable: true
+                  school_public_identifier:
+                    type: string
+                    nullable: true
+                    description: The vanity of the school's LinkedIn page; null for a school with no page.
+                  school_logo_url:
+                    type: string
+                    nullable: true
+                    description: The school's logo, a signed LinkedIn CDN link that expires.
                   degree:
                     type: string
                     nullable: true
+                    description: As the member wrote it ('Bachelor’s Degree').
                   field_of_study:
                     type: string
                     nullable: true
@@ -17119,6 +17549,8 @@ components:
                 required:
                   - school_name
                   - company_id
+                  - school_public_identifier
+                  - school_logo_url
                   - degree
                   - field_of_study
                   - start_date
@@ -17584,15 +18016,186 @@ components:
                 nickname:
                   type: string
                   nullable: true
+                first_name:
+                  type: string
+                  nullable: true
+                last_name:
+                  type: string
+                  nullable: true
                 full_name:
                   type: string
+                  description: "The name as one line: the line the stored body states, else first_name and last_name joined; '' when unknown."
                 network_distance:
                   type: string
                   nullable: true
                   description: Relationship degree relative to the pinned executor account ('1st' / '2nd' / '3rd'…). Null when no linkedin_account_sid was pinned, when the payload came from a cache another account filled, or when the wire did not report one. Never a degree relative to an account you did not name.
+                connected_at:
+                  type: string
+                  nullable: true
+                pending_invitation:
+                  type: object
+                  nullable: true
+                  properties:
+                    direction:
+                      type: string
+                      nullable: true
+                      enum:
+                        - sent
+                        - received
+                    invitation_id:
+                      type: string
+                      nullable: true
+                  required:
+                    - direction
+                    - invitation_id
+                  description: The invitation pending between the pinned account and the member, with its exact id (what a withdrawal or a reply names). Null when none, or when the read was not the pinned account's.
                 headline:
                   type: string
                   nullable: true
+                maiden_name:
+                  type: string
+                  nullable: true
+                localized:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      locale:
+                        type: string
+                      first_name:
+                        type: string
+                        nullable: true
+                      last_name:
+                        type: string
+                        nullable: true
+                      maiden_name:
+                        type: string
+                        nullable: true
+                      headline:
+                        type: string
+                        nullable: true
+                    required:
+                      - locale
+                      - first_name
+                      - last_name
+                      - maiden_name
+                      - headline
+                  description: The name and the headline in every language the member wrote them in.
+                background_picture_url:
+                  type: string
+                  nullable: true
+                  description: The cover image, a signed LinkedIn CDN link that expires.
+                location:
+                  type: string
+                  nullable: true
+                  description: The location as LinkedIn shows it ('Redmond, Washington, United States').
+                location_without_country:
+                  type: string
+                  nullable: true
+                  description: The location without its country ('Redmond, Washington').
+                location_geo_id:
+                  type: string
+                  nullable: true
+                  description: The location's geo id, the value LinkedIn's location search filter takes.
+                country:
+                  type: string
+                  nullable: true
+                country_geo_id:
+                  type: string
+                  nullable: true
+                postal_code:
+                  type: string
+                  nullable: true
+                primary_locale:
+                  type: string
+                  nullable: true
+                  description: The profile's primary locale ('en_US'), not a spoken language.
+                primary_language:
+                  type: string
+                  nullable: true
+                  description: Profile LOCALE language, not a spoken language.
+                supported_locales:
+                  type: array
+                  items:
+                    type: string
+                supported_languages:
+                  type: array
+                  items:
+                    type: string
+                  description: Profile locales, not spoken languages, and no proficiency.
+                is_premium:
+                  type: boolean
+                  nullable: true
+                has_premium_subscriber_badge:
+                  type: boolean
+                  nullable: true
+                has_verified_profile:
+                  type: boolean
+                  nullable: true
+                  description: The verification badge.
+                is_influencer:
+                  type: boolean
+                  nullable: true
+                is_creator:
+                  type: boolean
+                  nullable: true
+                is_open_to_work:
+                  type: boolean
+                  nullable: true
+                  description: "True when the member shows the public #OpenToWork photo frame. False when the profile photo has no such frame: a member who shares Open to Work with recruiters only reads false too. Absent or null when unknown (no photo in the answer, or a payload cached before this field existed)."
+                is_hiring:
+                  type: boolean
+                  nullable: true
+                  description: "True when the member shows the public #Hiring photo frame. False when the profile photo has no such frame: the frame is optional, so false does not mean the member is not hiring. Never true together with is_open_to_work (a photo carries one frame). Absent or null when unknown (no photo in the answer, or a payload cached before this field existed)."
+                top_voice_badge:
+                  type: string
+                  nullable: true
+                  description: LinkedIn's Top Voice badge text; null without one.
+                creator_hashtags:
+                  type: array
+                  items:
+                    type: string
+                creator_website:
+                  type: string
+                  nullable: true
+                pronoun:
+                  type: string
+                  nullable: true
+                status:
+                  type: object
+                  nullable: true
+                  properties:
+                    text:
+                      type: string
+                      nullable: true
+                    emoji:
+                      type: string
+                      nullable: true
+                    expires_at:
+                      type: string
+                      nullable: true
+                  required:
+                    - text
+                    - emoji
+                    - expires_at
+                birthday:
+                  type: object
+                  nullable: true
+                  properties:
+                    day:
+                      type: number
+                      nullable: true
+                    month:
+                      type: number
+                      nullable: true
+                    year:
+                      type: number
+                      nullable: true
+                  required:
+                    - day
+                    - month
+                    - year
+                  description: Shared with the reading account only.
                 position:
                   type: string
                   nullable: true
@@ -17600,12 +18203,6 @@ components:
                   type: string
                   nullable: true
                 company_public_identifier:
-                  type: string
-                  nullable: true
-                country:
-                  type: string
-                  nullable: true
-                location:
                   type: string
                   nullable: true
                 about:
@@ -17626,23 +18223,110 @@ components:
                 facebook:
                   type: string
                   nullable: true
+                contact_info:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      nullable: true
+                    phones:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          type:
+                            type: string
+                            nullable: true
+                          number:
+                            type: string
+                        required:
+                          - type
+                          - number
+                    websites:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          url:
+                            type: string
+                          category:
+                            type: string
+                            nullable: true
+                          label:
+                            type: string
+                            nullable: true
+                        required:
+                          - url
+                          - category
+                          - label
+                    twitter_handles:
+                      type: array
+                      items:
+                        type: string
+                    birthday:
+                      type: object
+                      nullable: true
+                      properties:
+                        day:
+                          type: number
+                        month:
+                          type: number
+                      required:
+                        - day
+                        - month
+                      description: The day and month the member shares with connections. LinkedIn sends no year. Null when hidden.
+                    address:
+                      type: string
+                      nullable: true
+                      description: The contact card's free-text address. Null when empty.
+                    instant_messengers:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          provider:
+                            type: string
+                            nullable: true
+                          id:
+                            type: string
+                        required:
+                          - provider
+                          - id
+                      description: "Messenger handles: provider as LinkedIn names it (SKYPE, ...) and the handle."
+                    wechat:
+                      type: object
+                      nullable: true
+                      properties:
+                        name:
+                          type: string
+                          nullable: true
+                        qr_url:
+                          type: string
+                          nullable: true
+                        qr_image_url:
+                          type: string
+                          nullable: true
+                      required:
+                        - name
+                        - qr_url
+                        - qr_image_url
+                      description: The WeChat name and its QR links. Null when the member set none.
+                  required:
+                    - email
+                    - phones
+                    - websites
+                    - twitter_handles
+                    - birthday
+                    - address
+                    - instant_messengers
+                    - wechat
                 connections_number:
                   type: number
                   nullable: true
                 followers_number:
                   type: number
                   nullable: true
-                primary_language:
-                  type: string
-                  nullable: true
-                supported_languages:
-                  type: array
-                  items:
-                    type: string
                 has_open_profile:
-                  type: boolean
-                  nullable: true
-                has_verified_profile:
                   type: boolean
                   nullable: true
                 has_premium:
@@ -17684,20 +18368,16 @@ components:
                 - position
                 - company_name
                 - company_public_identifier
-                - country
-                - location
                 - about
                 - avatar_url
                 - email
                 - phone
                 - twitter
                 - facebook
+                - contact_info
                 - connections_number
                 - followers_number
-                - primary_language
-                - supported_languages
                 - has_open_profile
-                - has_verified_profile
                 - has_premium
                 - experience
                 - educations
@@ -18155,19 +18835,243 @@ components:
                 nickname:
                   type: string
                   nullable: true
+                first_name:
+                  type: string
+                  nullable: true
+                  description: The first name as LinkedIn returns it. Null when the answer came from a body that has no name parts (a cached full profile, a body stored before 2026-11-10); never a split of full_name.
+                last_name:
+                  type: string
+                  nullable: true
+                  description: The last name as LinkedIn returns it. Null on the same bodies as first_name.
                 full_name:
                   type: string
+                  description: "The name as one line: the line the stored body states, else first_name and last_name joined; '' when unknown."
+                headline:
+                  type: string
+                  nullable: true
+                  description: The profile's headline. Null when LinkedIn states none for the member.
+                avatar_url:
+                  type: string
+                  nullable: true
+                  description: The photo, re-hosted on our storage (a durable link), for any member who shows one, whatever the degree. Null when the member shows none.
+                maiden_name:
+                  type: string
+                  nullable: true
+                localized:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      locale:
+                        type: string
+                      first_name:
+                        type: string
+                        nullable: true
+                      last_name:
+                        type: string
+                        nullable: true
+                      maiden_name:
+                        type: string
+                        nullable: true
+                      headline:
+                        type: string
+                        nullable: true
+                    required:
+                      - locale
+                      - first_name
+                      - last_name
+                      - maiden_name
+                      - headline
+                  description: The name and the headline in every language the member wrote them in.
+                background_picture_url:
+                  type: string
+                  nullable: true
+                  description: The cover image, a signed LinkedIn CDN link that expires.
+                location:
+                  type: string
+                  nullable: true
+                  description: The location as LinkedIn shows it ('Redmond, Washington, United States').
+                location_without_country:
+                  type: string
+                  nullable: true
+                  description: The location without its country ('Redmond, Washington').
+                location_geo_id:
+                  type: string
+                  nullable: true
+                  description: The location's geo id, the value LinkedIn's location search filter takes.
+                country:
+                  type: string
+                  nullable: true
+                country_geo_id:
+                  type: string
+                  nullable: true
+                postal_code:
+                  type: string
+                  nullable: true
+                primary_locale:
+                  type: string
+                  nullable: true
+                  description: The profile's primary locale ('en_US'), not a spoken language.
+                primary_language:
+                  type: string
+                  nullable: true
+                  description: Profile LOCALE language, not a spoken language.
+                supported_locales:
+                  type: array
+                  items:
+                    type: string
+                supported_languages:
+                  type: array
+                  items:
+                    type: string
+                  description: Profile locales, not spoken languages, and no proficiency.
+                is_premium:
+                  type: boolean
+                  nullable: true
+                has_premium_subscriber_badge:
+                  type: boolean
+                  nullable: true
+                has_verified_profile:
+                  type: boolean
+                  nullable: true
+                  description: The verification badge.
+                is_influencer:
+                  type: boolean
+                  nullable: true
+                is_creator:
+                  type: boolean
+                  nullable: true
+                is_open_to_work:
+                  type: boolean
+                  nullable: true
+                  description: "The public #OpenToWork frame on the photo; false = no public frame (not 'not looking'); null with no photo."
+                is_hiring:
+                  type: boolean
+                  nullable: true
+                  description: "The public #Hiring frame on the photo; false = no #Hiring frame (not 'not hiring'); null with no photo."
+                top_voice_badge:
+                  type: string
+                  nullable: true
+                  description: LinkedIn's Top Voice badge text; null without one.
+                creator_hashtags:
+                  type: array
+                  items:
+                    type: string
+                creator_website:
+                  type: string
+                  nullable: true
+                pronoun:
+                  type: string
+                  nullable: true
+                status:
+                  type: object
+                  nullable: true
+                  properties:
+                    text:
+                      type: string
+                      nullable: true
+                    emoji:
+                      type: string
+                      nullable: true
+                    expires_at:
+                      type: string
+                      nullable: true
+                  required:
+                    - text
+                    - emoji
+                    - expires_at
+                birthday:
+                  type: object
+                  nullable: true
+                  properties:
+                    day:
+                      type: number
+                      nullable: true
+                    month:
+                      type: number
+                      nullable: true
+                    year:
+                      type: number
+                      nullable: true
+                  required:
+                    - day
+                    - month
+                    - year
+                  description: Shared with the reading account only.
+                is_memorialized:
+                  type: boolean
+                  nullable: true
+                  description: "LinkedIn's mark on the account of a member who died (the profile reads 'In memoriam'): do not contact. Null when unknown."
+                is_email_required_to_connect:
+                  type: boolean
+                  nullable: true
+                  description: LinkedIn asks for the member's email address before a connection request can be sent to them, as it told the reading account. Stated only while the two are not connected and no invitation is pending; null otherwise.
                 network_distance:
                   type: string
                   nullable: true
                   description: Relationship degree relative to the pinned executor account ('1st' / '2nd' / '3rd'…). Null when no linkedin_account_sid was pinned, when the payload came from a cache another account filled, or when the wire did not report one. Never a degree relative to an account you did not name.
+                connected_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601 of the moment the pinned account and the member connected; null unless 1st degree, or when the read was not the pinned account's.
+                pending_invitation:
+                  type: object
+                  nullable: true
+                  properties:
+                    direction:
+                      type: string
+                      nullable: true
+                      enum:
+                        - sent
+                        - received
+                    invitation_id:
+                      type: string
+                      nullable: true
+                  required:
+                    - direction
+                    - invitation_id
+                  description: The invitation pending between the pinned account and the member, with its exact id (what a withdrawal or a reply names). Null when none, or when the read was not the pinned account's.
               required:
                 - ln_member_id
                 - ln_id
                 - sn_id
                 - nickname
+                - first_name
+                - last_name
                 - full_name
+                - headline
+                - avatar_url
+                - maiden_name
+                - localized
+                - background_picture_url
+                - location
+                - location_without_country
+                - location_geo_id
+                - country
+                - country_geo_id
+                - postal_code
+                - primary_locale
+                - primary_language
+                - supported_locales
+                - supported_languages
+                - is_premium
+                - has_premium_subscriber_badge
+                - has_verified_profile
+                - is_influencer
+                - is_creator
+                - is_open_to_work
+                - is_hiring
+                - top_voice_badge
+                - creator_hashtags
+                - creator_website
+                - pronoun
+                - status
+                - birthday
+                - is_memorialized
+                - is_email_required_to_connect
                 - network_distance
+                - connected_at
+                - pending_invitation
             data_request:
               type: object
               properties: {}
@@ -20305,6 +21209,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -20523,6 +21431,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
@@ -20724,6 +21633,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -20942,6 +21855,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
@@ -38584,6 +39498,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -38802,6 +39720,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
@@ -40111,6 +41030,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -40329,6 +41252,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
@@ -40495,6 +41419,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -40713,6 +41641,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
@@ -49033,7 +49962,6 @@ components:
                     enum:
                       - active
                       - no_connect
-                      - country_mismatch
                       - fraud_flagged
                       - replaced
                   last_health_check_at:
@@ -49539,6 +50467,10 @@ components:
                   proxy_country_code:
                     type: string
                     nullable: true
+                  proxy_actual_country_code:
+                    type: string
+                    nullable: true
+                    description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
                   custom_proxy:
                     type: object
                     nullable: true
@@ -49757,6 +50689,7 @@ components:
                   - last_activity_at
                   - antidetect_browser_proxy_sid
                   - proxy_country_code
+                  - proxy_actual_country_code
                   - custom_proxy
                   - proxy_5g
                   - cloud_browser_access
@@ -64483,6 +65416,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -64701,6 +65638,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access
@@ -67460,6 +68398,10 @@ components:
             proxy_country_code:
               type: string
               nullable: true
+            proxy_actual_country_code:
+              type: string
+              nullable: true
+              description: Read only. The country the linked managed proxy exits in now, as LinkedIn last saw it; null without a managed proxy. When it differs from proxy_country_code, replace_antidetect_browser_proxy moves the browser to a proxy in the chosen country.
             custom_proxy:
               type: object
               nullable: true
@@ -67678,6 +68620,7 @@ components:
             - last_activity_at
             - antidetect_browser_proxy_sid
             - proxy_country_code
+            - proxy_actual_country_code
             - custom_proxy
             - proxy_5g
             - cloud_browser_access

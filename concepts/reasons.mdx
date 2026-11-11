@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 255 reasons across 4 services.
+reason is thrown without a sentence). 256 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -70,6 +70,7 @@ reason is thrown without a sentence). 255 reasons across 4 services.
 | `commit_in_progress` | This commit_token is being committed by another request right now; wait a moment and send the same commit again, it answers the run that request created. | orchestration |
 | `commit_token_expired` | commit_token has expired; run the preview again and commit with the new token. | orchestration |
 | `company_anchor_not_numeric` | source_input.anchor_company_ln_id must be the numeric LinkedIn company id, not a slug or a URL. | linkedin |
+| `company_follow_invite_rejected` | LinkedIn refused at least one invitation of this batch and the wire does not say which; check that this account administers the company page (LinkedIn offers it the Invite connections button on the page's admin dashboard), that every member is a 1st-degree connection it may still invite, and that the page has invitation credits left, then send the refused members again. | linkedin |
 | `concurrent_send_in_flight` | An earlier attempt of this send, or another send to the same place, is in the browser, in doubt or already went out (context.send_outcome says which, context.activity_log_sid or blocking_activity_log_sid names it), so nothing was sent now. Repeat the same request after retry_after, or ask check-sent about the attempt the context names. | linkedin |
 | `confirmation_count_mismatch` | confirmation_count does not match the number of accounts the filter matched; re-read the count and confirm again. | id |
 | `confirmed_sent_contradicts` | The attempt confirmed_sent names was proved not sent, so the word is not taken and nothing was sent now. Look on LinkedIn again: if it is there, do not send it again; if it is not, repeat the request without confirmed_sent. | linkedin |
