@@ -60,7 +60,7 @@ no sequence step), one target per call.
 means the connected account still cannot see those details, never that the call was
 blocked. `birthday` comes as a day and a month (LinkedIn sends no year) and `address` as the
 card's free text. The connection date is not on the card: `check-degree` answers it as
-`connected_at`, and so does a lite, basic or full profile read pinned to the connected
+`connected_at`, and so does a lite or full profile read pinned to the connected
 account. A phone with `type: null` is normal on older cached payloads, not a defect.
 
 ## Which account runs the call
@@ -107,7 +107,7 @@ LinkedIn rate-limited are dropped before the pick.
 | Method | Cache TTL |
 |---|---|
 | `person-contact-info`, `person-full-profile` | 24 hours |
-| `person-lite-profile`, `person-basic-profile` | 24 hours |
+| `person-lite-profile` | 24 hours |
 | The rest (experience, skills, education, posts, certifications, company reads) | 7 days |
 | `company-public-identifier` | 30 days |
 
