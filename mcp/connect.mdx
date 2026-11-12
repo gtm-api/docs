@@ -14,8 +14,8 @@ store.
 One action per client, then approve the consent screen that opens. That is the whole setup.
 
 <CardGroup cols={2}>
-  <Card title="Claude" icon="message" href="https://claude.ai/settings/connectors">
-    Open Settings, Connectors, then "Add custom connector". Paste `https://mcp.gtm-api.com/mcp` and approve access. Works for claude.ai and Claude Desktop.
+  <Card title="Claude" icon="message" href="https://claude.ai/customize/connectors">
+    Open Customize, Connectors, then Add, "Add custom connector". Name it, paste `https://mcp.gtm-api.com/mcp`, click Continue, keep the detected sign-in settings and click Add, then Connect and approve access. Works for claude.ai and Claude Desktop. On Team and Enterprise plans an Owner adds it under Organization settings, Connectors, and each member clicks Connect.
   </Card>
   <Card title="Cursor" icon="arrow-pointer" href="cursor://anysphere.cursor-deeplink/mcp/install?name=gtm-api&config=eyJ1cmwiOiJodHRwczovL21jcC5ndG0tYXBpLmNvbS9tY3AifQ==">
     One-click install (the button opens Cursor). Sign in on the consent page that follows.
@@ -73,12 +73,6 @@ consent page on first use and caching the tokens under `~/.mcp-auth`.
 }
 ```
 
-<Warning>
-Launcher versions up to 1.1.0 sent `GTM_API_KEY` against an endpoint that rejected keys,
-and 1.2.x ignored the variable and did OAuth only. Key auth works from 1.3.0 on. Anything
-pinned to 1.1.0 or older keeps failing on the first call; upgrade the pin.
-</Warning>
-
 ## Headless: authenticate with an API key
 
 The same key that authenticates the [REST API](/api-reference/overview) works on this
@@ -104,11 +98,23 @@ For command-spawning clients, the launcher takes it from the environment instead
 }
 ```
 
+<Warning>
+Use launcher 1.3.2 or later with a key. 1.1.0, 1.3.0 and 1.3.1 hand `GTM_API_KEY` to the
+bridge on its command line, so the key shows in the process list and in the MCP client's
+log: npm marks the three deprecated, and a key used with one of them should be rotated.
+1.2.x ignores the variable and does OAuth only.
+</Warning>
+
 <Note>
 Pick one mode per connection: with a key attached, the OAuth flow never starts. The key is
 scoped to its workspace and its permission set, revocable in the app, and treated like a
-password (see [Authentication](/authentication)). Interactive clients such as claude.ai
-connectors have no header field and always use OAuth.
+password (see [Authentication](/authentication)). Connectors on claude.ai and in Claude
+Desktop sign in through the browser. Anthropic's
+[request headers](https://claude.com/docs/connectors/custom/add-unlisted#authenticate-with-request-headers)
+section, in beta for a limited set of organizations, is the one way to give a connector the
+key instead: choose No sign-in and add an `authorization` header with the value
+`Bearer gtm_live_...`, scheme included. Everyone who uses that connector then acts with that
+one key.
 </Note>
 
 ## Check it from a terminal
@@ -133,5 +139,5 @@ bulk send without showing you what it is about to do.
 
 > "Check the smart limits on my LinkedIn account, then draft, preview and send a connection request to the profile at this URL."
 
-The agent chains the tools on its own; the preview step and the server-side limit check
+The agent chains the tools on its own. The preview step and the server-side limit check
 run before anything is sent.
