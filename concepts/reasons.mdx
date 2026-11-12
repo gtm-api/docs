@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 256 reasons across 4 services.
+reason is thrown without a sentence). 300 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -19,10 +19,13 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `account_bound_other_team` | **linkedin:** This LinkedIn member is already connected in another workspace; one member lives in one workspace at a time.<br/>**email:** This mailbox is already connected in another workspace. | linkedin, email |
 | `account_currently_shared` | This account is shared out right now; recall the share before transferring it. | id |
 | `account_erasure_pending` | This account is deactivated and waiting for erasure; use the cancel link in the deactivation email to sign in again. | id |
+| `account_has_queued_sends` | This mailbox has mail queued to go out on its current email server; it moves once the queue is empty (or the queued messages are cancelled). | email |
 | `account_missing_ln_id` | The LinkedIn account behind this call has no profile URN of its own yet, so it cannot address the wire; wait for its initial sync to finish (linkedin_accounts.ln_id fills on the first profile read). | linkedin |
+| `account_moving` | This mailbox is being moved to another email server; it sends again once the move has finished. | email |
 | `account_not_active` | This email account is not active (see context.status), so it cannot send; reconnect it first. | email |
 | `account_not_in_team` | That LinkedIn account is not usable here: it is missing, deleted, or belongs to another workspace. | linkedin |
 | `account_not_lendable` | This account cannot be lent: it has not completed its login yet. | linkedin |
+| `account_not_movable` | A hosted mailbox cannot be moved to another email server: its mail lives only on the server it was created on. | email |
 | `account_not_searchable` | The mailbox cannot be searched at its provider right now: it is not active, or it is a hosted mailbox whose mirror already holds every message; reconnect it, or search the mirror with email-messages.search. | email |
 | `account_not_shareable` | The channel refused to lend this account (see context.detail): it is not in a state that can be handed over. | id |
 | `account_not_syncable` | This account has no sync runs (see context.detail). | email |
@@ -63,6 +66,7 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `channel_no_cross_cluster` | The two workspaces live on different clusters and this channel cannot hand an account across clusters. | id |
 | `channel_unavailable` | The channel service did not answer; retry in a minute. | id |
 | `channel_unreachable` | The channel service could not be reached; retry in a minute. | id |
+| `checkout_not_paid` | The billing provider has not settled this checkout yet; ask again in a few seconds. | id |
 | `client_rate_limited` | This client made more requests in one minute than the API allows (context.limit); wait until retry_after, then spread the calls out or page in larger steps. | linkedin |
 | `client_reference_frozen` | This message was already sent (or tried) under its client_reference, which its repeat and check-sent find it by; the client_reference cannot be set, changed or cleared now. | email |
 | `comment_not_deleted` | LinkedIn did not delete this comment: it is not this account's, or it is already gone. | linkedin |
@@ -78,6 +82,7 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `conversation_not_deletable` | This thread has no LinkedIn-side object to delete yet (it was opened by a send that never landed); nothing to remove. | linkedin |
 | `counterpart_copy_exists` | The receiving workspace already holds a copy of this account. | linkedin |
 | `daily_limit_exceeded` | This account has used its daily sending budget; pass scheduled_at and the queue sends when budget allows. | email |
+| `daily_sends_period_too_wide` | The period spans more than 31 days; narrow period.from / period.to. | email |
 | `degree_indeterminate` | LinkedIn did not expose a network distance for this profile (the account itself, a hidden profile, or a page that carries none), so no degree can be recorded. | linkedin |
 | `delegation_not_authorized` | The Workspace admin has not authorized this service account's client id for the Gmail scope (Admin console > Security > API controls > Domain-wide delegation: the client id with https://www.googleapis.com/auth/gmail.modify), so no mailbox token can be minted. | email |
 | `disconnect_in_progress` | This cloud browser is disconnecting; wait for it to finish. | linkedin |
@@ -88,11 +93,24 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `domain_bound_other_team` | This domain is already registered in another workspace. | email |
 | `domain_required` | domain is required. | id |
 | `duplicate_host_port` | An automation server is already registered at this ip and port. | linkedin |
+| `email_account_on_another_box` | Some of these mailboxes are on a different email server than the one named as the source. | id |
+| `email_box_already_on_plan` | This email server is already on that plan. | id |
+| `email_box_busy` | This email server is in the middle of a change; wait for it to finish. | id |
+| `email_box_complimentary` | This email server is included with the workspace and is not billed, so it cannot be resized or deleted here. | id |
+| `email_box_does_not_fit` | This email server holds more mailboxes than the chosen plan allows; move or remove mailboxes first, or choose a larger plan. | id |
 | `email_box_dump_not_ready` | The mailbox dump is not finished (see context.status); retry once it is done. | email |
+| `email_box_has_mailboxes` | This email server still holds mailboxes; move or remove them before deleting it. | id |
 | `email_box_has_no_bundle` | A secrets merge needs a stored bundle to merge into, and this box has none; send the full bundle. | id |
+| `email_box_no_failed_run` | This email server has no failed operation to retry. | id |
+| `email_box_not_billed` | No live subscription pays for this email server, so its plan cannot be changed; restore the subscription first. | id |
+| `email_box_not_ready` | The email server that holds this mailbox is not active right now. | id |
 | `email_box_not_replaceable` | **id:** The box named in replaces_email_box_sid is not the workspace's single live box (or is not active or suspended), so it cannot be replaced.<br/>**orchestration:** The current email box is not in a state a new one can replace (see context.status or context.detail); only an active or suspended box is replaced. | id, orchestration |
+| `email_box_not_serving` | Settings can be copied from a server that is running; _the field_ names one that is not. | id |
 | `email_box_ops_disabled` | This deployment is not a workspace mailbox host; box operations are off here. | email |
+| `email_box_required` | Name the email server this call is for in the Email-Box-SID header. | email |
 | `email_box_unaddressable` | This box is not live or has no hostname and access key yet, so it cannot be addressed. | id |
+| `email_server_price_missing` | The billing catalog has no price for this email server plan yet; try again later. | id |
+| `email_servers_not_offered` | Email servers cannot be bought on this deployment yet. | id |
 | `email_taken` | An account with this email already exists; sign in and connect the agent from the app instead. | id |
 | `event_invite_rejected` | LinkedIn refused at least one invitation of this batch and the wire does not say which; check that this account may invite to the event (LinkedIn offers it the Invite button there) and that every target is a 1st-degree connection, then retry with the targets that are. | linkedin |
 | `facet_id_required` | _the field_ needs the id: LinkedIn Sales Navigator matches this filter by id only and ignores a value without one. Resolve the text with sales-nav-param-id-lookup, or build the search with build-search-url. | linkedin |
@@ -110,6 +128,14 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `holder_team_unavailable` | The receiving workspace does not exist or is not active. | id |
 | `idempotency_key_busy` | A send with this idempotency_key is in progress; ask again after context.retry_after. | email |
 | `idempotency_key_reused` | This idempotency_key was used for a different send; use a new key for a new message. | email |
+| `imap_app_password_required` | The IMAP server requires an app password instead of the account password; create one in the mailbox's security settings and send it as imap_password. | email |
+| `imap_auth_failed` | The IMAP server refused this username and password; check them, and use an app password where the provider requires one. | email |
+| `imap_connection_failed` | The IMAP server could not be reached at this host and port (refused, no route, or it is not an IMAP server); check connection.imap_host and connection.imap_port. | email |
+| `imap_connection_limit` | The IMAP server is refusing another connection to this mailbox right now (too many open sessions, or a provider limit); wait a few minutes and try again. | email |
+| `imap_disabled` | IMAP access is turned off for this mailbox; enable it in the mailbox's settings (or ask its administrator), then connect again. | email |
+| `imap_mailbox_unavailable` | The IMAP server accepted the sign-in but would not open INBOX; check that connection.imap_username names the mailbox. | email |
+| `imap_timeout` | The IMAP server did not answer in time; check connection.imap_host and connection.imap_port, or try again shortly. | email |
+| `imap_tls_failed` | The encrypted connection to the IMAP server could not be set up (the TLS handshake failed, the certificate does not match the host, or the server does not offer STARTTLS); check that connection.imap_encryption matches the port (ssl is usually 993, starttls 143). | email |
 | `incident_tally_busy` | The provider incident tally is busy for this provider; retry shortly. | id |
 | `infrastructure_maintenance` | The automation fleet is in maintenance; browsers cannot be started until it ends. | linkedin |
 | `infrastructure_unavailable` | The automation infrastructure did not answer; retry in a minute. | linkedin |
@@ -134,6 +160,8 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `login_already_confirmed` | This session already carries a different login result. | linkedin |
 | `login_error_reason_required` | A login result other than success needs login_error_reason. | linkedin |
 | `login_not_confirmed` | The login of this session was not confirmed, so the browser cannot be run from it. | linkedin |
+| `mail_host_not_allowed` | _the field_ is, or resolves to, an address that is not on the public internet (loopback, private, link-local or reserved); name the mail server's public host. | email |
+| `mail_host_unresolvable` | _the field_ is not a host name or address that resolves; check the spelling. | email |
 | `mailbox_not_found` | The grant application cannot reach this mailbox: no such user in the Workspace or tenant the grant covers (check the address, or that the service account key is the one Google knows). | email |
 | `mass_action_incompatible` | The mass action targets an entity this auto-scrape's results cannot feed; pick a run whose target_entity matches the result kind. | linkedin |
 | `mass_action_registry_unavailable` | The mass-action service did not answer; retry in a minute. | linkedin |
@@ -146,6 +174,11 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `method_not_available` | This source method has no live fetcher yet; pick another source, or feed the run through append-items. | linkedin |
 | `missing_invitation_id` | This invitation carries no LinkedIn invitation id or secret, so the wire cannot act on it; sync the invitations and retry. | linkedin |
 | `missing_profile_id` | This connection row stores no profile URN, so the wire cannot be asked about it; sync the connections and retry. | linkedin |
+| `move_bundle_other_team` | The move bundle was exported for another workspace. | email |
+| `move_bundle_unreadable` | The move bundle cannot be read on this server (a different key, or not a bundle); export it again with the transfer_key both servers are given. | email |
+| `move_key_not_configured` | This deployment has no internal key to seal a move bundle with; pass a transfer_key. | email |
+| `move_oauth_app_missing` | The sign-in application this mailbox uses (context.email_oauth_app_sid) is not registered on the target server; register it there, or reconnect the mailbox through the platform application, then move it. | email |
+| `move_target_row_conflict` | A mailbox with this sid already exists on the target server and is not the one being moved (deleted, or another workspace's). | email |
 | `no_automation_server_available` | No automation server has capacity for a new browser right now; retry later. | linkedin |
 | `no_canary_available` | No canary account is available to run the check right now; retry later. | linkedin |
 | `no_default_team` | This user belongs to no workspace yet; create one or accept an invitation first. | id |
@@ -157,7 +190,9 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `no_recognised_filter_members` | None of the keys in source_input.filters is a filter this search understands; use the keys the tool lists. | linkedin |
 | `not_a_login_session` | This session is not a login session, so it has no login result to confirm. | linkedin |
 | `not_connected` | The target is not a 1st-degree connection of this account, and this action needs one; send a connection request first, or act from an account that is connected. | linkedin |
+| `not_enough_seats` | The target email server has no room for these mailboxes; free up seats or resize it first. | id |
 | `not_this_message` | **linkedin:** _the field_ names no attempt of this same send that is in doubt; name the activity_log_sid a 409 or check-sent gave for this client_reference and place, or for these words and this place without a key.<br/>**email:** _the field_ names the activity_log_sid of an earlier attempt of this same message (the same client_reference and recipients, or without a key the same content and recipients) that is in doubt; this one is not. | linkedin, email |
+| `nothing_to_move` | None of the named mailboxes can move to another email server; context.refused says why for each. | email |
 | `oauth_app_failed` | This OAuth app is not verified (see context); fix its credentials and probe it again. | email |
 | `oauth_app_probe_rate_limited` | The OAuth app was probed too often; retry after retry_after. | email |
 | `oauth_grant_invalid` | The provider refused this refresh token (revoked, expired, or from a mailbox that changed); connect the account again with a fresh consent. | email |
@@ -170,10 +205,11 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `paddle_unavailable` | The billing provider did not answer; retry in a minute. | id |
 | `page_size_above_linkedin_max` | LinkedIn's content search serves at most 50 posts per page and answers a larger request with an empty page, so page_size stops at 50 here; ask for 50 or fewer and follow paging.next_cursor for the rest. | linkedin |
 | `paid_subscription_applied` | A paid subscription is applied to this workspace; unapply and cancel it before deleting the workspace. | id |
+| `partner_managed` | This workspace is managed by a partner; email servers come through the partner. | id |
 | `partner_sentinel_missing` | The partner-managed workspace has no internal subscription row; provisioning did not finish. | id |
 | `password_already_set` | This account already has a password; use the reset flow to change it. | id |
 | `payload_too_large` | The webhook envelope exceeds 65536 bytes once encoded and cannot be delivered; the emitting service keeps an event under the platform cap (gtm.lib.common WebhookPayloadCap). | orchestration |
-| `period_inverted` | period.from is after period.to; swap them. | linkedin, orchestration |
+| `period_inverted` | period.from is after period.to; swap them. | linkedin, orchestration, email |
 | `period_start_must_be_monday` | period_start must be the Monday that opens the ISO week. | linkedin |
 | `period_too_wide` | The period spans more than 90 days; narrow period.from / period.to. | linkedin, id, orchestration, email |
 | `place_required` | **linkedin:** This client_reference names sends to more than one place, so check-sent cannot answer for one; ask again with one of the places in context.places.<br/>**email:** This client_reference names sends to more than one set of recipients; ask with the recipients of the send you mean (to, cc, bcc). context.places lists them. | linkedin, email |
@@ -238,12 +274,18 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `sid_xor_filter_required` | Provide sid for one item or filter for a set, not neither. | orchestration |
 | `skill_discovery_failed` | Reading the target's skills from LinkedIn failed; retry, or endorse a skill by id. | linkedin |
 | `slug_collision` | Another product already carries this slug; the catalog cannot map two products to one slug. | id |
+| `smtp_auth_failed` | The SMTP server refused this username and password; check them, and use an app password where the provider requires one. | email |
+| `smtp_connection_failed` | The SMTP server could not be reached at this host and port, or it ended the session before authentication; check connection.smtp_host and connection.smtp_port. | email |
+| `smtp_encryption_required` | A password is not sent over an unencrypted SMTP connection on this deployment; set connection.smtp_encryption to ssl or starttls. | email |
+| `smtp_timeout` | The SMTP server did not answer in time; check connection.smtp_host and connection.smtp_port, or try again shortly. | email |
+| `smtp_tls_failed` | The encrypted connection to the SMTP server could not be set up (the TLS handshake failed, the certificate does not match the host, or the server and connection.smtp_encryption disagree about STARTTLS); check that the encryption matches the port (ssl is usually 465, starttls 587). | email |
 | `source_fetch_failed` | The provider did not hand over the raw source (see context.detail); retry shortly. | email |
 | `source_not_available` | This message has no raw source to download (see context.detail): a scheduled message has not been sent yet, and a hosted mailbox keeps the parsed message only. | email |
 | `source_not_parked` | The source rows are not parked under a handover; park them before exporting. | linkedin |
 | `source_too_large` | The raw source is larger than the download cap (context.size_bytes against context.max_bytes); read the message through get and get-attachment instead. | email |
 | `subject_already_connected` | The subject is already connected to every canary; the check needs a canary that is not connected to them. | linkedin |
 | `subscription_canceled` | This subscription is canceled and cannot be changed. | id |
+| `subscription_has_no_plan` | This subscription has no plan line to change; it carries add-ons only. | id |
 | `subscription_locked_pending_changes` | This subscription has a scheduled change pending; wait for it to apply or cancel it first. | id |
 | `subscription_not_floating` | This subscription is already applied to another workspace. | id |
 | `subscription_required` | This LinkedIn account does not fit the workspace's plan right now, so it takes no action; add a seat to the plan or free one, then retry. | linkedin |
@@ -262,6 +304,7 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `tool_misconfigured` | The shadowban checker is not available right now. | linkedin |
 | `tracking_domain_not_verified` | The account's tracking domain is not verified, so tracking cannot be injected; verify the domain or send without tracking. | email |
 | `trash_folder_missing` | This IMAP mailbox mirrors no folder with the trash role, so the message cannot be moved to Trash; move it to a folder of your choice with email-messages.update instead. | email |
+| `unknown_filter_operator` | _the field_ uses an operator this filter does not know; use eq, in or is_null. | id |
 | `unpark_giver_not_supported` | A share has no giver-side unpark; recall it instead. | linkedin |
 | `unpark_not_supported` | A transfer is not unparked; it completes or it is cancelled. | linkedin |
 | `vendor_profile_busy` | The vendor profile is in use by another browser right now; wait for it to be released. | linkedin |
@@ -270,3 +313,4 @@ reason is thrown without a sentence). 256 reasons across 4 services.
 | `voice_not_supported_on_recruiter` | Voice messages exist on the LinkedIn messenger only; this thread is a Recruiter thread, use send-recruiter with text. | linkedin |
 | `voice_not_supported_on_sales_navigator` | Voice messages exist on the LinkedIn messenger only; this thread is a Sales Navigator thread, use send-sales-nav with text. | linkedin |
 | `wildcard_must_be_alone` | The events wildcard (*) stands alone; do not list other event types next to it. | orchestration |
+| `wrong_email_box` | This call names another email server than the one that received it (context.served_email_box_sid); send it with the Email-Box-SID of the server it is for, the gateway routes by that header. | email |
