@@ -1,6 +1,6 @@
 ---
 title: "Connect a LinkedIn account"
-description: "Connect an account in the app, wait out the initial sync, then work with it over the API. The login happens inside a dedicated antidetect browser; no password ever reaches the platform."
+description: "Connect an account in the app, wait out the initial sync, then work with it over the API. You sign in to LinkedIn inside the account's cloud browser, which runs on our side, and the platform never stores the password."
 ---
 
 Connecting is the one step that happens in the app rather than the API: the account
@@ -20,7 +20,7 @@ limits, and tell me what outbound budgets I have today. Do not send anything yet
 ## Prerequisites
 
 - A gtm-api workspace on any plan (Sandbox, the forever free plan, includes one account slot)
-- The LinkedIn credentials stay with you; you will type them into LinkedIn itself
+- The account's LinkedIn sign-in: you type it into LinkedIn's own sign-in page in the cloud browser, which runs on our side, and the platform never stores the password
 
 ## 1. Connect in the app
 
@@ -58,6 +58,13 @@ changes it.
 
 Run the browser and sign in to LinkedIn in the window that opens. The platform detects
 the logged-in account and binds it to the browser.
+
+The browser runs on our side, so what you type in it, the password included, passes
+through our servers on its way to LinkedIn. The platform never stores the password. The
+screen of a sign-in session is recorded so we can see where a sign-in went wrong and help:
+the recording never contains your keystrokes, so the password and any code you type are
+not in it, only our administrators can open it, and it is deleted after 30 days (see the
+[Privacy Policy](https://gtm-api.com/legal/privacy/)).
 
 Accounts are deduplicated by their LinkedIn member identity: reconnecting an account
 your team connected and deleted before restores it instead of duplicating it. If the
