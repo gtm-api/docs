@@ -3,6 +3,50 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-12" description="Any identifier on every LinkedIn person and company call, the lite read replaces the basic one, and no picture link that expires">
+  **`person-basic-profile` is gone; `person-lite-profile` makes the same request.**
+  `POST /api/linkedin-enrichment/person-basic-profile` and the MCP tool
+  `enrich_linkedin_person_basic_profile` are removed, and the old path answers `404`.
+  `POST /api/linkedin-enrichment/person-lite-profile` makes the same single LinkedIn request and
+  returns the same facts, and more. To move, change the path and keep the request body. In
+  `result.profile` four keys are named differently: `id` is `ln_id`, `member_id` is `ln_member_id`,
+  `public_identifier` is `nickname` and `picture_url` is `avatar_url`. `urn` and `member_urn` are not
+  repeated: they are `urn:li:fsd_profile:<ln_id>` and `urn:li:member:<ln_member_id>`.
+
+  **Every person and company call takes any identifier.** A field that names a person takes the
+  slug (`public_identifier`), the profile URN, the member number (`ln_member_id`, as digits or as
+  `urn:li:member:<n>`) or the profile link. A company takes its slug, its numeric id or its page
+  link. When the LinkedIn request behind a call needs a key you did not send, the platform finds it:
+  first in what it already read, and only when nothing there knows the person or the page, with one
+  LinkedIn read. The answer says which way it went in `result.data_request.target_resolved_via`:
+  `ledger` (an earlier read), `corpus` (our stored profiles), `browser` (a LinkedIn read made for
+  this call) or null when nothing had to be looked up. A call refused after that read carries the
+  same field in `error.context`. A retry that arrives while that read is still running answers
+  `429` `rate_limited` with the reason `target_resolve_in_progress` and a `retry_after`.
+  `send-inmail` takes `public_identifier`,
+  and `send-recruiter` takes `public_identifier` and `ln_member_id`.
+
+  **The light company and follow are one request.** `company-lite-profile` answers the page's whole
+  record by its slug or by its numeric id in one LinkedIn request, and `follow` and `unfollow` go out
+  as one request with both keys.
+
+  **Languages and recommendations answer what the profile shows.** `person-languages` and
+  `person-recommendations` returned an empty list for every member; they now return the entries the
+  profile states, and work from the slug alone, as `person-certifications` does. A page LinkedIn
+  refuses fails the call, where it used to read as an empty list. A Featured item's title, subtitle
+  and text are plain strings, and a role inside a grouped company takes the company's employment
+  type instead of its total time.
+
+  **No LinkedIn picture link that expires.** `background_picture_url` (the lite and full profile),
+  `cover_image_url` (the company reads) and the Featured items' `image_url` are no longer in the
+  answers. `school_logo_url` in `person-education` and `person-full-profile` is a link on our
+  storage, like `avatar_url`; it keeps LinkedIn's own link only when saving the logo failed.
+
+  **Endorsements take a `client_reference`.** `endorse-skill`, `endorse-skill-by-id` and
+  `unendorse-skill` take an optional `client_reference`, your own reference for the action, and
+  the account activity log search filters by it.
+</Update>
+
 <Update label="2026-11-11" description="Account administration stays on REST, a plan change on MCP previews first, and an invite takes a preset">
   **Thirty account-administration tools leave the MCP server.** Their routes stay on the REST API
   and in the app, unchanged. An agent no longer reaches:
