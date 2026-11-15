@@ -6,13 +6,13 @@
 # The copies under api-reference/ must stay byte-identical to the source;
 # never edit them here. Regenerate upstream, then re-run this script.
 #
-#   ./sync-openapi.sh          copy the three documents in
+#   ./sync-openapi.sh          copy the four documents in
 #   ./sync-openapi.sh --check  exit 1 if any copy drifts from the source
 set -euo pipefail
 
 DOCS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SRC_DIR="$DOCS_DIR/../../../product/openapi/gtm.openapi.public/services"
-SERVICES=(linkedin id orchestration)
+SERVICES=(linkedin id orchestration email)
 
 if [[ ! -d "$SRC_DIR" ]]; then
   echo "source not found: $SRC_DIR" >&2

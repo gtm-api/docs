@@ -86,6 +86,12 @@
             ]
           },
           {
+            "group": "Email",
+            "pages": [
+              "kb/email-servers-and-mailboxes"
+            ]
+          },
+          {
             "group": "Workspace and billing",
             "pages": [
               "kb/workspaces-and-team-members",
@@ -96,8 +102,7 @@
             "group": "Troubleshooting",
             "pages": [
               "kb/proxy-troubleshooting",
-              "kb/browser-troubleshooting",
-              "kb/email-is-not-supported-yet"
+              "kb/browser-troubleshooting"
             ]
           }
         ]
@@ -130,6 +135,13 @@
             "openapi": {
               "source": "api-reference/orchestration/openapi.yaml",
               "directory": "api-reference/orchestration"
+            }
+          },
+          {
+            "group": "Email API",
+            "openapi": {
+              "source": "api-reference/email/openapi.yaml",
+              "directory": "api-reference/email"
             }
           }
         ]
@@ -248,6 +260,10 @@
     {
       "source": "/kb/billing-trial-and-plans",
       "destination": "/kb/billing-and-plans"
+    },
+    {
+      "source": "/kb/email-is-not-supported-yet",
+      "destination": "/kb/email-servers-and-mailboxes"
     }
   ]
 }

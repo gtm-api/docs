@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.id`, 75 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.id`, 85 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -49,6 +49,10 @@ tags:
     description: Registry package `mcp.id/billing_subscriptions`, served on MCP mount `id.billing`.
   - name: billing_transactions
     description: Registry package `mcp.id/billing_transactions`, served on MCP mount `id.billing`.
+  - name: email_account_directory
+    description: Registry package `mcp.id/email_account_directory`, served on MCP mount `email.accounts`.
+  - name: email_boxes
+    description: Registry package `mcp.id/email_boxes`, served on MCP mount `id.billing`.
   - name: media_uploads
     description: Registry package `mcp.id/media_uploads`, served on MCP mount `id.platform`.
   - name: notifications
@@ -1728,6 +1732,478 @@ paths:
       x-gtm-mcp-tool: get_billing_transaction_invoice
       x-gtm-mcp-mount: id.billing
       x-gtm-entity: billing_transactions
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-account-directory/search:
+    post:
+      operationId: search_email_account_directory
+      summary: Search mailbox directory
+      description: |-
+        List every mailbox of the workspace across its email servers: address, the server that holds it (email_box_sid), provider, status and its reason, sending pause, label. counts.groups splits the whole filter by server, status, provider, hold reason and pause. Read from id's directory, so a server that is down keeps its mailboxes listed. Sent today, limits and health stay on the mailbox's own server. page_size 0 counts only. Requires can_view_email_accounts.
+
+        Contract:
+        - MCP tool `search_email_account_directory`, registry package `mcp.id/email_account_directory`, mount `email.accounts`.
+        - Operation `search`, response envelope `search`.
+        - Flags: read only.
+      tags:
+        - email_account_directory
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchEmailAccountDirectoryRequest"
+      responses:
+        "200":
+          description: "`search` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchEmailAccountDirectoryResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: search_email_account_directory
+      x-gtm-mcp-mount: email.accounts
+      x-gtm-entity: email_account_directory
+      x-gtm-operation: search
+      x-gtm-envelope: search
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-boxes:
+    post:
+      operationId: create_email_box
+      summary: Buy email server
+      description: |-
+        Buy an email server, paid as one unit of the plan's price on the workspace's subscription. Spends money. With an active subscription the unit joins it on its own cycle and the prorated amount for the rest of the period is charged to its card in the call (409 payment_declined buys nothing); item is the new server in provisioning, run shows the build. Without one nothing is charged: item is null and checkout holds a Paddle checkout only the app can open, so the user pays on the Email Accounts screen (search_billing_subscriptions tells which case applies). A seat delete_email_box kept (retained subscription_seat) goes to the next server of its plan, free. Through MCP it takes two calls: the first, without commit_token, changes nothing and has no price quote; the second, same arguments plus commit_token, buys. The REST route takes no commit_token and buys on the call. Not idempotent: each confirmed call buys another server. 503 email_servers_not_offered: this deployment sells none. Requires can_manage_billing.
+
+        Contract:
+        - MCP tool `create_email_box`, registry package `mcp.id/email_boxes`, mount `id.billing`.
+        - Operation `create`, response envelope `create`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+      tags:
+        - email_boxes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateEmailBoxRequest"
+      responses:
+        "200":
+          description: "`create` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateEmailBoxResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: create_email_box
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: create
+      x-gtm-envelope: create
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: complex
+  /api/email-boxes/confirm-checkout:
+    post:
+      operationId: confirm_email_box_checkout
+      summary: Confirm email server checkout
+      description: |-
+        Finish a server purchase paid in the Paddle checkout the buy route opened for a workspace with no subscription: reads the transaction from Paddle, mirrors the subscription it created and builds the servers it paid for (result.items). Idempotent; the Paddle webhook does the same work, this makes it immediate. 409 checkout_not_paid until Paddle settles the payment (ask again); 404 for a transaction this workspace did not open. The app calls it when its checkout closes. Requires can_manage_billing.
+
+        Contract:
+        - REST only: no MCP tool serves this route (registry package `mcp.id/email_boxes`, surface api).
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - email_boxes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ConfirmEmailBoxCheckoutRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ConfirmEmailBoxCheckoutResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: confirm_email_box_checkout
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: api
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-boxes/search:
+    post:
+      operationId: search_email_boxes
+      summary: Search email servers
+      description: |-
+        List the workspace's email servers, oldest first: plan, location, status, seats_used of seats_cap, unit price, renews_at, and run (the newest unfinished lifecycle run, else the newest failed one: verb, status, phase_index of phase_count, error_code). Destroyed servers only when filter.status names destroyed. Use it to pick a sid, check room before a move, or watch a purchase or a plan change finish. No cursor; page_size 0 counts only. Requires can_view_email_accounts.
+
+        Contract:
+        - MCP tool `search_email_boxes`, registry package `mcp.id/email_boxes`, mount `id.billing`.
+        - Operation `search`, response envelope `search`.
+        - Flags: read only.
+      tags:
+        - email_boxes
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SearchEmailBoxesRequest"
+      responses:
+        "200":
+          description: "`search` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SearchEmailBoxesResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: search_email_boxes
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: search
+      x-gtm-envelope: search
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-boxes/{sid}:
+    patch:
+      operationId: update_email_box
+      summary: Rename email server
+      description: |-
+        Rename an email server: the label on the Email Accounts screen, 1 to 60 characters. Nothing else changes. Requires can_update_email_accounts.
+
+        Contract:
+        - MCP tool `update_email_box`, registry package `mcp.id/email_boxes`, mount `id.billing`.
+        - Operation `update`, response envelope `update`.
+        - Flags: none.
+      tags:
+        - email_boxes
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: Email server sid (em_bx_...).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^em_bx_
+            description: Email server sid (em_bx_...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateEmailBoxRequest"
+      responses:
+        "200":
+          description: "`update` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateEmailBoxResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: update_email_box
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: update
+      x-gtm-envelope: update
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: trivial
+    delete:
+      operationId: delete_email_box
+      summary: Delete email server
+      description: |-
+        Delete an email server that holds no mailbox: it reads destroying at once and the machine is destroyed. Its paid unit leaves the subscription with no refund (paid_through: the end of the paid period), except when it is the subscription's only item: then the subscription stays as it is, the unit stays paid (retained names subscription_seat, paid_through stays null) and the next create_email_box of the same plan takes it with no charge; ending the subscription is cancel_billing_subscription. Move its mailboxes out first (move_in_email_box_mailboxes on another server), else 409 email_box_has_mailboxes. 409 email_box_busy during a plan change, email_box_complimentary for the granted server. Repeating it is safe. Through MCP the first call only previews. Requires can_manage_billing.
+
+        Contract:
+        - MCP tool `delete_email_box`, registry package `mcp.id/email_boxes`, mount `id.billing`.
+        - Operation `delete`, response envelope `delete_simple`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+      tags:
+        - email_boxes
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: Path segment `{sid}`.
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^em_bx_
+      responses:
+        "200":
+          description: "`delete_simple` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteEmailBoxResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: delete_email_box
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: delete
+      x-gtm-envelope: delete_simple
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-boxes/{sid}/move-in:
+    post:
+      operationId: move_in_email_box_mailboxes
+      summary: Move mailboxes into email server
+      description: |-
+        Move mailboxes from another email server of the workspace into this one (sid receives): up to 100, all on from_email_box_sid, both servers active. Runs in the background (result.run); the mailboxes stop syncing until they land, and a failure before the import puts them back. Hosted mailboxes and ones with mail queued to send stay. Watch run in search_email_boxes; retry_email_box_run resumes a failed move. 409 not_enough_seats (free, needed), email_box_busy. Requires can_update_email_accounts.
+
+        Contract:
+        - MCP tool `move_in_email_box_mailboxes`, registry package `mcp.id/email_boxes`, mount `id.billing`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - email_boxes
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: The server that receives the mailboxes (em_bx_...).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^em_bx_
+            description: The server that receives the mailboxes (em_bx_...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MoveInEmailBoxMailboxesRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MoveInEmailBoxMailboxesResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: move_in_email_box_mailboxes
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-boxes/{sid}/preview-resize:
+    post:
+      operationId: preview_email_box_resize
+      summary: Preview email server plan change
+      description: |-
+        Quote a plan change of an email server without making it: whether its mailboxes fit the new plan (fits, seats_used, seats_cap_after), what Paddle would charge now (amount_due_now) and the server's recurring price from the next period (next_amount). No state change, no charge. Through MCP the first call of resize_email_box runs this route and carries its answer as preview_result. Requires can_manage_billing.
+
+        Contract:
+        - REST only: no MCP tool serves this route (registry package `mcp.id/email_boxes`, surface api).
+        - Operation `action`, response envelope `action`.
+        - Flags: read only.
+      tags:
+        - email_boxes
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: Email server sid (em_bx_...).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^em_bx_
+            description: Email server sid (em_bx_...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewEmailBoxResizeRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewEmailBoxResizeResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: preview_email_box_resize
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: api
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-boxes/{sid}/resize:
+    post:
+      operationId: resize_email_box
+      summary: Change email server plan
+      description: |-
+        Change an email server's plan. Spends money: its unit moves to the new plan's price in one subscription update, prorated now (an upgrade charges the difference for the rest of the period, a downgrade credits it). The server reads resizing until the run ends; to or from dedicated it moves to a new machine and its sid changes. Through MCP it takes two calls. The first, without commit_token, changes nothing: preview_result carries the quote (fits, seats_used, seats_cap_after, amount_due_now, next_amount) beside the commit_token. Show the money to the user; do not commit when fits is false; status unanswered means no quote came back, say so. The second call, same arguments plus commit_token, commits. The REST route takes no commit_token and commits on the call: POST /api/email-boxes/{sid}/preview-resize is its preview. 409 email_box_does_not_fit, email_box_busy, email_box_complimentary, email_box_not_billed; 422 email_box_already_on_plan. Requires can_manage_billing.
+
+        Contract:
+        - MCP tool `resize_email_box`, registry package `mcp.id/email_boxes`, mount `id.billing`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API.
+      tags:
+        - email_boxes
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: Email server sid (em_bx_...).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^em_bx_
+            description: Email server sid (em_bx_...).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResizeEmailBoxRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ResizeEmailBoxResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: resize_email_box
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: complex
+  /api/email-boxes/{sid}/retry:
+    post:
+      operationId: retry_email_box_run
+      summary: Retry email server run
+      description: |-
+        Retry the failed lifecycle run of an email server (a build, a plan change, a mailbox move or a delete): orchestration resumes it at the phase that failed. Read the failure first in search_email_boxes (run.status failed, run.error_code). No charge. 409 email_box_no_failed_run when the server's newest run did not fail; 409 email_box_busy while one is still running. Requires can_manage_billing.
+
+        Contract:
+        - MCP tool `retry_email_box_run`, registry package `mcp.id/email_boxes`, mount `id.billing`.
+        - Operation `action`, response envelope `action`.
+        - Flags: none.
+      tags:
+        - email_boxes
+      parameters:
+        - name: sid
+          in: path
+          required: true
+          description: Email server sid (em_bx_...).
+          schema:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^em_bx_
+            description: Email server sid (em_bx_...).
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RetryEmailBoxRunResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: retry_email_box_run
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
       x-gtm-operation: action
       x-gtm-envelope: action
       x-gtm-availability: ga
@@ -4710,6 +5186,236 @@ components:
         - item
         - result
         - meta
+    ConfirmEmailBoxCheckoutRequest:
+      type: object
+      description: Request body of `confirm_email_box_checkout`.
+      properties:
+        paddle_transaction_id:
+          type: string
+          maxLength: 64
+          pattern: ^txn_
+          description: The Paddle transaction (txn_...) of the checkout, as the buy route answered it.
+      required:
+        - paddle_transaction_id
+    ConfirmEmailBoxCheckoutResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                properties:
+                  sid:
+                    type: string
+                  team_sid:
+                    type: string
+                  name:
+                    type: string
+                    description: The label the customer chose; "Server N" when nobody did.
+                  plan:
+                    type: string
+                    enum:
+                      - starter
+                      - growth
+                      - agency
+                      - dedicated
+                    description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+                  location:
+                    type: string
+                    nullable: true
+                    enum:
+                      - hel1
+                      - fsn1
+                      - nbg1
+                    description: Null on a server older than the choice.
+                  status:
+                    type: string
+                    enum:
+                      - provisioning
+                      - active
+                      - suspended
+                      - resizing
+                      - destroying
+                      - destroyed
+                      - failed
+                    description: resizing from the moment a plan change is accepted, destroying from the moment a delete is.
+                  suspended_reason:
+                    type: string
+                    nullable: true
+                    enum:
+                      - payment_failed
+                      - unpaid
+                    description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+                  complimentary:
+                    type: boolean
+                    description: The server granted without a paid unit; it cannot be resized or deleted.
+                  seats_cap:
+                    type: integer
+                    minimum: 0
+                    description: Mailboxes the server can hold.
+                  seats_used:
+                    type: integer
+                    minimum: 0
+                    description: Mailboxes it holds now.
+                  ipv4:
+                    type: string
+                    nullable: true
+                  release:
+                    type: string
+                    nullable: true
+                    description: The gtm.service.email release the server runs.
+                  run:
+                    type: object
+                    nullable: true
+                    properties:
+                      verb:
+                        type: string
+                        description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                      status:
+                        type: string
+                        description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                      phase:
+                        type: string
+                        nullable: true
+                      phase_index:
+                        type: integer
+                        minimum: 0
+                        description: 1-based among phase_count; 0 before the first phase started.
+                      phase_count:
+                        type: integer
+                        minimum: 0
+                      started_at:
+                        type: string
+                        nullable: true
+                      error_code:
+                        type: string
+                        nullable: true
+                    required:
+                      - verb
+                      - status
+                      - phase
+                      - phase_index
+                      - phase_count
+                      - started_at
+                      - error_code
+                    description: The newest unfinished lifecycle run of the server, else its newest run when that one failed, else null.
+                  price:
+                    type: object
+                    nullable: true
+                    properties:
+                      amount:
+                        type: string
+                        description: Decimal string, e.g. "49.00".
+                      currency:
+                        type: string
+                        description: ISO 4217.
+                      interval:
+                        type: string
+                        description: month or year.
+                    required:
+                      - amount
+                      - currency
+                      - interval
+                    description: The plan's unit price on the subscription's cycle. Null for the complimentary server, without a live subscription and once the server is leaving.
+                  renews_at:
+                    type: string
+                    nullable: true
+                    description: The subscription's next billing date.
+                  paid_through:
+                    type: string
+                    nullable: true
+                    description: "Set by a delete: the end of the period the server was paid for."
+                  failed_error_code:
+                    type: string
+                    nullable: true
+                  created_at:
+                    type: string
+                    nullable: true
+                  provisioned_at:
+                    type: string
+                    nullable: true
+                  suspended_at:
+                    type: string
+                    nullable: true
+                  updated_at:
+                    type: string
+                    nullable: true
+                required:
+                  - sid
+                  - team_sid
+                  - name
+                  - plan
+                  - location
+                  - status
+                  - suspended_reason
+                  - complimentary
+                  - seats_cap
+                  - seats_used
+                  - ipv4
+                  - release
+                  - run
+                  - price
+                  - renews_at
+                  - paid_through
+                  - failed_error_code
+                  - created_at
+                  - provisioned_at
+                  - suspended_at
+                  - updated_at
+          required:
+            - items
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     CreateAccountShareRequest:
       type: object
       description: Request body of `create_account_share`.
@@ -5449,6 +6155,269 @@ components:
         - item
         - result
         - meta
+    CreateEmailBoxRequest:
+      type: object
+      description: Request body of `create_email_box`.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+          description: The server's label, 1 to 60 characters.
+        plan:
+          type: string
+          enum:
+            - starter
+            - growth
+            - agency
+            - dedicated
+          description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+        location:
+          type: string
+          enum:
+            - hel1
+            - fsn1
+            - nbg1
+          description: hel1 Helsinki, fsn1 Falkenstein, nbg1 Nuremberg.
+        copy_settings_from:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^em_bx_
+          description: "A serving server of this workspace whose settings and stop-list the new one starts with. Omitted: the stop-list comes from the oldest active server."
+      required:
+        - name
+        - plan
+        - location
+    CreateEmailBoxResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - create
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            name:
+              type: string
+              description: The label the customer chose; "Server N" when nobody did.
+            plan:
+              type: string
+              enum:
+                - starter
+                - growth
+                - agency
+                - dedicated
+              description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+            location:
+              type: string
+              nullable: true
+              enum:
+                - hel1
+                - fsn1
+                - nbg1
+              description: Null on a server older than the choice.
+            status:
+              type: string
+              enum:
+                - provisioning
+                - active
+                - suspended
+                - resizing
+                - destroying
+                - destroyed
+                - failed
+              description: resizing from the moment a plan change is accepted, destroying from the moment a delete is.
+            suspended_reason:
+              type: string
+              nullable: true
+              enum:
+                - payment_failed
+                - unpaid
+              description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            complimentary:
+              type: boolean
+              description: The server granted without a paid unit; it cannot be resized or deleted.
+            seats_cap:
+              type: integer
+              minimum: 0
+              description: Mailboxes the server can hold.
+            seats_used:
+              type: integer
+              minimum: 0
+              description: Mailboxes it holds now.
+            ipv4:
+              type: string
+              nullable: true
+            release:
+              type: string
+              nullable: true
+              description: The gtm.service.email release the server runs.
+            run:
+              type: object
+              nullable: true
+              properties:
+                verb:
+                  type: string
+                  description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                status:
+                  type: string
+                  description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                phase:
+                  type: string
+                  nullable: true
+                phase_index:
+                  type: integer
+                  minimum: 0
+                  description: 1-based among phase_count; 0 before the first phase started.
+                phase_count:
+                  type: integer
+                  minimum: 0
+                started_at:
+                  type: string
+                  nullable: true
+                error_code:
+                  type: string
+                  nullable: true
+              required:
+                - verb
+                - status
+                - phase
+                - phase_index
+                - phase_count
+                - started_at
+                - error_code
+              description: The newest unfinished lifecycle run of the server, else its newest run when that one failed, else null.
+            price:
+              type: object
+              nullable: true
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+                interval:
+                  type: string
+                  description: month or year.
+              required:
+                - amount
+                - currency
+                - interval
+              description: The plan's unit price on the subscription's cycle. Null for the complimentary server, without a live subscription and once the server is leaving.
+            renews_at:
+              type: string
+              nullable: true
+              description: The subscription's next billing date.
+            paid_through:
+              type: string
+              nullable: true
+              description: "Set by a delete: the end of the period the server was paid for."
+            failed_error_code:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              nullable: true
+            provisioned_at:
+              type: string
+              nullable: true
+            suspended_at:
+              type: string
+              nullable: true
+            updated_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - name
+            - plan
+            - location
+            - status
+            - suspended_reason
+            - complimentary
+            - seats_cap
+            - seats_used
+            - ipv4
+            - release
+            - run
+            - price
+            - renews_at
+            - paid_through
+            - failed_error_code
+            - created_at
+            - provisioned_at
+            - suspended_at
+            - updated_at
+        already_exists:
+          type: boolean
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        checkout:
+          type: object
+          nullable: true
+          properties:
+            client_side_token:
+              type: string
+              nullable: true
+            paddle_environment:
+              type: string
+            paddle_transaction_id:
+              type: string
+              nullable: true
+          required:
+            - client_side_token
+            - paddle_environment
+            - paddle_transaction_id
+          description: "Set instead of item when the workspace has no subscription: the purchase finishes in the app."
+      required:
+        - success
+        - operation
+        - item
+        - already_exists
+        - meta
+        - checkout
     CreateOauthClientRequest:
       type: object
       description: Request body of `create_oauth_client`.
@@ -6299,6 +7268,223 @@ components:
         item:
           type: object
           additionalProperties: {}
+        already_deleted:
+          type: boolean
+        soft_deleted:
+          type: boolean
+        retained:
+          type: array
+          items:
+            type: string
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - item
+        - already_deleted
+        - soft_deleted
+        - retained
+        - meta
+    DeleteEmailBoxResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - delete
+        item:
+          type: object
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            name:
+              type: string
+              description: The label the customer chose; "Server N" when nobody did.
+            plan:
+              type: string
+              enum:
+                - starter
+                - growth
+                - agency
+                - dedicated
+              description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+            location:
+              type: string
+              nullable: true
+              enum:
+                - hel1
+                - fsn1
+                - nbg1
+              description: Null on a server older than the choice.
+            status:
+              type: string
+              enum:
+                - provisioning
+                - active
+                - suspended
+                - resizing
+                - destroying
+                - destroyed
+                - failed
+              description: resizing from the moment a plan change is accepted, destroying from the moment a delete is.
+            suspended_reason:
+              type: string
+              nullable: true
+              enum:
+                - payment_failed
+                - unpaid
+              description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            complimentary:
+              type: boolean
+              description: The server granted without a paid unit; it cannot be resized or deleted.
+            seats_cap:
+              type: integer
+              minimum: 0
+              description: Mailboxes the server can hold.
+            seats_used:
+              type: integer
+              minimum: 0
+              description: Mailboxes it holds now.
+            ipv4:
+              type: string
+              nullable: true
+            release:
+              type: string
+              nullable: true
+              description: The gtm.service.email release the server runs.
+            run:
+              type: object
+              nullable: true
+              properties:
+                verb:
+                  type: string
+                  description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                status:
+                  type: string
+                  description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                phase:
+                  type: string
+                  nullable: true
+                phase_index:
+                  type: integer
+                  minimum: 0
+                  description: 1-based among phase_count; 0 before the first phase started.
+                phase_count:
+                  type: integer
+                  minimum: 0
+                started_at:
+                  type: string
+                  nullable: true
+                error_code:
+                  type: string
+                  nullable: true
+              required:
+                - verb
+                - status
+                - phase
+                - phase_index
+                - phase_count
+                - started_at
+                - error_code
+              description: The newest unfinished lifecycle run of the server, else its newest run when that one failed, else null.
+            price:
+              type: object
+              nullable: true
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+                interval:
+                  type: string
+                  description: month or year.
+              required:
+                - amount
+                - currency
+                - interval
+              description: The plan's unit price on the subscription's cycle. Null for the complimentary server, without a live subscription and once the server is leaving.
+            renews_at:
+              type: string
+              nullable: true
+              description: The subscription's next billing date.
+            paid_through:
+              type: string
+              nullable: true
+              description: "Set by a delete: the end of the period the server was paid for."
+            failed_error_code:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              nullable: true
+            provisioned_at:
+              type: string
+              nullable: true
+            suspended_at:
+              type: string
+              nullable: true
+            updated_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - name
+            - plan
+            - location
+            - status
+            - suspended_reason
+            - complimentary
+            - seats_cap
+            - seats_used
+            - ipv4
+            - release
+            - run
+            - price
+            - renews_at
+            - paid_through
+            - failed_error_code
+            - created_at
+            - provisioned_at
+            - suspended_at
+            - updated_at
         already_deleted:
           type: boolean
         soft_deleted:
@@ -11204,6 +12390,119 @@ components:
       required:
         - success
         - error
+    MoveInEmailBoxMailboxesRequest:
+      type: object
+      description: Request body of `move_in_email_box_mailboxes`.
+      properties:
+        from_email_box_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^em_bx_
+          description: The server that holds them now (em_bx_...).
+        email_account_sids:
+          type: array
+          items:
+            type: string
+            minLength: 18
+            maxLength: 18
+            pattern: ^em_ac_
+          minItems: 1
+          maxItems: 100
+          description: The mailboxes to move (em_ac_...), 1 to 100, no repeats.
+      required:
+        - from_email_box_sid
+        - email_account_sids
+    MoveInEmailBoxMailboxesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            run:
+              type: object
+              properties:
+                verb:
+                  type: string
+                  description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                status:
+                  type: string
+                  description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                phase:
+                  type: string
+                  nullable: true
+                phase_index:
+                  type: integer
+                  minimum: 0
+                  description: 1-based among phase_count; 0 before the first phase started.
+                phase_count:
+                  type: integer
+                  minimum: 0
+                started_at:
+                  type: string
+                  nullable: true
+                error_code:
+                  type: string
+                  nullable: true
+              required:
+                - verb
+                - status
+                - phase
+                - phase_index
+                - phase_count
+                - started_at
+                - error_code
+          required:
+            - run
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     PauseBillingSubscriptionResponse:
       type: object
       properties:
@@ -11597,6 +12896,120 @@ components:
         result:
           type: object
           additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    PreviewEmailBoxResizeRequest:
+      type: object
+      description: Request body of `preview_email_box_resize`.
+      properties:
+        plan:
+          type: string
+          enum:
+            - starter
+            - growth
+            - agency
+            - dedicated
+          description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+      required:
+        - plan
+    PreviewEmailBoxResizeResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            fits:
+              type: boolean
+              description: "false: the server holds more mailboxes than the plan's cap, and the change would be refused."
+            seats_used:
+              type: integer
+              minimum: 0
+            seats_cap_after:
+              type: integer
+              minimum: 0
+            amount_due_now:
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+              required:
+                - amount
+                - currency
+              description: Charged in the change (prorated for the rest of the period); a downgrade is credited instead.
+            next_amount:
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+                interval:
+                  type: string
+                  description: month or year.
+              required:
+                - amount
+                - currency
+                - interval
+              description: The recurring price of the server from the next period on.
+          required:
+            - fits
+            - seats_used
+            - seats_cap_after
+            - amount_due_now
+            - next_amount
         meta:
           type: object
           properties:
@@ -12875,6 +14288,235 @@ components:
         - item
         - result
         - meta
+    ResizeEmailBoxRequest:
+      type: object
+      description: Request body of `resize_email_box`.
+      properties:
+        plan:
+          type: string
+          enum:
+            - starter
+            - growth
+            - agency
+            - dedicated
+          description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+      required:
+        - plan
+    ResizeEmailBoxResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            name:
+              type: string
+              description: The label the customer chose; "Server N" when nobody did.
+            plan:
+              type: string
+              enum:
+                - starter
+                - growth
+                - agency
+                - dedicated
+              description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+            location:
+              type: string
+              nullable: true
+              enum:
+                - hel1
+                - fsn1
+                - nbg1
+              description: Null on a server older than the choice.
+            status:
+              type: string
+              enum:
+                - provisioning
+                - active
+                - suspended
+                - resizing
+                - destroying
+                - destroyed
+                - failed
+              description: resizing from the moment a plan change is accepted, destroying from the moment a delete is.
+            suspended_reason:
+              type: string
+              nullable: true
+              enum:
+                - payment_failed
+                - unpaid
+              description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            complimentary:
+              type: boolean
+              description: The server granted without a paid unit; it cannot be resized or deleted.
+            seats_cap:
+              type: integer
+              minimum: 0
+              description: Mailboxes the server can hold.
+            seats_used:
+              type: integer
+              minimum: 0
+              description: Mailboxes it holds now.
+            ipv4:
+              type: string
+              nullable: true
+            release:
+              type: string
+              nullable: true
+              description: The gtm.service.email release the server runs.
+            run:
+              type: object
+              nullable: true
+              properties:
+                verb:
+                  type: string
+                  description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                status:
+                  type: string
+                  description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                phase:
+                  type: string
+                  nullable: true
+                phase_index:
+                  type: integer
+                  minimum: 0
+                  description: 1-based among phase_count; 0 before the first phase started.
+                phase_count:
+                  type: integer
+                  minimum: 0
+                started_at:
+                  type: string
+                  nullable: true
+                error_code:
+                  type: string
+                  nullable: true
+              required:
+                - verb
+                - status
+                - phase
+                - phase_index
+                - phase_count
+                - started_at
+                - error_code
+              description: The newest unfinished lifecycle run of the server, else its newest run when that one failed, else null.
+            price:
+              type: object
+              nullable: true
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+                interval:
+                  type: string
+                  description: month or year.
+              required:
+                - amount
+                - currency
+                - interval
+              description: The plan's unit price on the subscription's cycle. Null for the complimentary server, without a live subscription and once the server is leaving.
+            renews_at:
+              type: string
+              nullable: true
+              description: The subscription's next billing date.
+            paid_through:
+              type: string
+              nullable: true
+              description: "Set by a delete: the end of the period the server was paid for."
+            failed_error_code:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              nullable: true
+            provisioned_at:
+              type: string
+              nullable: true
+            suspended_at:
+              type: string
+              nullable: true
+            updated_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - name
+            - plan
+            - location
+            - status
+            - suspended_reason
+            - complimentary
+            - seats_cap
+            - seats_used
+            - ipv4
+            - release
+            - run
+            - price
+            - renews_at
+            - paid_through
+            - failed_error_code
+            - created_at
+            - provisioned_at
+            - suspended_at
+            - updated_at
+        result:
+          type: object
+          additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     ResumeBillingSubscriptionResponse:
       type: object
       properties:
@@ -13043,6 +14685,221 @@ components:
             - created_at
             - updated_at
             - deleted_at
+        result:
+          type: object
+          additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    RetryEmailBoxRunResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item:
+          type: object
+          nullable: true
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            name:
+              type: string
+              description: The label the customer chose; "Server N" when nobody did.
+            plan:
+              type: string
+              enum:
+                - starter
+                - growth
+                - agency
+                - dedicated
+              description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+            location:
+              type: string
+              nullable: true
+              enum:
+                - hel1
+                - fsn1
+                - nbg1
+              description: Null on a server older than the choice.
+            status:
+              type: string
+              enum:
+                - provisioning
+                - active
+                - suspended
+                - resizing
+                - destroying
+                - destroyed
+                - failed
+              description: resizing from the moment a plan change is accepted, destroying from the moment a delete is.
+            suspended_reason:
+              type: string
+              nullable: true
+              enum:
+                - payment_failed
+                - unpaid
+              description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            complimentary:
+              type: boolean
+              description: The server granted without a paid unit; it cannot be resized or deleted.
+            seats_cap:
+              type: integer
+              minimum: 0
+              description: Mailboxes the server can hold.
+            seats_used:
+              type: integer
+              minimum: 0
+              description: Mailboxes it holds now.
+            ipv4:
+              type: string
+              nullable: true
+            release:
+              type: string
+              nullable: true
+              description: The gtm.service.email release the server runs.
+            run:
+              type: object
+              nullable: true
+              properties:
+                verb:
+                  type: string
+                  description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                status:
+                  type: string
+                  description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                phase:
+                  type: string
+                  nullable: true
+                phase_index:
+                  type: integer
+                  minimum: 0
+                  description: 1-based among phase_count; 0 before the first phase started.
+                phase_count:
+                  type: integer
+                  minimum: 0
+                started_at:
+                  type: string
+                  nullable: true
+                error_code:
+                  type: string
+                  nullable: true
+              required:
+                - verb
+                - status
+                - phase
+                - phase_index
+                - phase_count
+                - started_at
+                - error_code
+              description: The newest unfinished lifecycle run of the server, else its newest run when that one failed, else null.
+            price:
+              type: object
+              nullable: true
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+                interval:
+                  type: string
+                  description: month or year.
+              required:
+                - amount
+                - currency
+                - interval
+              description: The plan's unit price on the subscription's cycle. Null for the complimentary server, without a live subscription and once the server is leaving.
+            renews_at:
+              type: string
+              nullable: true
+              description: The subscription's next billing date.
+            paid_through:
+              type: string
+              nullable: true
+              description: "Set by a delete: the end of the period the server was paid for."
+            failed_error_code:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              nullable: true
+            provisioned_at:
+              type: string
+              nullable: true
+            suspended_at:
+              type: string
+              nullable: true
+            updated_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - name
+            - plan
+            - location
+            - status
+            - suspended_reason
+            - complimentary
+            - seats_cap
+            - seats_used
+            - ipv4
+            - release
+            - run
+            - price
+            - renews_at
+            - paid_through
+            - failed_error_code
+            - created_at
+            - provisioned_at
+            - suspended_at
+            - updated_at
         result:
           type: object
           additionalProperties: {}
@@ -16775,6 +18632,671 @@ components:
         - applied_filters
         - includes
         - meta
+    SearchEmailAccountDirectoryRequest:
+      type: object
+      description: Request body of `search_email_account_directory`.
+      properties:
+        filter:
+          type: object
+          properties:
+            q:
+              type: string
+              minLength: 2
+              maxLength: 100
+              description: A part of the address, the display name or the label, 2 to 100 characters.
+            sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+            email_box_sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: One server's mailboxes.
+            provider:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+            status:
+              type: object
+              properties:
+                eq:
+                  type: string
+                ne:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                nin:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+            subscription_hold_reason:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+            address:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+              description: The whole address; a part of it goes in q.
+            address_domain:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+            label:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+            sending_paused_reason:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+              description: "is_null false: every mailbox whose sending is paused."
+            connected_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+                is_null:
+                  type: boolean
+              additionalProperties: false
+            status_changed_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+              additionalProperties: false
+            created_at:
+              type: object
+              properties:
+                gte:
+                  type: string
+                lte:
+                  type: string
+              additionalProperties: false
+        sort:
+          type: object
+          properties:
+            field:
+              type: string
+              enum:
+                - address
+                - label
+                - status_changed_at
+                - connected_at
+                - created_at
+            direction:
+              type: string
+              enum:
+                - asc
+                - desc
+          required:
+            - field
+          description: Default address, ascending. No label and no connected_at come first ascending, last descending.
+        page_size:
+          type: integer
+          minimum: 0
+          maximum: 500
+          description: 0..500, default 50. 0 = counts only.
+        cursor:
+          type: string
+          description: pagination.next_cursor of the previous page.
+    SearchEmailAccountDirectoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - search
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              item:
+                type: object
+                properties:
+                  sid:
+                    type: string
+                    description: The mailbox's own sid (em_ac_...), the one its server uses.
+                  team_sid:
+                    type: string
+                  email_box_sid:
+                    type: string
+                    nullable: true
+                    description: "The email server that holds the mailbox (em_bx_...): the server to address any call about it. Null for a mailbox of the shared deployment that no server owns."
+                  provider:
+                    type: string
+                    description: google, microsoft, imap_smtp or gtm_hosted.
+                  address:
+                    type: string
+                    description: Lowercase.
+                  address_domain:
+                    type: string
+                    description: The part of the address after the @.
+                  display_name:
+                    type: string
+                    nullable: true
+                  label:
+                    type: string
+                    nullable: true
+                    description: The customer's own tag on the mailbox.
+                  status:
+                    type: string
+                    description: connecting, active, reconnect_required, disconnected or subscription_required, as the server last reported it.
+                  reconnect_reason:
+                    type: string
+                    nullable: true
+                    description: Why the mailbox needs reconnecting, while status is reconnect_required.
+                  subscription_hold_reason:
+                    type: string
+                    nullable: true
+                    description: server_full or server_suspended, while status is subscription_required.
+                  sending_paused_reason:
+                    type: string
+                    nullable: true
+                    description: "manual, bounce_rate, complaint_rate, provider_block, warmup_guard or provider_quota. Null: sending is not paused, though a status other than active still keeps the mailbox from sending."
+                  connected_at:
+                    type: string
+                    nullable: true
+                  status_changed_at:
+                    type: string
+                    description: When the current status was first reported.
+                  observed_at:
+                    type: string
+                    description: "The server's clock at the read this copy is from: how fresh the row is."
+                  created_at:
+                    type: string
+                    nullable: true
+                    description: The mailbox's own creation time.
+                  updated_at:
+                    type: string
+                    nullable: true
+                    description: The last change of this copy.
+                  deleted_at:
+                    type: string
+                    nullable: true
+                required:
+                  - sid
+                  - team_sid
+                  - email_box_sid
+                  - provider
+                  - address
+                  - address_domain
+                  - display_name
+                  - label
+                  - status
+                  - reconnect_reason
+                  - subscription_hold_reason
+                  - sending_paused_reason
+                  - connected_at
+                  - status_changed_at
+                  - observed_at
+                  - created_at
+                  - updated_at
+                  - deleted_at
+              included:
+                type: object
+                additionalProperties: {}
+            required:
+              - item
+              - included
+        pagination:
+          type: object
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+            has_more:
+              type: boolean
+            total_count:
+              type: integer
+              nullable: true
+          required:
+            - next_cursor
+            - has_more
+            - total_count
+        applied_filters:
+          type: object
+          additionalProperties: {}
+        includes:
+          type: array
+          items:
+            type: string
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        counts:
+          type: object
+          properties:
+            total_count:
+              type: integer
+              minimum: 0
+            groups:
+              type: object
+              additionalProperties: {}
+              description: Per axis (email_box_sid, status, provider, subscription_hold_reason, sending_paused_reason) a map value to count, over the whole filter. A null value is in no group.
+          required:
+            - total_count
+            - groups
+      required:
+        - success
+        - operation
+        - items
+        - pagination
+        - applied_filters
+        - includes
+        - meta
+    SearchEmailBoxesRequest:
+      type: object
+      description: Request body of `search_email_boxes`.
+      properties:
+        filter:
+          type: object
+          properties:
+            sid:
+              type: object
+              properties:
+                eq:
+                  type: string
+                in:
+                  type: array
+                  items:
+                    type: string
+              additionalProperties: false
+            status:
+              type: object
+              properties:
+                eq:
+                  type: string
+                  enum:
+                    - provisioning
+                    - active
+                    - suspended
+                    - resizing
+                    - destroying
+                    - destroyed
+                    - failed
+                ne:
+                  type: string
+                  enum:
+                    - provisioning
+                    - active
+                    - suspended
+                    - resizing
+                    - destroying
+                    - destroyed
+                    - failed
+                in:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - provisioning
+                      - active
+                      - suspended
+                      - resizing
+                      - destroying
+                      - destroyed
+                      - failed
+                nin:
+                  type: array
+                  items:
+                    type: string
+                    enum:
+                      - provisioning
+                      - active
+                      - suspended
+                      - resizing
+                      - destroying
+                      - destroyed
+                      - failed
+              additionalProperties: false
+              description: Without it the search answers the servers that still exist; name destroyed to see destroyed ones.
+        page_size:
+          type: integer
+          minimum: 0
+          maximum: 500
+          description: 0..500, default 50. 0 = count only (pagination.total_count).
+    SearchEmailBoxesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - search
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              item:
+                type: object
+                properties:
+                  sid:
+                    type: string
+                  team_sid:
+                    type: string
+                  name:
+                    type: string
+                    description: The label the customer chose; "Server N" when nobody did.
+                  plan:
+                    type: string
+                    enum:
+                      - starter
+                      - growth
+                      - agency
+                      - dedicated
+                    description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+                  location:
+                    type: string
+                    nullable: true
+                    enum:
+                      - hel1
+                      - fsn1
+                      - nbg1
+                    description: Null on a server older than the choice.
+                  status:
+                    type: string
+                    enum:
+                      - provisioning
+                      - active
+                      - suspended
+                      - resizing
+                      - destroying
+                      - destroyed
+                      - failed
+                    description: resizing from the moment a plan change is accepted, destroying from the moment a delete is.
+                  suspended_reason:
+                    type: string
+                    nullable: true
+                    enum:
+                      - payment_failed
+                      - unpaid
+                    description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+                  complimentary:
+                    type: boolean
+                    description: The server granted without a paid unit; it cannot be resized or deleted.
+                  seats_cap:
+                    type: integer
+                    minimum: 0
+                    description: Mailboxes the server can hold.
+                  seats_used:
+                    type: integer
+                    minimum: 0
+                    description: Mailboxes it holds now.
+                  ipv4:
+                    type: string
+                    nullable: true
+                  release:
+                    type: string
+                    nullable: true
+                    description: The gtm.service.email release the server runs.
+                  run:
+                    type: object
+                    nullable: true
+                    properties:
+                      verb:
+                        type: string
+                        description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                      status:
+                        type: string
+                        description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                      phase:
+                        type: string
+                        nullable: true
+                      phase_index:
+                        type: integer
+                        minimum: 0
+                        description: 1-based among phase_count; 0 before the first phase started.
+                      phase_count:
+                        type: integer
+                        minimum: 0
+                      started_at:
+                        type: string
+                        nullable: true
+                      error_code:
+                        type: string
+                        nullable: true
+                    required:
+                      - verb
+                      - status
+                      - phase
+                      - phase_index
+                      - phase_count
+                      - started_at
+                      - error_code
+                    description: The newest unfinished lifecycle run of the server, else its newest run when that one failed, else null.
+                  price:
+                    type: object
+                    nullable: true
+                    properties:
+                      amount:
+                        type: string
+                        description: Decimal string, e.g. "49.00".
+                      currency:
+                        type: string
+                        description: ISO 4217.
+                      interval:
+                        type: string
+                        description: month or year.
+                    required:
+                      - amount
+                      - currency
+                      - interval
+                    description: The plan's unit price on the subscription's cycle. Null for the complimentary server, without a live subscription and once the server is leaving.
+                  renews_at:
+                    type: string
+                    nullable: true
+                    description: The subscription's next billing date.
+                  paid_through:
+                    type: string
+                    nullable: true
+                    description: "Set by a delete: the end of the period the server was paid for."
+                  failed_error_code:
+                    type: string
+                    nullable: true
+                  created_at:
+                    type: string
+                    nullable: true
+                  provisioned_at:
+                    type: string
+                    nullable: true
+                  suspended_at:
+                    type: string
+                    nullable: true
+                  updated_at:
+                    type: string
+                    nullable: true
+                required:
+                  - sid
+                  - team_sid
+                  - name
+                  - plan
+                  - location
+                  - status
+                  - suspended_reason
+                  - complimentary
+                  - seats_cap
+                  - seats_used
+                  - ipv4
+                  - release
+                  - run
+                  - price
+                  - renews_at
+                  - paid_through
+                  - failed_error_code
+                  - created_at
+                  - provisioned_at
+                  - suspended_at
+                  - updated_at
+              included:
+                type: object
+                additionalProperties: {}
+            required:
+              - item
+              - included
+        pagination:
+          type: object
+          properties:
+            next_cursor:
+              type: string
+              nullable: true
+            has_more:
+              type: boolean
+            total_count:
+              type: integer
+              nullable: true
+          required:
+            - next_cursor
+            - has_more
+            - total_count
+        applied_filters:
+          type: object
+          additionalProperties: {}
+        includes:
+          type: array
+          items:
+            type: string
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        counts:
+          type: object
+          additionalProperties: {}
+      required:
+        - success
+        - operation
+        - items
+        - pagination
+        - applied_filters
+        - includes
+        - meta
     SearchNotificationsRequest:
       type: object
       description: Request body of `search_notifications`.
@@ -20323,6 +22845,232 @@ components:
             - erasure_requested_at
             - erased_at
             - deleted_at
+        updated_fields:
+          type: array
+          items:
+            type: string
+        previous_values:
+          type: object
+          additionalProperties: {}
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - item
+        - updated_fields
+        - previous_values
+        - meta
+    UpdateEmailBoxRequest:
+      type: object
+      description: Request body of `update_email_box`.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+          description: The new label, 1 to 60 characters.
+      required:
+        - name
+    UpdateEmailBoxResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - update
+        item:
+          type: object
+          properties:
+            sid:
+              type: string
+            team_sid:
+              type: string
+            name:
+              type: string
+              description: The label the customer chose; "Server N" when nobody did.
+            plan:
+              type: string
+              enum:
+                - starter
+                - growth
+                - agency
+                - dedicated
+              description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+            location:
+              type: string
+              nullable: true
+              enum:
+                - hel1
+                - fsn1
+                - nbg1
+              description: Null on a server older than the choice.
+            status:
+              type: string
+              enum:
+                - provisioning
+                - active
+                - suspended
+                - resizing
+                - destroying
+                - destroyed
+                - failed
+              description: resizing from the moment a plan change is accepted, destroying from the moment a delete is.
+            suspended_reason:
+              type: string
+              nullable: true
+              enum:
+                - payment_failed
+                - unpaid
+              description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            complimentary:
+              type: boolean
+              description: The server granted without a paid unit; it cannot be resized or deleted.
+            seats_cap:
+              type: integer
+              minimum: 0
+              description: Mailboxes the server can hold.
+            seats_used:
+              type: integer
+              minimum: 0
+              description: Mailboxes it holds now.
+            ipv4:
+              type: string
+              nullable: true
+            release:
+              type: string
+              nullable: true
+              description: The gtm.service.email release the server runs.
+            run:
+              type: object
+              nullable: true
+              properties:
+                verb:
+                  type: string
+                  description: provision, rescale, migrate, suspend, resume, destroy, rotate_secrets, tenant_push or move_accounts.
+                status:
+                  type: string
+                  description: pending, running, succeeded, failed or cancelled. failed is terminal until retry_email_box_run resumes it.
+                phase:
+                  type: string
+                  nullable: true
+                phase_index:
+                  type: integer
+                  minimum: 0
+                  description: 1-based among phase_count; 0 before the first phase started.
+                phase_count:
+                  type: integer
+                  minimum: 0
+                started_at:
+                  type: string
+                  nullable: true
+                error_code:
+                  type: string
+                  nullable: true
+              required:
+                - verb
+                - status
+                - phase
+                - phase_index
+                - phase_count
+                - started_at
+                - error_code
+              description: The newest unfinished lifecycle run of the server, else its newest run when that one failed, else null.
+            price:
+              type: object
+              nullable: true
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+                interval:
+                  type: string
+                  description: month or year.
+              required:
+                - amount
+                - currency
+                - interval
+              description: The plan's unit price on the subscription's cycle. Null for the complimentary server, without a live subscription and once the server is leaving.
+            renews_at:
+              type: string
+              nullable: true
+              description: The subscription's next billing date.
+            paid_through:
+              type: string
+              nullable: true
+              description: "Set by a delete: the end of the period the server was paid for."
+            failed_error_code:
+              type: string
+              nullable: true
+            created_at:
+              type: string
+              nullable: true
+            provisioned_at:
+              type: string
+              nullable: true
+            suspended_at:
+              type: string
+              nullable: true
+            updated_at:
+              type: string
+              nullable: true
+          required:
+            - sid
+            - team_sid
+            - name
+            - plan
+            - location
+            - status
+            - suspended_reason
+            - complimentary
+            - seats_cap
+            - seats_used
+            - ipv4
+            - release
+            - run
+            - price
+            - renews_at
+            - paid_through
+            - failed_error_code
+            - created_at
+            - provisioned_at
+            - suspended_at
+            - updated_at
         updated_fields:
           type: array
           items:

@@ -4,7 +4,7 @@ sidebarTitle: "Overview"
 description: "How to read the reference: base URLs, auth, the envelope, and the x-gtm operation flags."
 ---
 
-The reference documents the public contract of three services. Every page is generated from the same registry that defines the MCP tools (one endpoint per tool), so it matches what the server validates, not what someone remembered to write down.
+The reference documents the public contract of four services. Every page is generated from the same registry that defines the MCP tools (one endpoint per tool), so it matches what the server validates, not what someone remembered to write down.
 
 ## Base URLs
 
@@ -13,8 +13,9 @@ The reference documents the public contract of three services. Every page is gen
 | LinkedIn | `https://app.gtm-api.com/linkedin/v4` |
 | ID and Teams | `https://app.gtm-api.com/id/v4` |
 | Orchestration | `https://app.gtm-api.com/orchestration/v4` |
+| Email | `https://app.gtm-api.com/email/v4` |
 
-Auth is the same everywhere: `Authorization: Bearer <token>` with an [API key or JWT](/authentication). The playground on each page can send real requests; point it at production and use a test team.
+Auth is the same everywhere: `Authorization: Bearer <token>` with an [API key or JWT](/authentication). An Email call names the email server it is for with the `Email-Box-SID` header (`em_bx_...`, from `POST /api/email-boxes/search` on ID and Teams); without it the call goes to the workspace's primary server. See [Email servers and mailboxes](/kb/email-servers-and-mailboxes). The playground on each page can send real requests; point it at production and use a test team.
 
 ## Reading an operation
 

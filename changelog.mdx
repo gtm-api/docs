@@ -3,7 +3,35 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
-<Update label="2026-11-13" description="A lent-out account answers 409 to a live read, and the API reference shows real error answers">
+<Update label="2026-11-15" description="Email servers and mailboxes, and a signup refuses an address whose domain takes no mail">
+  **Email is a channel.** A workspace buys email servers in Email Accounts (Starter, Growth, Agency
+  and Dedicated, for up to 100, 500, 2,000 and 10,000 mailboxes) and connects its mailboxes to them:
+  Google and Microsoft through their own sign-in, any other provider over IMAP and SMTP, many at once
+  from a CSV file, or through a connect link the mailbox's owner signs in on. Each server keeps its
+  mailboxes' inboxes, sends, stop-list and delivery records. The REST API is at
+  `https://app.gtm-api.com/email/v4`, where the `Email-Box-SID` header names the server a call is
+  for. The MCP server adds four mounts, `/mcp/email/accounts`, `/mcp/email/messaging`,
+  `/mcp/email/deliverability` and `/mcp/email/infrastructure`, and the server tools on
+  `/mcp/id/billing`. See [Email servers and mailboxes](/kb/email-servers-and-mailboxes) and the Email
+  API reference.
+
+  **A signup refuses an address whose domain takes no mail.** Signing up, an agent signup, changing
+  the account's address and inviting a team member answer `422 validation_failed` on the email field
+  when the address's domain has no mail host, so a typo in the domain is caught on the form instead
+  of in a verification mail that never arrives. A lookup that fails or times out never refuses an
+  address.
+
+  **An address nobody has confirmed gets only the mail that confirms it.** Until an address is
+  verified, the platform sends it the verification code it asks for and a password reset, nothing
+  else. The reminder three days after signup is gone.
+
+  **A lifted billing hold puts each browser back where it was.** When a workspace's plan is paid
+  again, every browser the hold parked returns to its state before the hold (a running or idle one
+  comes back idle and wakes on its next sync), and the auto-scrapes and mass actions the hold paused
+  resume. Before, the browsers stayed stopped until someone started them by hand.
+</Update>
+
+<Update label="2026-11-15" description="A lent-out account answers 409 to a live read, and the API reference shows real error answers">
   **A live read on an account you lent out answers `409`, not a retry.** While an account share
   runs, the lending workspace's copy of the account is parked. A call that would run on it, a send
   or a live read (`get-my-latest` on conversations, messages, connections, followers, invitations
@@ -23,7 +51,7 @@ description: "What's new in the GTM API platform and this documentation."
   text.
 </Update>
 
-<Update label="2026-11-12" description="Any identifier on every LinkedIn person and company call, the lite read replaces the basic one, and no picture link that expires">
+<Update label="2026-11-15" description="Any identifier on every LinkedIn person and company call, the lite read replaces the basic one, and no picture link that expires">
   **`person-basic-profile` is gone; `person-lite-profile` makes the same request.**
   `POST /api/linkedin-enrichment/person-basic-profile` and the MCP tool
   `enrich_linkedin_person_basic_profile` are removed, and the old path answers `404`.

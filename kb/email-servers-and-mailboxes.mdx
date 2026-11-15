@@ -1,0 +1,56 @@
+---
+title: "Email servers and mailboxes"
+description: "A workspace buys email servers, connects its mailboxes to them, and sends, syncs and keeps a stop-list through the app, the REST API and the MCP server."
+---
+
+Email runs on email servers your workspace buys. Each server is a deployment of its own with its own
+database: the mailboxes connected to it, their mirrored inboxes, scheduled sends, the stop-list and
+the delivery records live on that server. A workspace can own several.
+
+## Buying a server
+
+Open **Email Accounts** in the app and add a server: a name and a size. The price is per server, per
+month:
+
+| Size | Mailboxes | Price |
+|---|---|---|
+| Starter | up to 100 | $49 |
+| Growth | up to 500 | $99 |
+| Agency | up to 2,000 | $199 |
+| Dedicated | up to 10,000 | $399 |
+
+The dialog says what the purchase costs before you confirm it. A server is charged when it is bought,
+prorated to the current period of your subscription, and is ready a few minutes later; the screen
+shows its setup steps while it is built. A workspace with no paid plan buys its first server on a
+subscription of its own, and a plan bought later goes on that same subscription.
+
+Once it runs you can rename a server, change its size, move mailboxes to another server and delete it
+when it holds no mailbox. Deleting the only server of a subscription leaves the subscription and its
+paid seat as they are: the next server of the same size takes that seat with no new charge.
+
+## Connecting mailboxes
+
+- Google and Microsoft mailboxes connect through their own sign-in.
+- Any other provider connects over IMAP and SMTP. The form checks the login against the mail host
+  before it saves anything.
+- Many mailboxes at once come from a CSV file.
+- A connect link lets the person who owns a mailbox sign in on a page of ours, without an account in
+  your workspace.
+
+A mail host on a private, loopback or link-local address is refused.
+
+## The stop-list
+
+Addresses and domains your workspace never mails. A new server starts with the workspace's stop-list.
+
+## Through the API and the MCP server
+
+- **REST.** `https://app.gtm-api.com/email/v4`, documented in the
+  [Email API reference](/api-reference/overview). The `Email-Box-SID` header names the server a call
+  is for (`em_bx_...`, listed by `POST /api/email-boxes/search` on the ID and Teams API); a call
+  without it goes to the workspace's primary server.
+- **MCP.** Four mounts: `/mcp/email/accounts`, `/mcp/email/messaging`, `/mcp/email/deliverability` and
+  `/mcp/email/infrastructure`. Every tool takes an optional `email_box_sid`. Buying, resizing and
+  deleting servers are tools of `/mcp/id/billing`, behind the preview and confirm step.
+- **Secrets stay out of the model.** Connecting a mailbox with its password and creating a sign-in
+  application are REST only; an agent sends the mailbox's owner a connect link instead.
