@@ -99,6 +99,13 @@ its proxy. That session is how you fix a LinkedIn logout mid-loan, and nobody is
 happens, so the borrower has to tell you. You cannot delete the parked account or re-connect the
 same LinkedIn member to work around the share: both answer `409 conflict`, `account_shared_out`.
 
+Every call that would run on the parked account answers that same `409 conflict`,
+`account_shared_out`: a send, and a live read such as `get-my-latest` or an enrichment through that
+account. It is not a refusal to retry (`recoverable: false`), and its `context.account_share_sid`
+is the sid `recall` takes. To work with the account while it is away, call the API from the
+workspace that holds it: there the account has a sid of its own, `holder_account_sid` on the share.
+Stored reads (`search`, `get`) of the rows your workspace already synced keep working.
+
 ## What the receiving side gets
 
 | Crosses with the copy | Does not cross |

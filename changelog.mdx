@@ -3,6 +3,26 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-13" description="A lent-out account answers 409 to a live read, and the API reference shows real error answers">
+  **A live read on an account you lent out answers `409`, not a retry.** While an account share
+  runs, the lending workspace's copy of the account is parked. A call that would run on it, a send
+  or a live read (`get-my-latest` on conversations, messages, connections, followers, invitations
+  and connection requests; an enrichment or a profile read through that account), answers
+  `409 conflict` with `context.reason: "account_shared_out"`, `recoverable: false` and
+  `context.account_share_sid`, the sid `POST /api/account-shares/recall` takes. Call the API from
+  the workspace that holds the account, with the sid it has there (`holder_account_sid` on the
+  share), or recall the share. Before, a live read answered `503 service_unavailable`
+  (`latest_refresh_failed`) and suggested a retry that could not succeed. An account parked by the
+  plan answers `409` with `subscription_required` the same way. Stored reads (`search`, `get`) are
+  unchanged. See [Share or transfer a connected account](/kb/account-sharing-and-handover).
+
+  **The error tabs of the API reference show real answers.** The `4XX` and `5XX` responses of every
+  operation carry examples taken from live answers: a `422 validation_failed` with `field_errors`,
+  a `401 unauthorized`, a `503 service_unavailable` and a `500 internal_error`. Before, the page
+  drew its example from the schema, so the `5XX` tab showed `validation_failed` with placeholder
+  text.
+</Update>
+
 <Update label="2026-11-12" description="Any identifier on every LinkedIn person and company call, the lite read replaces the basic one, and no picture link that expires">
   **`person-basic-profile` is gone; `person-lite-profile` makes the same request.**
   `POST /api/linkedin-enrichment/person-basic-profile` and the MCP tool

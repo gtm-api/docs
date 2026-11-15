@@ -8854,12 +8854,84 @@ components:
         application/json:
           schema:
             $ref: "#/components/schemas/McpError"
+          examples:
+            validation_failed:
+              summary: "422: a field of the request failed validation"
+              value:
+                success: false
+                error:
+                  code: validation_failed
+                  message: Validation failed
+                  recoverable: true
+                  field_errors:
+                    page_size:
+                      - rule: max
+                        message: The page size field must not be greater than 1000.
+                meta:
+                  trace_id: 019a7c2e-5b1d-7c3a-9f4e-2a6b8d0c1e3f
+                  span_id: 5f0c9a2e7b4d1c38
+                  timestamp: "2026-11-13T09:30:00Z"
+                  duration_ms: 41
+                  team_sid: ts_tm_Bv9nK4xP1sD7
+                  actor_type: api_key
+            unauthorized:
+              summary: "401: no bearer token, or one that does not verify"
+              value:
+                success: false
+                error:
+                  code: unauthorized
+                  message: Authentication required
+                  recoverable: true
+                  context:
+                    reason: missing_or_invalid_token
+                meta:
+                  trace_id: 019a7c2e-5b1d-7c3a-9f4e-2a6b8d0c1e3f
+                  span_id: 5f0c9a2e7b4d1c38
+                  timestamp: "2026-11-13T09:30:00Z"
+                  duration_ms: 41
+                  team_sid: null
+                  actor_type: null
     McpServerError:
       description: MCP error envelope with `error.code` internal_error or service_unavailable.
       content:
         application/json:
           schema:
             $ref: "#/components/schemas/McpError"
+          examples:
+            service_unavailable:
+              summary: "503: something the call depends on did not answer; the same call can be made again"
+              value:
+                success: false
+                error:
+                  code: service_unavailable
+                  message: "Service unavailable: upstream unavailable"
+                  recoverable: true
+                  context:
+                    reason: upstream_unavailable
+                meta:
+                  trace_id: 019a7c2e-5b1d-7c3a-9f4e-2a6b8d0c1e3f
+                  span_id: 5f0c9a2e7b4d1c38
+                  timestamp: "2026-11-13T09:30:00Z"
+                  duration_ms: 41
+                  team_sid: ts_tm_Bv9nK4xP1sD7
+                  actor_type: api_key
+            internal_error:
+              summary: "500: a fault on our side; a retry does not help, report meta.trace_id"
+              value:
+                success: false
+                error:
+                  code: internal_error
+                  message: Internal error
+                  recoverable: false
+                  context:
+                    reason: internal_error
+                meta:
+                  trace_id: 019a7c2e-5b1d-7c3a-9f4e-2a6b8d0c1e3f
+                  span_id: 5f0c9a2e7b4d1c38
+                  timestamp: "2026-11-13T09:30:00Z"
+                  duration_ms: 41
+                  team_sid: ts_tm_Bv9nK4xP1sD7
+                  actor_type: api_key
   schemas:
     AcceptLinkedinConnectionInvitationResponse:
       type: object
