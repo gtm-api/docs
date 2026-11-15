@@ -103,7 +103,7 @@ reason is thrown without a sentence). 300 reasons across 4 services.
 | `email_box_has_no_bundle` | A secrets merge needs a stored bundle to merge into, and this box has none; send the full bundle. | id |
 | `email_box_no_failed_run` | This email server has no failed operation to retry. | id |
 | `email_box_not_billed` | No live subscription pays for this email server, so its plan cannot be changed; restore the subscription first. | id |
-| `email_box_not_ready` | The email server that holds this mailbox is not active right now. | id |
+| `email_box_not_ready` | **id:** The email server that holds this mailbox is not active right now.<br/>**orchestration:** The email box is not in a state that can take part in a move (see context.status); the source must be active or suspended and the target active. | id, orchestration |
 | `email_box_not_replaceable` | **id:** The box named in replaces_email_box_sid is not the workspace's single live box (or is not active or suspended), so it cannot be replaced.<br/>**orchestration:** The current email box is not in a state a new one can replace (see context.status or context.detail); only an active or suspended box is replaced. | id, orchestration |
 | `email_box_not_serving` | Settings can be copied from a server that is running; _the field_ names one that is not. | id |
 | `email_box_ops_disabled` | This deployment is not a workspace mailbox host; box operations are off here. | email |
