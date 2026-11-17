@@ -61131,7 +61131,7 @@ components:
           type: string
           nullable: true
           format: date-time
-          description: "ISO 8601 UTC moment. When given, the thread is read from LinkedIn before the send and the send is refused with 409 replied if the person wrote after this moment (context.linkedin_message_sid names their message: read it before you send again); 503 reply_check_unavailable when that read fails, nothing sent, retry after retry_after. Omit or null to send regardless."
+          description: "ISO 8601 UTC moment. When given, the thread is read from LinkedIn before the send and the send is refused with 409 replied if the person wrote after this moment (context.linkedin_message_sid names their message: read it before you send again); 409 reply_check_unavailable when that read fails, nothing sent, retry after retry_after. Omit or null to send regardless."
         client_reference:
           type: string
           nullable: true
@@ -61501,7 +61501,7 @@ components:
           type: string
           nullable: true
           format: date-time
-          description: "ISO 8601 UTC moment. When given, the thread is read from LinkedIn before the send and the send is refused with 409 replied if the person wrote after this moment (context.linkedin_message_sid names their message: read it before you send again); 503 reply_check_unavailable when that read fails, nothing sent, retry after retry_after. Omit or null to send regardless."
+          description: "ISO 8601 UTC moment. When given, the thread is read from LinkedIn before the send and the send is refused with 409 replied if the person wrote after this moment (context.linkedin_message_sid names their message: read it before you send again); 409 reply_check_unavailable when that read fails, nothing sent, retry after retry_after. Omit or null to send regardless."
         client_reference:
           type: string
           nullable: true
