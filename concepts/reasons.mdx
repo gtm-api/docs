@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 300 reasons across 4 services.
+reason is thrown without a sentence). 308 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -39,6 +39,7 @@ reason is thrown without a sentence). 300 reasons across 4 services.
 | `app_only_credential_rejected` | Entra does not accept this application's client secret, or the application is unknown to the tenant (expired or rotated secret, wrong tenant); fix it at the provider and update the secret with email-oauth-apps.update. | email |
 | `archive_folder_missing` | This IMAP mailbox mirrors no folder with the archive role, so there is nowhere to archive to; move the message to a folder of your choice with email-messages.update instead. | email |
 | `attachment_fetch_failed` | The attachment could not be downloaded from the provider (see context.detail). | email |
+| `attachment_store_failed` | The send's files could not be stored (see context.detail), so nothing was sent or queued; retry shortly. | email |
 | `attachment_too_large` | The attachments together exceed the size a send may carry (context.max_bytes). | email |
 | `attachments_too_large` | The attachments together exceed the 35 MB a send may carry; send fewer or smaller files. | linkedin |
 | `attributes_not_supported_in_thread` | Rich-text attributes apply to the first message that opens a Recruiter thread only; a reply into an existing thread takes plain text. | linkedin |
@@ -62,6 +63,7 @@ reason is thrown without a sentence). 300 reasons across 4 services.
 | `cancelled_cannot_retry` | This item's run was deleted (see context.status): a deleted run stays stopped and its items are not retried. Create a new run to reach this target again. | orchestration |
 | `cannot_issue_deleted_certificate` | This certificate was deleted; add the domain again to issue a new one. | id |
 | `cannot_rotate_inactive_key` | Only an active API key can be rotated; this one is revoked or expired. | id |
+| `capacity_check_unavailable` | The hosting provider or the email-box registry did not answer the capacity question (see context.detail), so whether the plan's machine can be had is not known; retry in a minute. | orchestration |
 | `channel_busy` | The channel is handling its maximum number of handovers; retry this call unchanged in a minute. | id |
 | `channel_no_cross_cluster` | The two workspaces live on different clusters and this channel cannot hand an account across clusters. | id |
 | `channel_unavailable` | The channel service did not answer; retry in a minute. | id |
@@ -97,6 +99,7 @@ reason is thrown without a sentence). 300 reasons across 4 services.
 | `email_box_already_on_plan` | This email server is already on that plan. | id |
 | `email_box_busy` | This email server is in the middle of a change; wait for it to finish. | id |
 | `email_box_complimentary` | This email server is included with the workspace and is not billed, so it cannot be resized or deleted here. | id |
+| `email_box_disk_does_not_shrink` | This email server's disk (context.server_disk_gb GB) is larger than the machine of the smaller plan holds (context.plan_disk_gb GB), so its plan cannot be changed down in place. Nothing was charged. Add a server of the smaller plan, move the mailboxes into it and delete this one. | id |
 | `email_box_does_not_fit` | This email server holds more mailboxes than the chosen plan allows; move or remove mailboxes first, or choose a larger plan. | id |
 | `email_box_dump_not_ready` | The mailbox dump is not finished (see context.status); retry once it is done. | email |
 | `email_box_has_mailboxes` | This email server still holds mailboxes; move or remove them before deleting it. | id |
@@ -109,7 +112,9 @@ reason is thrown without a sentence). 300 reasons across 4 services.
 | `email_box_ops_disabled` | This deployment is not a workspace mailbox host; box operations are off here. | email |
 | `email_box_required` | Name the email server this call is for in the Email-Box-SID header. | email |
 | `email_box_unaddressable` | This box is not live or has no hostname and access key yet, so it cannot be addressed. | id |
+| `email_server_out_of_stock` | No machine for this email server plan is in stock right now (context.plan, and context.location for a new server). Nothing was charged; try again later or choose another plan. | id |
 | `email_server_price_missing` | The billing catalog has no price for this email server plan yet; try again later. | id |
+| `email_server_stock_unknown` | Whether a machine for this email server plan is in stock could not be checked just now. Nothing was charged; try again in a minute. | id |
 | `email_servers_not_offered` | Email servers cannot be bought on this deployment yet. | id |
 | `email_taken` | An account with this email already exists; sign in and connect the agent from the app instead. | id |
 | `event_invite_rejected` | LinkedIn refused at least one invitation of this batch and the wire does not say which; check that this account may invite to the event (LinkedIn offers it the Invite button there) and that every target is a 1st-degree connection, then retry with the targets that are. | linkedin |
@@ -128,11 +133,13 @@ reason is thrown without a sentence). 300 reasons across 4 services.
 | `holder_team_unavailable` | The receiving workspace does not exist or is not active. | id |
 | `idempotency_key_busy` | A send with this idempotency_key is in progress; ask again after context.retry_after. | email |
 | `idempotency_key_reused` | This idempotency_key was used for a different send; use a new key for a new message. | email |
+| `imap_all_mail_hidden` | Gmail hides All Mail from IMAP for this mailbox, and All Mail is the folder its mail is read from; in Gmail open Settings, Labels, tick "Show in IMAP" for All Mail, then connect again. | email |
 | `imap_app_password_required` | The IMAP server requires an app password instead of the account password; create one in the mailbox's security settings and send it as imap_password. | email |
 | `imap_auth_failed` | The IMAP server refused this username and password; check them, and use an app password where the provider requires one. | email |
 | `imap_connection_failed` | The IMAP server could not be reached at this host and port (refused, no route, or it is not an IMAP server); check connection.imap_host and connection.imap_port. | email |
 | `imap_connection_limit` | The IMAP server is refusing another connection to this mailbox right now (too many open sessions, or a provider limit); wait a few minutes and try again. | email |
 | `imap_disabled` | IMAP access is turned off for this mailbox; enable it in the mailbox's settings (or ask its administrator), then connect again. | email |
+| `imap_encryption_required` | A password is not sent over an unencrypted IMAP connection on this deployment; set connection.imap_encryption to ssl or starttls. | email |
 | `imap_mailbox_unavailable` | The IMAP server accepted the sign-in but would not open INBOX; check that connection.imap_username names the mailbox. | email |
 | `imap_timeout` | The IMAP server did not answer in time; check connection.imap_host and connection.imap_port, or try again shortly. | email |
 | `imap_tls_failed` | The encrypted connection to the IMAP server could not be set up (the TLS handshake failed, the certificate does not match the host, or the server does not offer STARTTLS); check that connection.imap_encryption matches the port (ssl is usually 993, starttls 143). | email |
@@ -141,6 +148,7 @@ reason is thrown without a sentence). 300 reasons across 4 services.
 | `infrastructure_unavailable` | The automation infrastructure did not answer; retry in a minute. | linkedin |
 | `initial_sync_pending` | The account's initial sync has not finished; the latest-* reads work once it has. | linkedin |
 | `inmail_requires_premium` | InMail needs a Premium LinkedIn account and this one is not Premium; send a regular message, or send from a Premium account. | linkedin |
+| `invalid_attachment` | An attachment's content_base64 is not valid base64 (context.detail names the file); encode the file's bytes as base64 and send again. | email |
 | `invalid_base64` | _the field_ is not valid base64; encode the file bytes as standard or url-safe base64 without a data: prefix. | linkedin |
 | `invalid_commit_token` | commit_token does not match this plan: preview the same title, scope, plan and schedule again and commit with the token the preview returns. | orchestration |
 | `invalid_group_by` | group_by names a field this metrics call cannot split on; use one of the fields the tool lists. | linkedin |
