@@ -133,7 +133,7 @@ One row records the first time a target profile was found to be blocking one of 
 immutable and never deleted. LinkedIn publishes no "you were blocked" signal, so the platform derives it
 with a two-browser check: an outbound action fails with a LinkedIn 4xx refusal (429 rate limits excluded,
 they mean something else), the target is read through the affected account's own browser, and if that
-fails it is retried through another live browser on your team. The triggering actions are connection
+fails the platform reads it again from its own fleet, never through another of your accounts. The triggering actions are connection
 requests, messages, InMails, sales messages, voice messages, skill endorsements, post likes, post
 comments and profile visits. Follow and unfollow are deliberately excluded, a follow refusal having too
 many innocent causes.
@@ -141,9 +141,9 @@ many innocent causes.
 | Outcome | Meaning |
 |---|---|
 | `not_blocked` | The affected account can read the target. Nothing recorded |
-| `target_blocked` | The account's own read failed, the second browser succeeded. Row written |
+| `target_blocked` | The account's own read failed, the platform's second read succeeded. Row written |
 | `target_unavailable` | Both reads failed. The profile is deleted, restricted or hibernated, not blocking you. No row |
-| `inconclusive` | Transport noise, or no second browser was available |
+| `inconclusive` | Transport noise, or the platform had no browser free for the second read |
 | `skipped_recent` | The same pair was checked within the last **24 hours** |
 
 Deduplication is **permanent**, on the pair of account and target member id: one row per genuinely new
@@ -163,9 +163,10 @@ the targeting as the problem, not the account. It is our number, not a rule Link
 ### Checking one target on demand
 
 `check-target-block` runs the same two-browser check synchronously for a target you name. The first
-read spends **1 unit** of the account's `self_account_sync` budget. A target already in the block log
-and a `skipped_recent` result inside the 24 hour cache spend nothing. `"force": true` bypasses the
-cache.
+read spends **1 unit** of the account's `self_account_sync` budget; the second read is the platform's
+and spends nothing of yours, so a workspace with a single account, or a key limited to one, gets a
+verdict too. A target already in the block log and a `skipped_recent` result inside the 24 hour cache
+spend nothing. `"force": true` bypasses the cache.
 
 ```bash curl
 curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/ln_ac_YOUR_ACCOUNT/check-target-block" \
@@ -175,8 +176,8 @@ curl -X POST "https://app.gtm-api.com/linkedin/v4/api/linkedin-accounts/ln_ac_YO
 ```
 
 The only failure answer is `422 validation_failed`, when `target` carries none of `ln_id`, `sn_id` or
-`nickname`. A team with no second browser free is not an error: it answers 200 with
-`outcome: "inconclusive"`, nothing having run on a second browser.
+`nickname`. When the platform has no browser free for the second read, that is not an error either: it
+answers 200 with `outcome: "inconclusive"`.
 
 ## How health drives smart limits
 
