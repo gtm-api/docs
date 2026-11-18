@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.id`, 85 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.id`, 86 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -1788,7 +1788,7 @@ paths:
       operationId: create_email_box
       summary: Buy email server
       description: |-
-        Buy an email server, paid as one unit of the plan's price on the workspace's subscription. Spends money. With an active subscription the unit joins it on its own cycle and the prorated amount for the rest of the period is charged to its card in the call (409 payment_declined buys nothing); item is the new server in provisioning, run shows the build. Without one nothing is charged: item is null and checkout holds a Paddle checkout only the app can open, so the user pays on the Email Accounts screen (search_billing_subscriptions tells which case applies). A seat delete_email_box kept (retained subscription_seat) goes to the next server of its plan, free. Through MCP it takes two calls: the first, without commit_token, changes nothing and has no price quote; the second, same arguments plus commit_token, buys. The REST route takes no commit_token and buys on the call. Not idempotent: each confirmed call buys another server. 503 email_servers_not_offered: this deployment sells none. Requires can_manage_billing.
+        Buy an email server: one unit of the plan's price on the workspace's subscription. Spends money. Through MCP it takes two calls. The first, without commit_token, changes nothing: preview_result carries the quote beside the commit_token: payment (charged_now: amount_due_now, prorated, goes to the subscription's card; checkout: no subscription, nothing is charged and checkout holds a Paddle checkout only the app can open; kept_seat: a seat a deleted server left pays, free), next_amount (the recurring price) and available. Show the money to the user; do not commit when available is false; status unanswered means no quote came back, say so. The second call, same arguments plus commit_token, buys: item is the new server in provisioning, run shows the build. REST buys on the call; POST /api/email-boxes/preview-create is its preview. Each confirmed call buys another server. 409 payment_declined; 503 email_server_out_of_stock, email_server_stock_unknown, email_servers_not_offered. Requires can_manage_billing.
 
         Contract:
         - MCP tool `create_email_box`, registry package `mcp.id/email_boxes`, mount `id.billing`.
@@ -1856,6 +1856,48 @@ paths:
         5XX:
           $ref: "#/components/responses/McpServerError"
       x-gtm-mcp-tool: confirm_email_box_checkout
+      x-gtm-mcp-mount: id.billing
+      x-gtm-entity: email_boxes
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: api
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+  /api/email-boxes/preview-create:
+    post:
+      operationId: preview_email_box_create
+      summary: Preview email server purchase
+      description: |-
+        Quote the purchase of an email server without making it: how it would be paid (payment: charged_now, checkout or kept_seat), what the purchase itself charges (amount_due_now), the server's recurring price (next_amount) and whether the plan's machine can be had where it was asked for (available, unavailable_reason). No state change, no charge. Through MCP the first call of create_email_box runs this route and carries its answer as preview_result. Requires can_manage_billing.
+
+        Contract:
+        - REST only: no MCP tool serves this route (registry package `mcp.id/email_boxes`, surface api).
+        - Operation `action`, response envelope `action`.
+        - Flags: read only.
+      tags:
+        - email_boxes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PreviewEmailBoxCreateRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PreviewEmailBoxCreateResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: preview_email_box_create
       x-gtm-mcp-mount: id.billing
       x-gtm-entity: email_boxes
       x-gtm-operation: action
@@ -2065,7 +2107,7 @@ paths:
       operationId: preview_email_box_resize
       summary: Preview email server plan change
       description: |-
-        Quote a plan change of an email server without making it: whether its mailboxes fit the new plan (fits, seats_used, seats_cap_after), what Paddle would charge now (amount_due_now) and the server's recurring price from the next period (next_amount). No state change, no charge. Through MCP the first call of resize_email_box runs this route and carries its answer as preview_result. Requires can_manage_billing.
+        Quote a plan change of an email server without making it: whether its mailboxes fit the new plan (fits, seats_used, seats_cap_after), what Paddle would charge now (amount_due_now), the server's recurring price from the next period (next_amount) and whether the new plan's machine can be had for this server (available, unavailable_reason). No state change, no charge. Through MCP the first call of resize_email_box runs this route and carries its answer as preview_result. Requires can_manage_billing.
 
         Contract:
         - REST only: no MCP tool serves this route (registry package `mcp.id/email_boxes`, surface api).
@@ -2118,7 +2160,7 @@ paths:
       operationId: resize_email_box
       summary: Change email server plan
       description: |-
-        Change an email server's plan. Spends money: its unit moves to the new plan's price in one subscription update, prorated now (an upgrade charges the difference for the rest of the period, a downgrade credits it). The server reads resizing until the run ends; to or from dedicated it moves to a new machine and its sid changes. Through MCP it takes two calls. The first, without commit_token, changes nothing: preview_result carries the quote (fits, seats_used, seats_cap_after, amount_due_now, next_amount) beside the commit_token. Show the money to the user; do not commit when fits is false; status unanswered means no quote came back, say so. The second call, same arguments plus commit_token, commits. The REST route takes no commit_token and commits on the call: POST /api/email-boxes/{sid}/preview-resize is its preview. 409 email_box_does_not_fit, email_box_busy, email_box_complimentary, email_box_not_billed; 422 email_box_already_on_plan. Requires can_manage_billing.
+        Change an email server's plan. Spends money: its unit moves to the new plan's price, prorated now (an upgrade charges the difference, a downgrade credits it). The server reads resizing until the run ends; to or from dedicated it moves to a new machine and its sid changes. Through MCP it takes two calls. The first, without commit_token, changes nothing: preview_result carries the quote (fits, seats_used, seats_cap_after, amount_due_now, next_amount, available) beside the commit_token. Show the money to the user; do not commit when fits or available is false; status unanswered means no quote came back, say so. The second call, same arguments plus commit_token, commits. REST commits on the call; POST /api/email-boxes/{sid}/preview-resize is its preview. 409 email_box_does_not_fit, email_box_busy, email_box_complimentary, email_box_not_billed, email_box_disk_does_not_shrink; 422 email_box_already_on_plan; 503 email_server_out_of_stock, email_server_stock_unknown. Requires can_manage_billing.
 
         Contract:
         - MCP tool `resize_email_box`, registry package `mcp.id/email_boxes`, mount `id.billing`.
@@ -12933,6 +12975,142 @@ components:
         - item
         - result
         - meta
+    PreviewEmailBoxCreateRequest:
+      type: object
+      description: Request body of `preview_email_box_create`.
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 60
+          description: The server's label, 1 to 60 characters.
+        plan:
+          type: string
+          enum:
+            - starter
+            - growth
+            - agency
+            - dedicated
+          description: "Mailboxes per plan: starter 100, growth 500, agency 2000, dedicated 10000."
+        location:
+          type: string
+          enum:
+            - hel1
+            - fsn1
+            - nbg1
+          description: hel1 Helsinki, fsn1 Falkenstein, nbg1 Nuremberg.
+        copy_settings_from:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^em_bx_
+          description: A serving server of this workspace whose settings and stop-list the new one starts with.
+      required:
+        - name
+        - plan
+        - location
+    PreviewEmailBoxCreateResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            payment:
+              type: string
+              description: "charged_now: the unit joins the live subscription and amount_due_now goes to its card in the purchase. checkout: no live subscription, the purchase charges nothing and answers a Paddle checkout only the app can open. kept_seat: a seat kept from a deleted server of the plan pays, nothing is charged."
+            amount_due_now:
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+              required:
+                - amount
+                - currency
+              description: Charged by the purchase itself, prorated for the rest of the period; 0.00 for checkout and kept_seat.
+            next_amount:
+              type: object
+              properties:
+                amount:
+                  type: string
+                  description: Decimal string, e.g. "49.00".
+                currency:
+                  type: string
+                  description: ISO 4217.
+                interval:
+                  type: string
+                  description: month or year.
+              required:
+                - amount
+                - currency
+                - interval
+              description: The recurring price of the server; with checkout, what the checkout asks for before tax.
+            available:
+              type: boolean
+              description: "false: the plan's machine cannot be had right now, and the confirmed call would refuse with nothing charged."
+            unavailable_reason:
+              type: string
+              nullable: true
+              description: "out_of_stock: no capacity for the plan's machine type where the server would be. disk_does_not_shrink: a change down in place after the server's disk grew. stock_unknown: the check got no answer. Null when available."
+          required:
+            - payment
+            - amount_due_now
+            - next_amount
+            - available
+            - unavailable_reason
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     PreviewEmailBoxResizeRequest:
       type: object
       description: Request body of `preview_email_box_resize`.
@@ -13004,12 +13182,21 @@ components:
                 - currency
                 - interval
               description: The recurring price of the server from the next period on.
+            available:
+              type: boolean
+              description: "false: the plan's machine cannot be had right now, and the confirmed call would refuse with nothing charged."
+            unavailable_reason:
+              type: string
+              nullable: true
+              description: "out_of_stock: no capacity for the plan's machine type where the server would be. disk_does_not_shrink: a change down in place after the server's disk grew. stock_unknown: the check got no answer. Null when available."
           required:
             - fits
             - seats_used
             - seats_cap_after
             - amount_due_now
             - next_amount
+            - available
+            - unavailable_reason
         meta:
           type: object
           properties:

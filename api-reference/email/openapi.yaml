@@ -1659,7 +1659,7 @@ paths:
       operationId: search_email_messages
       summary: Search email messages
       description: |-
-        List single messages across the team's mailboxes, newest first: who wrote to whom, subject, snippet, status, folder, read and flag state, opens and clicks. Filter by mailbox, thread, direction, status, participants, folder and time; q matches words of the subject and the snippet. Rows come without bodies unless include_bodies is true, which carries the bodies already mirrored (it fetches nothing): keep such a page to 20 rows or fewer. status eq scheduled is the send queue. Trashed rows and bounce reports are left out unless deleted_at or kind is filtered. For one message with its body use get_email_message; for a whole conversation get_email_thread_llm_context. page_size 0 answers counts alone. Requires can_view_email_messages.
+        List single messages across the team's mailboxes, newest first: who wrote to whom, subject, snippet, status, folder, read and flag state, opens and clicks. Filter by mailbox, thread, direction, status, participants, folder and time; q matches words of the subject and the snippet. Rows come without bodies unless include_bodies is true, which carries the bodies already mirrored (it fetches nothing): keep such a page to 20 rows or fewer. status eq scheduled is the send queue. Trashed rows and bounce reports are left out unless deleted_at or kind is filtered. For one message with its body use get_email_message; for a whole conversation get_email_thread_llm_context. page_size 0 answers counts alone; counts.groups splits by mailbox only when the filter names mailboxes. Requires can_view_email_messages.
 
         Contract:
         - MCP tool `search_email_messages`, registry package `mcp.email/email_messages`, mount `email.messaging`.
@@ -9818,6 +9818,7 @@ components:
                     groups:
                       type: object
                       additionalProperties: {}
+                      description: Events by kind and bounce_type; by email_account_sid too when the filter names mailboxes (eq or in).
                   required:
                     - total_count
                     - groups
@@ -11014,7 +11015,7 @@ components:
                     groups:
                       type: object
                       additionalProperties: {}
-                      description: Rows by email_account_sid, direction, status, folder_role, is_read and kind.
+                      description: Rows by direction, status, folder_role, is_read (true, false) and kind, the largest value first; by email_account_sid too when the filter names mailboxes (eq or in).
                   required:
                     - total_count
                     - groups
@@ -11582,6 +11583,7 @@ components:
                     groups:
                       type: object
                       additionalProperties: {}
+                      description: Threads by has_unanswered_inbound (true, false); by email_account_sid too when the filter names mailboxes (eq or in).
                   required:
                     - total_count
                     - groups
@@ -19134,6 +19136,7 @@ components:
             groups:
               type: object
               additionalProperties: {}
+              description: Events by kind and bounce_type; by email_account_sid too when the filter names mailboxes (eq or in).
           required:
             - total_count
             - groups
@@ -20600,7 +20603,7 @@ components:
             q:
               type: string
               maxLength: 128
-              description: "Words of the subject or the snippet. Bodies and mail older than the mirror: search_email_account_provider."
+              description: "Words of the subject or the snippet: every word must be there, as a word or the start of one, in any order. Bodies and mail older than the mirror: search_email_account_provider."
             sid:
               type: object
               properties:
@@ -21458,7 +21461,7 @@ components:
             groups:
               type: object
               additionalProperties: {}
-              description: Rows by email_account_sid, direction, status, folder_role, is_read and kind.
+              description: Rows by direction, status, folder_role, is_read (true, false) and kind, the largest value first; by email_account_sid too when the filter names mailboxes (eq or in).
           required:
             - total_count
             - groups
@@ -23919,6 +23922,7 @@ components:
             groups:
               type: object
               additionalProperties: {}
+              description: Threads by has_unanswered_inbound (true, false); by email_account_sid too when the filter names mailboxes (eq or in).
           required:
             - total_count
             - groups

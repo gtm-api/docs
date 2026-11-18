@@ -1218,7 +1218,7 @@ paths:
       operationId: search_linkedin_account_smart_limits
       summary: Search LinkedIn account smart limits
       description: |-
-        List per-limit_type policy rows (one account owns 15 public buckets: send_connection_requests, send_messages, send_inmails, scraping, enrichment, custom_request, …) with filters, sorting, cursor pagination and a counts block (status / limit_type breakdowns). Whether the warmup governs a row is the ACCOUNT's smart_limits_enabled, not a row field. Use for: "which limits are at their daily cap / held / blocked by LinkedIn" (status filter; held means the daily budget is spent), "can account X still send InMails today" (filter linkedin_account_sid + limit_type, read status + daily_limit − done_today_count), fleet capacity, smart-limit adoption rate. Every row also carries recommended_daily_limit / recommended_delay_in_seconds (what the platform would run this bucket at for THIS account) and risk_level (none | elevated | ban_likely) for the values currently set. Single-row case = search(filter:{linkedin_account_sid, limit_type}, page_size:1). No q. include[]: linkedin_account, linkedin_account_quota_hits.
+        List per-limit_type policy rows (15 public buckets per account: send_connection_requests, send_messages, send_inmails, scraping, enrichment, …) with filters, sorting, cursor pages and counts. Whether the warmup governs a row is the ACCOUNT's smart_limits_enabled, not a row field. Use for: "which limits are held / blocked by LinkedIn" (status filter; held = the daily budget is spent), "can account X still send InMails today" (linkedin_account_sid + limit_type: status, daily_limit − done_today_count). Rows carry recommended_daily_limit / recommended_delay_in_seconds (the platform's numbers for THIS account) and risk_level (none | elevated | ban_likely) of the values set. During an account's initial sync its rows are provisional (set when it ends) and self_account_sync is the platform's raised read budget: held = the sync goes on by itself at hold_till, never lower it. Single row = search(filter:{linkedin_account_sid, limit_type}, page_size:1). No q. include[]: linkedin_account, linkedin_account_quota_hits.
 
         Contract:
         - MCP tool `search_linkedin_account_smart_limits`, registry package `mcp.linkedin/linkedin_account_smart_limits`, mount `linkedin.accounts`.
@@ -1444,7 +1444,7 @@ paths:
       operationId: search_linkedin_account_sync_runs
       summary: Search LinkedIn account sync runs
       description: |-
-        List sync runs: the backend-owned progress tracker for one paginated sync of one data surface (connections, connection_requests, connection_invitations, conversations, sales_navigator_conversations, followers) or a §5.7 composition (snapshot, premium_check). Use for: "is account X fully synced / how far along" (filter linkedin_account_sid + status in [pending, in_progress]), "which accounts are stuck mid-sync" (status in_progress, sort last_progress_at), "how fresh is the connection data" (latest completed connections run → finished_at). Runs are not created here; the write surface is linkedin-accounts.reset-sync / .sync. No q. Sort: created_at (default desc) | started_at | finished_at | last_progress_at | next_attempt_at | items_saved. include[]: linkedin_account, activity_log_pages, limit (default).
+        List sync runs: the backend-owned progress tracker for one paginated sync of one data surface (connections, connection_requests, connection_invitations, conversations, sales_navigator_conversations, followers) or a §5.7 composition (snapshot, premium_check). Use for: "is account X fully synced / how far along" (filter linkedin_account_sid + status in [pending, in_progress]), "which accounts are stuck mid-sync" (status in_progress, sort last_progress_at), "how fresh is the connection data" (latest completed connections run → finished_at). in_progress with a wait_reason is parked, not broken: limit:* = the day's read budget is spent and the run goes on by itself at next_attempt_at (a big inbox takes days); browser:* = start the browser or sign in again. Read-only: runs come from linkedin-accounts.reset-sync / .sync. No q. Sort: created_at (default desc) | started_at | finished_at | last_progress_at | next_attempt_at | items_saved. include[]: linkedin_account, activity_log_pages, limit (default).
 
         Contract:
         - MCP tool `search_linkedin_account_sync_runs`, registry package `mcp.linkedin/linkedin_account_sync_runs`, mount `linkedin.account-monitor`.
@@ -1546,7 +1546,7 @@ paths:
       operationId: search_linkedin_accounts
       summary: Search LinkedIn accounts
       description: |-
-        List LinkedIn accounts (senders) on the team with operator filters, sort and cursor pagination, plus an always-present counts block (total, premium / SN / Recruiter, active_today, stale, signed_out). Also the way to find an account sid before calling account-scoped tools. For ANY health or availability question, request include antidetect_browser: login state lives on the bound browser row, whose status login_issue means the sender is signed out of LinkedIn. The item status field is platform lifecycle and stays active through a logout, so never read it as health. counts.signed_out_count flags signed-out senders even without the include; per-row attribution needs it. A full sender health summary combines antidetect_browser with linkedin_account_smart_limits, linkedin_account_snapshot (warmup score) and linkedin_account_block_log_counts. Items with includes are large: page a fleet with page_size 10 or less and follow next_cursor instead of asking for one big page.
+        List LinkedIn accounts (senders) on the team with operator filters, sort and cursor pagination, plus an always-present counts block (total, premium / SN / Recruiter, active_today, stale, signed_out). Also the way to find an account sid for account-scoped tools. For ANY health or availability question, request include antidetect_browser: login state lives on the bound browser row, whose status login_issue means the sender is signed out of LinkedIn. The item status field is platform lifecycle and stays active through a logout, so never read it as health. counts.signed_out_count flags signed-out senders even without the include; per-row attribution needs it. A full sender health summary combines antidetect_browser with linkedin_account_smart_limits, linkedin_account_snapshot (warmup score) and linkedin_account_block_log_counts. A new account syncs first: include initial_sync for its state and the estimated end. Items with includes are large: page a fleet with page_size 10 or less and follow next_cursor.
 
         Contract:
         - MCP tool `search_linkedin_accounts`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -1588,7 +1588,7 @@ paths:
       operationId: get_linkedin_account
       summary: Get LinkedIn account
       description: |-
-        Fetch a single LinkedIn account by sid, with optional eager-loaded relations. For login or health state add include antidetect_browser: browser status login_issue means the sender is signed out of LinkedIn, while the item status field is platform lifecycle, not login state.
+        Fetch a single LinkedIn account by sid, with optional eager-loaded relations. For login or health state add include antidetect_browser: browser status login_issue means the sender is signed out of LinkedIn, while the item status field is platform lifecycle, not login state. While the first sync of the account runs (initial_sync_completed_at null) include initial_sync says what it is doing and about when it is through; outbound verbs wait and the limits are set when it is done.
 
         Contract:
         - MCP tool `get_linkedin_account`, registry package `mcp.linkedin/linkedin_accounts`, mount `linkedin.accounts`.
@@ -1628,7 +1628,8 @@ paths:
                 - linkedin_connection_invitations_counts
                 - linkedin_conversations_counts
                 - linkedin_followers_counts
-              description: 'antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn, restricted means signed out and the public profile is gone, a LinkedIn restriction; also error_reason, logout_count, last_logout_at). The account item alone cannot answer "is this sender signed in": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies).'
+                - initial_sync
+              description: "antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn, restricted means signed out and the public profile is gone, a LinkedIn restriction; also error_reason, logout_count, last_logout_at). The account item alone cannot answer \"is this sender signed in\": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies). initial_sync is the first sync of a new account, null once it is done: state (syncing | waiting_for_reads = the day's reads are used and it goes on by itself at resumes_at | waiting_for_browser = start the browser or sign in again), conversations_synced, estimated_completion_at and estimated_days_left (0 = today; both null in the first minutes and while the browser is down). A large account takes days on purpose: reading it in one go is not safe, so the platform paces it. Until it is done outbound verbs wait and the limits are provisional, set when it finishes. Say that, not that something is stuck."
       responses:
         "200":
           description: "`get` success envelope."
@@ -12128,8 +12129,8 @@ components:
           description: Human label for the list view. Server derives "{result_kind} {source_method}" when omitted.
         url:
           type: string
-          maxLength: 2048
-          description: LinkedIn or Sales Navigator people/company SEARCH url. Mutually exclusive with source_method plus source_input.
+          maxLength: 15000
+          description: "LinkedIn or Sales Navigator people/company SEARCH url, up to 15000 characters (longer: 422 search_url_too_long, pass the saved search's link). Mutually exclusive with source_method plus source_input."
         source_method:
           type: string
           enum:
@@ -31576,9 +31577,11 @@ components:
             next_attempt_at:
               type: string
               nullable: true
+              description: When a parked run is tried again; null while it is runnable.
             wait_reason:
               type: string
               nullable: true
+              description: Why an in_progress run is parked, null while it is runnable. limit:* = a smart-limit budget is spent or held (the included limit is that bucket), the run goes on by itself at next_attempt_at. browser:* = the bound browser is down or signed out. schedule:closed = outside the account's sync hours. worker:* = a platform retry.
             started_at:
               type: string
               nullable: true
@@ -45178,7 +45181,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/companies\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/companies/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing."
         filters:
@@ -45412,7 +45415,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/learning\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/learning/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. On the url half OUR number wins: the offset or page parameter baked into the pasted URL is overwritten, while every other parameter rides through untouched."
         filters:
@@ -45627,7 +45630,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/events\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/events/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. On the url half OUR number wins: the offset or page parameter baked into the pasted URL is overwritten, while every other parameter rides through untouched."
         filters:
@@ -45827,7 +45830,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/groups\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/groups/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. On the url half OUR number wins: the offset or page parameter baked into the pasted URL is overwritten, while every other parameter rides through untouched."
         filters:
@@ -46017,7 +46020,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/jobs\/search-results\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/jobs/search-results/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. On the url half OUR number wins: the offset or page parameter baked into the pasted URL is overwritten, while every other parameter rides through untouched."
         filters:
@@ -46294,7 +46297,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/people\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/people/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing."
         filters:
@@ -46588,7 +46591,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/content\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/content/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing."
         filters:
@@ -46874,7 +46877,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/products\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/products/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. On the url half OUR number wins: the offset or page parameter baked into the pasted URL is overwritten, while every other parameter rides through untouched."
         filters:
@@ -47096,7 +47099,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/talent\/search
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/talent/search : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. The URL LinkedIn Recruiter shows after a search (/talent/search?...searchHistoryId=N...): it names the search by its searchHistoryId only, so a URL without one is refused (422) rather than run as a keywords-only search. Use the search_url a previous answer returned to page on."
         filters:
@@ -47928,7 +47931,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/sales\/search\/company
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/sales/search/company : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing."
         filters:
@@ -48385,7 +48388,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/sales\/search\/people
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/sales/search/people : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing."
         filters:
@@ -49046,7 +49049,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/schools\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/schools/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing. On the url half OUR number wins: the offset or page parameter baked into the pasted URL is overwritten, while every other parameter rides through untouched."
         filters:
@@ -49236,7 +49239,7 @@ components:
         url:
           type: string
           nullable: true
-          maxLength: 2048
+          maxLength: 15000
           pattern: ^https:\/\/www\.linkedin\.com\/search\/results\/services\/
           description: "EXCLUSIVE with `filters`: send url OR filters, never both (422) and never neither (422). A search URL built in the LinkedIn UI, and the escape hatch for everything the filter vocabulary cannot express. MUST start with https://www.linkedin.com/search/results/services/ : a URL from another LinkedIn search screen is refused here and again by the backend (422 invalid_search_url), because running it would silently scrape the wrong thing."
         filters:
@@ -54787,9 +54790,11 @@ components:
                   next_attempt_at:
                     type: string
                     nullable: true
+                    description: When a parked run is tried again; null while it is runnable.
                   wait_reason:
                     type: string
                     nullable: true
+                    description: Why an in_progress run is parked, null while it is runnable. limit:* = a smart-limit budget is spent or held (the included limit is that bucket), the run goes on by itself at next_attempt_at. browser:* = the bound browser is down or signed out. schedule:closed = outside the account's sync hours. worker:* = a platform retry.
                   started_at:
                     type: string
                     nullable: true
@@ -55517,7 +55522,8 @@ components:
               - linkedin_connection_invitations_counts
               - linkedin_conversations_counts
               - linkedin_followers_counts
-            description: 'antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn, restricted means signed out and the public profile is gone, a LinkedIn restriction; also error_reason, logout_count, last_logout_at). The account item alone cannot answer "is this sender signed in": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies).'
+              - initial_sync
+            description: "antidetect_browser carries the sender LOGIN and runtime state (browser status login_issue means signed out of LinkedIn, restricted means signed out and the public profile is gone, a LinkedIn restriction; also error_reason, logout_count, last_logout_at). The account item alone cannot answer \"is this sender signed in\": its status field is lifecycle. Health data: linkedin_account_smart_limits (budgets and holds), linkedin_account_snapshot (latest warmup score), linkedin_account_quota_hits / linkedin_account_block_log (last 50 incident rows each), *_counts (child tallies). initial_sync is the first sync of a new account, null once it is done: state (syncing | waiting_for_reads = the day's reads are used and it goes on by itself at resumes_at | waiting_for_browser = start the browser or sign in again), conversations_synced, estimated_completion_at and estimated_days_left (0 = today; both null in the first minutes and while the browser is down). A large account takes days on purpose: reading it in one go is not safe, so the platform paces it. Until it is done outbound verbs wait and the limits are provisional, set when it finishes. Say that, not that something is stuck."
           description: Relations to eager-load (see entity Includes).
         sort:
           type: object

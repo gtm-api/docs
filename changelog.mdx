@@ -3,6 +3,65 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-18" description="Email searches that find little cost little, new email refusals with their own reasons, and an account still syncing says so">
+  **Email searches answer their counts from an index.** A search over email messages, threads or
+  the bounce log reads its `counts` block from an index, so a count-only search (`page_size: 0`)
+  over tens of thousands of messages answers in under a tenth of a second, where it took more
+  than a second. `counts.groups.email_account_sid` is in the block only when the filter names
+  mailboxes (`email_account_sid` with `eq` or `in`), so the block no longer grows with every
+  mailbox on the server. `q` on the message search matches the words of the subject and the
+  snippet.
+
+  **New refusals with their own reasons.** Connecting a mailbox over IMAP with no encryption
+  answers `422` with `imap_encryption_required`. A Gmail mailbox that hides All Mail from IMAP is
+  refused with `imap_all_mail_hidden` and the setting to change. A send whose attachment is not
+  valid base64 answers `422 invalid_attachment`, and one whose files could not be stored answers
+  `503 attachment_store_failed`, with nothing sent. See [Reasons](/concepts/reasons).
+
+  **A sent message lists its files.** The row of a message you sent carries its attachments, so
+  `get-attachment` serves them and a later send can reference them. A scheduled send keeps its
+  files until it goes out.
+
+  **Bounce reports are read by what they say.** A refusal reported by the sender's own
+  Microsoft 365 tenant, and the delivery reports of a Google mailbox, mark the send bounced with
+  the report's own code; a hard bounce puts the address on the stop-list, and a report that only
+  says delivery is delayed changes nothing.
+
+  **A new email server is quoted before you buy it.** Email Accounts shows what a server adds to
+  the subscription and what is charged now, says when a size cannot be had right now, and says
+  when a server cannot move down to a smaller disk (the way there is a new, smaller server).
+
+  **`email-accounts.sync-completed` goes out when something happened.** It is sent for a first
+  sync, a manual sync, the catch-up after a reconnect, and any sync that stored or deleted a
+  message or changed the folder list. A routine check that found nothing no longer sends it.
+
+  **A LinkedIn account that is still syncing says so.** During an account's initial sync it shows
+  no risk reading and no limit marks: it says it is syncing, about how long that will take, and
+  why the speed is limited. `include: ["initial_sync"]` on the LinkedIn account search returns
+  the estimate.
+
+  **Search links up to 15,000 characters.** A LinkedIn or Sales Navigator search link is taken
+  whole wherever a search URL is accepted, and a long Sales Navigator link is paged correctly.
+
+  **A member whose public profile name holds a symbol or an emoji** is found by that name, the
+  shadowban check included.
+
+  **The Sales Navigator check** no longer reports access for a member whose Sales Navigator
+  account LinkedIn has restricted.
+
+  **A full profile is served from cache only when the cached answer was a full profile.**
+
+  **Ties in a descending sort.** A search page sorted in descending order breaks ties by the
+  newest record first and reads straight from its index. A cursor taken before this change from a
+  descending walk answers `422 cursor_sort_mismatch`: start that walk again.
+
+  **The cloud browser's public sign-in page has Cancel.** A visitor can stop a sign-in; the page
+  asks first, releases the browser, and offers to open it again.
+
+  **`stop_if_replied_after`** on send and send-inmail documents the `409 reply_check_unavailable`
+  the API answers when it cannot check for a reply.
+</Update>
+
 <Update label="2026-11-15" description="Email servers and mailboxes, and a signup refuses an address whose domain takes no mail">
   **Email is a channel.** A workspace buys email servers in Email Accounts (Starter, Growth, Agency
   and Dedicated, for up to 100, 500, 2,000 and 10,000 mailboxes) and connects its mailboxes to them:
