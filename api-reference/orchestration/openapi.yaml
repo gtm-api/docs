@@ -2165,6 +2165,7 @@ components:
               - email-tracking-domains.failed
               - email-sending-domains.verified
               - email-sending-domains.failed
+              - email-boxes.ready
               - mass-actions.created
               - mass-actions.paused
               - mass-actions.resumed
@@ -4686,6 +4687,7 @@ components:
               - email-tracking-domains.failed
               - email-sending-domains.verified
               - email-sending-domains.failed
+              - email-boxes.ready
               - mass-actions.created
               - mass-actions.paused
               - mass-actions.resumed
@@ -7854,6 +7856,7 @@ components:
               - email-tracking-domains.failed
               - email-sending-domains.verified
               - email-sending-domains.failed
+              - email-boxes.ready
               - mass-actions.created
               - mass-actions.paused
               - mass-actions.resumed

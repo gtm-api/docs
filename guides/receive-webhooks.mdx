@@ -25,7 +25,7 @@ Webhooks live on the Orchestration service and cover events from the whole platf
 
 - `name` is required (1 to 255 characters). Omitting it fails validation.
 - `target_url` must be `https://` and must not resolve to a loopback, private or link-local address. DNS names are resolved and checked too, not just IP literals.
-- Each `events[]` value is validated against the platform event catalog, which currently carries 108 types across the services.
+- Each `events[]` value is validated against the platform event catalog, which currently carries 111 types across the services.
 - The same `target_url` cannot be registered twice in one team.
 - `events: ["*"]` subscribes to the entire catalog, including event types added later.
 
