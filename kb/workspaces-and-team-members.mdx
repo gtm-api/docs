@@ -92,6 +92,18 @@ list of `ln_ac_` sids is only those (**{n} of {total}**). An explicit empty list
 `422` - a member scoped to zero accounts would see a workspace that looks empty rather than
 forbidden, which is a support ticket, not a grant.
 
+A member limited to selected accounts gets no webhooks and no mass actions. Both work across the
+workspace (a webhook with no account filter receives every account's events, a run can name any
+account or none), so they cannot be cut to a slice, and the four permissions behind them
+(`can_view_webhooks`, `can_manage_webhooks`, `can_view_mass_actions`, `can_manage_mass_actions`) cannot
+be held together with a list of accounts. In the permission editor the four boxes untick and grey
+out the moment **Selected accounts** is chosen, with the reason beside them, and come back with
+**All accounts**; a preset keeps its name and comes without them. Over the API the pair is refused
+with a `422`, and the wildcard `*` with a list of accounts means everything except those four. The
+member sees the two sections in the app with a line saying they are not available while access is
+limited, and every call answers `403 account_slice_not_served`. The same holds for an API key and
+for an app connected over OAuth on behalf of such a member.
+
 <Note>
 Both scoping surfaces are in the app. The invite dialog carries the permission editor, so an
 invitation goes out with exactly the tokens you tick, and **Access** on a member row reopens the same
@@ -203,6 +215,8 @@ the full request shape are in the [API reference](/api-reference/overview).
 | `accept-invitation` after 7 days | `409 conflict`, reason `invitation_expired` | Press **Resend** in the app, which gives another 7 days |
 | `PATCH` with neither field | `422 nothing_to_update` | Send `permissions` or `account_sids` |
 | An `account_sids` entry that is not an `ln_ac_` sid | `422 validation_failed` | Use LinkedIn account sids, not user or member sids |
+| A list of accounts together with a webhook or mass action permission, on an invite or a `PATCH` | `422 validation_failed`, rule `not_available_with_account_slice` on `permissions` (or on `account_sids` when only the list moved); `context.permissions` names them | Drop those permissions, or send `account_sids: null` |
+| A webhook or mass action call by a member or key limited to selected accounts | `403 forbidden`, reason `account_slice_not_served` | Use a member or key that is not limited, or have an admin set the member back to all accounts |
 | A sid with the wrong prefix | `422 validation_failed`, `field_errors.sid[0].message` reads `Expected ts_mb_ prefix, got ...` | Member sids start with `ts_mb_` |
 | `switch-team` to a workspace you do not belong to | `403 forbidden`, reason `not_a_member` | The same code covers a deleted workspace and a revoked membership, on purpose |
 | `switch-team` with an OAuth installation token | `403 forbidden`, reason `not_a_login_session` | Only login sessions switch. Agent tokens are minted per workspace |
