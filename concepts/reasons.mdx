@@ -5,12 +5,12 @@ description: "Every machine reason the platform answers with, and what it means.
 
 An error envelope carries one of the 16 [error codes](/concepts/envelopes-and-errors#the-16-error-codes) and, under it, a
 **reason**: the machine word for what exactly went wrong. On `validation_failed` it is `field_errors.<field>[].rule`,
-on `conflict`, `rate_limited` and `service_unavailable` it is `error.context.reason`. The `message` next to it is the
+on `conflict`, `forbidden`, `rate_limited` and `service_unavailable` it is `error.context.reason`. The `message` next to it is the
 sentence below, so an agent branches on the reason and a person reads the message; the ids, dates and limits the sentence
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 308 reasons across 4 services.
+reason is thrown without a sentence). 310 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -32,6 +32,7 @@ reason is thrown without a sentence). 308 reasons across 4 services.
 | `account_not_transferable` | The channel refused to transfer this account (see context.reason): it is not in a state that can be handed over. | id |
 | `account_sending_paused` | Sending from this account is paused (see context.reason); resume it, or send from another account. | email |
 | `account_shared_out` | This LinkedIn member is lent to another workspace right now, and only that workspace acts with it; recall the share before connecting it again or sending from it. | linkedin |
+| `account_slice_not_served` | Webhooks and mass actions are not available while your access is limited to selected accounts. Use a key or a member that is not limited, or ask a workspace admin to lift the limit. | orchestration |
 | `acme_unreachable` | The certificate authority did not answer; retry in a minute. | id |
 | `addon_not_on_subscription` | This add-on is not on the subscription, so there is nothing to remove or change. | id |
 | `already_erased` | This account was erased; nothing of it remains to act on. | id |
@@ -197,6 +198,7 @@ reason is thrown without a sentence). 308 reasons across 4 services.
 | `no_mass_action_set` | This auto-scrape feeds no mass action; set one with set-mass-action before running. | linkedin |
 | `no_recognised_filter_members` | None of the keys in source_input.filters is a filter this search understands; use the keys the tool lists. | linkedin |
 | `not_a_login_session` | This session is not a login session, so it has no login result to confirm. | linkedin |
+| `not_available_with_account_slice` | Webhooks and mass actions are not available to a key or a member limited to selected accounts (context.permissions names the permissions that cannot be held): remove them, or set account_sids to null so every account is in reach. | id |
 | `not_connected` | The target is not a 1st-degree connection of this account, and this action needs one; send a connection request first, or act from an account that is connected. | linkedin |
 | `not_enough_seats` | The target email server has no room for these mailboxes; free up seats or resize it first. | id |
 | `not_this_message` | **linkedin:** _the field_ names no attempt of this same send that is in doubt; name the activity_log_sid a 409 or check-sent gave for this client_reference and place, or for these words and this place without a key.<br/>**email:** _the field_ names the activity_log_sid of an earlier attempt of this same message (the same client_reference and recipients, or without a key the same content and recipients) that is in doubt; this one is not. | linkedin, email |

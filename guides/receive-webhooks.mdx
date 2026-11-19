@@ -31,6 +31,10 @@ Webhooks live on the Orchestration service and cover events from the whole platf
 
 The response returns the webhook's `secret`, a 32-character hex string, exactly once. Store it: every later read masks it, and it is what you verify signatures with.
 
+<Warning>
+  Webhooks are not available to a key or a member limited to selected accounts. A subscription covers the workspace, so every webhook call from such a caller answers `403` with `context.reason: account_slice_not_served`, whatever permissions it holds. Register the endpoint with a key that is not limited, and narrow it to one account with `filters.account_sid` (below). Webhooks registered earlier keep delivering.
+</Warning>
+
 <Note>
   Webhooks are capped per plan. Creating one past the cap answers `402` with `webhook_limit_reached` and a body carrying `used`, `limit` and a suggested action. The free Sandbox plan includes one webhook, so subscribe that endpoint to `events: ["*"]` and route on your side. Paid plans carry 100. A trigger in n8n, Make or Zapier registers a webhook of its own, so on Sandbox one trigger runs at a time. Sandbox also has no realtime push: a received message reaches the webhook when a sync reads it, not within seconds ([inbox and message sync](/kb/inbox-and-message-sync)). See [billing and plans](/kb/billing-and-plans).
 </Note>
