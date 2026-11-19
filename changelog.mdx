@@ -3,6 +3,46 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-19" description="Access limited to selected accounts stops at mass actions and webhooks, connected apps cannot act on the account itself, and email purchases and unsubscribes are safe to repeat">
+  **Access limited to selected accounts.** A key or a member limited to selected accounts gets no
+  webhooks and no mass actions: those routes answer `403 account_slice_not_served`, and the
+  permissions dialog greys the four boxes when Accounts is set to selected accounts. Linking an
+  auto-scrape to a mass action is refused the same way. Such a key also no longer reads another
+  account's thread, message, browser or mailbox by its id. To subscribe to one account's events,
+  create the webhook with a key that is not limited and set `filters.account_sid`.
+
+  **Connected apps act within their grant.** An app connected over OAuth can no longer change the
+  sign-in address or the password, request the account's erasure, answer its own consent or edit
+  its own grant: those take the person's own sign-in in the app (`403 app_session_only`). Saving
+  a connected app's access with nothing ticked is refused instead of granting everything. An API
+  key's edit and its new secret stay within the reach of whoever makes them
+  (`403 key_exceeds_actor_reach`).
+
+  **Buying an email server is safe to repeat.** The same name, plan and location asked again
+  within ten minutes answers the server it bought, with `already_exists: true` and nothing
+  charged. While another purchase of the workspace runs, the answer is
+  `409 email_box_purchase_in_progress`.
+
+  **The unsubscribe link opens a page.** The link in a tracked email shows one button, and only
+  the button unsubscribes, so a mail scanner that opens every link no longer unsubscribes your
+  prospects. The unsubscribe button of the recipient's mail app works as before.
+
+  **Email sending and sync.** A provider's rate limit pauses the mailbox's sends until the window
+  opens again instead of failing the queued mail (`email-accounts.sending-paused` and
+  `.sending-resumed`). A recipient the SMTP server refuses on the spot is recorded as a bounce,
+  and a hard one goes on the stop-list. Mailboxes connected together import side by side. A
+  mailbox that recovers by itself sends `email-accounts.connected` with `recovered_from`. Completed
+  routine sync runs older than 14 days are removed.
+
+  **Webhook events are not lost to a short outage.** An event raised while the webhook service
+  does not answer is retried for up to a day and delivered late, with its original `emitted_at`.
+
+  **LinkedIn languages.** `enrich_linkedin_person_languages` reads the languages LinkedIn now
+  shows on the profile instead of answering an empty list.
+
+  **Deep pages of a long search** are read as fast as the first ones.
+</Update>
+
 <Update label="2026-11-18" description="Email searches that find little cost little, new email refusals with their own reasons, and an account still syncing says so">
   **Email searches answer their counts from an index.** A search over email messages, threads or
   the bounce log reads its `counts` block from an index, so a count-only search (`page_size: 0`)
