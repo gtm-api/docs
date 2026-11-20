@@ -3,6 +3,18 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-20" description="An InMail from an account with a Sales Navigator seat goes out through Sales Navigator and spends the seat's InMail credits">
+  **InMail from a Sales Navigator seat.** `send-inmail` (`send_linkedin_inmail`) from an account that
+  holds a Sales Navigator seat now goes out through Sales Navigator and spends the seat's InMail
+  credits (`inmail_credits`). The thread it opens is a Sales Navigator thread
+  (`messenger_type: "sales_navigator"`), the reply arrives in the Sales Navigator inbox, and
+  `stop_if_replied_after` looks for the reply there. Address the person by `ln_id` or `sn_id`, as
+  before. Without a seat nothing changes: the InMail goes
+  out through linkedin.com and spends the Premium plan's balance (`premium_inmail_credits`). Why:
+  LinkedIn allows a Sales Navigator subscriber to send InMails only from Sales Navigator, so these
+  sends were refused as out of credits (`422 no_inmail_credits`) while the credits were there.
+</Update>
+
 <Update label="2026-11-19" description="Access limited to selected accounts stops at mass actions and webhooks, connected apps cannot act on the account itself, and email purchases and unsubscribes are safe to repeat">
   **Access limited to selected accounts.** A key or a member limited to selected accounts gets no
   webhooks and no mass actions: those routes answer `403 account_slice_not_served`, and the

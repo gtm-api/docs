@@ -7020,7 +7020,7 @@ paths:
       operationId: send_linkedin_inmail
       summary: Send LinkedIn InMail
       description: |-
-        Send one premium InMail to a person (outward action). Person-addressed only via ln_id / sn_id, subject required (≤ 200), body ≤ 1900. Sends once per client_reference and person: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. Guards: send_inmails daily cap, Premium guard, InMail-credits guard (422 no_inmail_credits when the account's pool is known empty: the seat's grant inmail_credits with a Sales Navigator seat, premium_inmail_credits without; a balance never read does not block). Fire-on-success; the plugin's inmail_credits_remaining is written back onto that pool, and LinkedIn's own NOT_ENOUGH_INMAIL_CREDIT answers 422 no_inmail_credits and zeroes it (it is not a block of the target). When NOT: 1st-degree connection → send_linkedin_message (free); no Premium / zero credits → the guards 422; SN thread continuation → send_linkedin_sales_nav_message.
+        Send one premium InMail to a person. Person-addressed only via ln_id / sn_id, subject required (≤ 200), body ≤ 1900. Sends once per client_reference and person: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. Routed by has_sn: with a Sales Navigator seat it goes out through SN (SN thread, reply in the SN inbox) and spends inmail_credits; without one through linkedin.com, spending premium_inmail_credits. No fallback. Guards: send_inmails daily cap, Premium guard, InMail-credits guard (422 no_inmail_credits when that pool is known empty; a balance never read does not block). Fire-on-success; inmail_credits_remaining is written back to that pool, and LinkedIn's NOT_ENOUGH_INMAIL_CREDIT answers 422 no_inmail_credits and zeroes it (not a block of the target). When NOT: 1st-degree connection → send_linkedin_message (free); no Premium / zero credits → the guards 422; SN thread continuation → send_linkedin_sales_nav_message.
 
         Contract:
         - MCP tool `send_linkedin_inmail`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -7106,7 +7106,7 @@ paths:
       operationId: send_linkedin_sales_nav_message
       summary: Send Sales Navigator message
       description: |-
-        Send one Sales Navigator message (outward action): continue an SN thread via linkedin_conversation_sid (messenger_type=sales_navigator), or open a new one via ln_id / sn_id. Guards: send_inmails daily cap, SN seat and surface, and on a NEW thread outside the network the InMail-credits guard (422 no_inmail_credits when the seat's inmail_credits are known to be 0). Fire-on-success. Sends once per client_reference and place: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. LinkedIn's 403 SALES_SEAT_REQUIRED is a stale SN session, not a lost seat: the send re-arms it once and retries; a second refusal is 409 sales_session_stale (run check_linkedin_account_premium_subscription with checks ["sales_nav"], retry), a seat the probe finds gone 422 sales_nav_required. When NOT: basic threads → send_linkedin_message / send_linkedin_voice_message; cold InMail outside SN → send_linkedin_inmail; no SN seat is 422, so check linkedin-accounts.has_sn first.
+        Send one Sales Navigator message (outward action): continue an SN thread via linkedin_conversation_sid (messenger_type=sales_navigator), or open a new one via ln_id / sn_id. Guards: send_inmails daily cap, SN seat and surface, and on a NEW thread outside the network the InMail-credits guard (422 no_inmail_credits when the seat's inmail_credits are known to be 0). Fire-on-success. Sends once per client_reference and place: a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. LinkedIn's 403 SALES_SEAT_REQUIRED is a stale SN session, not a lost seat: the send re-arms it once and retries; a second refusal is 409 sales_session_stale (run check_linkedin_account_premium_subscription with checks ["sales_nav"], retry), a seat the probe finds gone 422 sales_nav_required. When NOT: basic threads → send_linkedin_message / send_linkedin_voice_message; a cold InMail → send_linkedin_inmail; no SN seat is 422, so check linkedin-accounts.has_sn first.
 
         Contract:
         - MCP tool `send_linkedin_sales_nav_message`, registry package `mcp.linkedin/linkedin_messages`, mount `linkedin.messaging`.
@@ -8969,6 +8969,14 @@ components:
             nickname:
               type: string
               nullable: true
+            full_name:
+              type: string
+              nullable: true
+              description: The inviter's name as LinkedIn printed it (max 255); null when LinkedIn hides the member, and on rows stored before 2026-11-02 until a sync sees them again.
+            avatar_url:
+              type: string
+              nullable: true
+              description: The inviter's picture, LinkedIn's media URL for the card (max 2048); null when the card has none.
             note:
               type: string
               nullable: true
@@ -8978,6 +8986,10 @@ components:
             shared_secret:
               type: string
               nullable: true
+            sent_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: LinkedIn's own time of the invitation, set once; null when LinkedIn gave none, and on rows stored before 2026-11-02 until a sync sees them again. received_at is when we stored it."
             received_at:
               type: string
             last_check_at:
@@ -9005,9 +9017,12 @@ components:
             - ln_id
             - sn_id
             - nickname
+            - full_name
+            - avatar_url
             - note
             - linkedin_invitation_id
             - shared_secret
+            - sent_at
             - received_at
             - last_check_at
             - removal_kind
@@ -9170,6 +9185,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -9207,6 +9230,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -11338,6 +11363,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -11451,6 +11484,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -13216,6 +13251,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -13253,6 +13296,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -13399,6 +13444,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -13512,6 +13565,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -22736,6 +22791,14 @@ components:
             cached_from_sid:
               type: string
               nullable: true
+            target_resolved_via:
+              type: string
+              nullable: true
+              enum:
+                - ledger
+                - corpus
+                - browser
+              description: "How the call found the key its LinkedIn request needs when you named the target by another one (2026-11-12): ledger or corpus (our records knew it, free), browser (one extra LinkedIn read, the one a metered caller charges). Null = nothing resolved, or a cache answered."
             idempotency_key:
               type: string
               nullable: true
@@ -22805,6 +22868,7 @@ components:
             - executed_on
             - served_from_cache
             - cached_from_sid
+            - target_resolved_via
             - idempotency_key
             - result_ref
             - error_code
@@ -31591,6 +31655,10 @@ components:
             error_message:
               type: string
               nullable: true
+            archived_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: the generation cut. A reset of this sync type stamps its finished runs when it wipes their data, since their counters describe rows the reset deleted. Null = a current-generation run (filter archived_at is_null)."
             created_by:
               type: object
               properties:
@@ -31660,6 +31728,7 @@ components:
             - started_at
             - finished_at
             - error_message
+            - archived_at
             - created_by
             - created_at
             - updated_at
@@ -32883,6 +32952,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -32920,6 +32997,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -33718,6 +33797,14 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                  full_name:
+                    type: string
+                    nullable: true
+                    description: The inviter's name as LinkedIn printed it (max 255); null when LinkedIn hides the member, and on rows stored before 2026-11-02 until a sync sees them again.
+                  avatar_url:
+                    type: string
+                    nullable: true
+                    description: The inviter's picture, LinkedIn's media URL for the card (max 2048); null when the card has none.
                   note:
                     type: string
                     nullable: true
@@ -33727,6 +33814,10 @@ components:
                   shared_secret:
                     type: string
                     nullable: true
+                  sent_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC: LinkedIn's own time of the invitation, set once; null when LinkedIn gave none, and on rows stored before 2026-11-02 until a sync sees them again. received_at is when we stored it."
                   received_at:
                     type: string
                   last_check_at:
@@ -33754,9 +33845,12 @@ components:
                   - ln_id
                   - sn_id
                   - nickname
+                  - full_name
+                  - avatar_url
                   - note
                   - linkedin_invitation_id
                   - shared_secret
+                  - sent_at
                   - received_at
                   - last_check_at
                   - removal_kind
@@ -34418,6 +34512,14 @@ components:
                         picture_url:
                           type: string
                           nullable: true
+                  is_group:
+                    type: boolean
+                    nullable: true
+                    description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+                  title:
+                    type: string
+                    nullable: true
+                    description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
                   is_muted:
                     type: boolean
                     nullable: true
@@ -34455,6 +34557,8 @@ components:
                   - recruiter_id
                   - nickname
                   - participants
+                  - is_group
+                  - title
                   - is_muted
                   - unread_count
                   - event_count
@@ -34656,6 +34760,14 @@ components:
                         picture_url:
                           type: string
                           nullable: true
+                  is_group:
+                    type: boolean
+                    nullable: true
+                    description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+                  title:
+                    type: string
+                    nullable: true
+                    description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
                   is_muted:
                     type: boolean
                     nullable: true
@@ -34693,6 +34805,8 @@ components:
                   - recruiter_id
                   - nickname
                   - participants
+                  - is_group
+                  - title
                   - is_muted
                   - unread_count
                   - event_count
@@ -34894,6 +35008,14 @@ components:
                         picture_url:
                           type: string
                           nullable: true
+                  is_group:
+                    type: boolean
+                    nullable: true
+                    description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+                  title:
+                    type: string
+                    nullable: true
+                    description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
                   is_muted:
                     type: boolean
                     nullable: true
@@ -34931,6 +35053,8 @@ components:
                   - recruiter_id
                   - nickname
                   - participants
+                  - is_group
+                  - title
                   - is_muted
                   - unread_count
                   - event_count
@@ -35329,6 +35453,14 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                  sender_ln_id:
+                    type: string
+                    nullable: true
+                    description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+                  sender_ln_member_id:
+                    type: string
+                    nullable: true
+                    description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
                   subject:
                     type: string
                     nullable: true
@@ -35442,6 +35574,8 @@ components:
                   - sn_id
                   - recruiter_id
                   - nickname
+                  - sender_ln_id
+                  - sender_ln_member_id
                   - subject
                   - text
                   - client_reference
@@ -35685,6 +35819,14 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                  sender_ln_id:
+                    type: string
+                    nullable: true
+                    description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+                  sender_ln_member_id:
+                    type: string
+                    nullable: true
+                    description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
                   subject:
                     type: string
                     nullable: true
@@ -35798,6 +35940,8 @@ components:
                   - sn_id
                   - recruiter_id
                   - nickname
+                  - sender_ln_id
+                  - sender_ln_member_id
                   - subject
                   - text
                   - client_reference
@@ -36041,6 +36185,14 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                  sender_ln_id:
+                    type: string
+                    nullable: true
+                    description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+                  sender_ln_member_id:
+                    type: string
+                    nullable: true
+                    description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
                   subject:
                     type: string
                     nullable: true
@@ -36154,6 +36306,8 @@ components:
                   - sn_id
                   - recruiter_id
                   - nickname
+                  - sender_ln_id
+                  - sender_ln_member_id
                   - subject
                   - text
                   - client_reference
@@ -36339,6 +36493,14 @@ components:
             nickname:
               type: string
               nullable: true
+            full_name:
+              type: string
+              nullable: true
+              description: The inviter's name as LinkedIn printed it (max 255); null when LinkedIn hides the member, and on rows stored before 2026-11-02 until a sync sees them again.
+            avatar_url:
+              type: string
+              nullable: true
+              description: The inviter's picture, LinkedIn's media URL for the card (max 2048); null when the card has none.
             note:
               type: string
               nullable: true
@@ -36348,6 +36510,10 @@ components:
             shared_secret:
               type: string
               nullable: true
+            sent_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: LinkedIn's own time of the invitation, set once; null when LinkedIn gave none, and on rows stored before 2026-11-02 until a sync sees them again. received_at is when we stored it."
             received_at:
               type: string
             last_check_at:
@@ -36375,9 +36541,12 @@ components:
             - ln_id
             - sn_id
             - nickname
+            - full_name
+            - avatar_url
             - note
             - linkedin_invitation_id
             - shared_secret
+            - sent_at
             - received_at
             - last_check_at
             - removal_kind
@@ -37838,6 +38007,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -37875,6 +38052,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -38025,6 +38204,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -38062,6 +38249,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -38341,6 +38530,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -38378,6 +38575,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -38792,6 +38991,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -38905,6 +39112,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -39348,6 +39557,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -39385,6 +39602,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -39568,6 +39787,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -39605,6 +39832,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -40364,6 +40593,48 @@ components:
             target_limit:
               type: number
               nullable: true
+            learned_ceiling:
+              type: integer
+              nullable: true
+              description: The ceiling the learner found for this account and bucket, in actions a day (1..4500); it replaces the platform maximum inside the warmup formula. Written only by the learner. Null = no evidence yet, the default applies.
+            learned_ceiling_source:
+              type: string
+              nullable: true
+              enum:
+                - probe
+                - backoff
+              description: "What last moved learned_ceiling: probe (a step up after enough qualifying days) or backoff (a step down after a LinkedIn refusal). Null while learned_ceiling is null."
+            learned_ceiling_updated_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: when learned_ceiling last moved; null while it is null."
+            clean_saturation_streak:
+              type: integer
+              minimum: 0
+              description: "Qualifying days since the last ceiling move: days the bucket spent its whole budget and that budget was the learned ceiling (other days neither count nor reset it). Enough of them is one condition for a step up."
+            probe_not_before:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: the learner will not move learned_ceiling up before this; every move sets it and each backoff in a row pushes it further. Null = no cooldown."
+            learning_enabled:
+              type: boolean
+              description: "false pins learned_ceiling where it stands (no probe, no backoff). It is not a safety switch: a LinkedIn refusal still holds the bucket."
+            recommended_daily_limit:
+              type: integer
+              nullable: true
+              description: "Read-time, never stored: where the platform would run this bucket for this account now (the smart limit once the warmup has computed one, else the bucket's platform ceiling). A reading, not a promise."
+            recommended_delay_in_seconds:
+              type: integer
+              nullable: true
+              description: "Read-time, never stored: the bucket's default cooldown between two actions, in seconds."
+            risk_level:
+              type: string
+              nullable: true
+              enum:
+                - none
+                - elevated
+                - ban_likely
+              description: "Read-time verdict on the values set: none at or below the recommendations; elevated up to twice the daily one (or a delay down to half); ban_likely beyond that, expect LinkedIn to restrict the account."
             delay_in_seconds:
               type: number
             done_today_count:
@@ -40397,6 +40668,15 @@ components:
             - daily_limit
             - smart_limit
             - target_limit
+            - learned_ceiling
+            - learned_ceiling_source
+            - learned_ceiling_updated_at
+            - clean_saturation_streak
+            - probe_not_before
+            - learning_enabled
+            - recommended_daily_limit
+            - recommended_delay_in_seconds
+            - risk_level
             - delay_in_seconds
             - done_today_count
             - last_reset_at
@@ -50017,6 +50297,9 @@ components:
                       - {}
                   created_at:
                     type: string
+                  updated_at:
+                    type: string
+                    description: "ISO 8601 UTC: written with the row and never moved (the log is append-only), so it equals created_at."
                 required:
                   - sid
                   - team_sid
@@ -50027,6 +50310,7 @@ components:
                   - code
                   - body
                   - created_at
+                  - updated_at
               included:
                 type: object
                 additionalProperties: {}
@@ -51489,6 +51773,9 @@ components:
                     nullable: true
                   created_at:
                     type: string
+                  updated_at:
+                    type: string
+                    description: "ISO 8601 UTC: the row's last change, such as the login result or the disconnect being written."
                 required:
                   - sid
                   - team_sid
@@ -51514,6 +51801,7 @@ components:
                   - disconnect_cause
                   - disconnect_reason
                   - created_at
+                  - updated_at
               included:
                 type: object
                 additionalProperties: {}
@@ -52222,6 +52510,14 @@ components:
                   cached_from_sid:
                     type: string
                     nullable: true
+                  target_resolved_via:
+                    type: string
+                    nullable: true
+                    enum:
+                      - ledger
+                      - corpus
+                      - browser
+                    description: "How the call found the key its LinkedIn request needs when you named the target by another one (2026-11-12): ledger or corpus (our records knew it, free), browser (one extra LinkedIn read, the one a metered caller charges). Null = nothing resolved, or a cache answered."
                   idempotency_key:
                     type: string
                     nullable: true
@@ -52291,6 +52587,7 @@ components:
                   - executed_on
                   - served_from_cache
                   - cached_from_sid
+                  - target_resolved_via
                   - idempotency_key
                   - result_ref
                   - error_code
@@ -53029,6 +53326,9 @@ components:
                     nullable: true
                   created_at:
                     type: string
+                  updated_at:
+                    type: string
+                    description: "ISO 8601 UTC: written with the row and never moved (the log is append-only), so it equals created_at."
                 required:
                   - sid
                   - team_sid
@@ -53040,6 +53340,7 @@ components:
                   - linkedin_account_activity_log_sid
                   - linkedin_connection_sid
                   - created_at
+                  - updated_at
               included:
                 type: object
                 additionalProperties: {}
@@ -53378,6 +53679,9 @@ components:
                     type: boolean
                   created_at:
                     type: string
+                  updated_at:
+                    type: string
+                    description: "ISO 8601 UTC: written with the row and never moved (the log is append-only), so it equals created_at."
                 required:
                   - sid
                   - team_sid
@@ -53393,6 +53697,7 @@ components:
                   - has_sn
                   - has_recruiter
                   - created_at
+                  - updated_at
               included:
                 type: object
                 additionalProperties: {}
@@ -53857,6 +54162,48 @@ components:
                   target_limit:
                     type: number
                     nullable: true
+                  learned_ceiling:
+                    type: integer
+                    nullable: true
+                    description: The ceiling the learner found for this account and bucket, in actions a day (1..4500); it replaces the platform maximum inside the warmup formula. Written only by the learner. Null = no evidence yet, the default applies.
+                  learned_ceiling_source:
+                    type: string
+                    nullable: true
+                    enum:
+                      - probe
+                      - backoff
+                    description: "What last moved learned_ceiling: probe (a step up after enough qualifying days) or backoff (a step down after a LinkedIn refusal). Null while learned_ceiling is null."
+                  learned_ceiling_updated_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC: when learned_ceiling last moved; null while it is null."
+                  clean_saturation_streak:
+                    type: integer
+                    minimum: 0
+                    description: "Qualifying days since the last ceiling move: days the bucket spent its whole budget and that budget was the learned ceiling (other days neither count nor reset it). Enough of them is one condition for a step up."
+                  probe_not_before:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC: the learner will not move learned_ceiling up before this; every move sets it and each backoff in a row pushes it further. Null = no cooldown."
+                  learning_enabled:
+                    type: boolean
+                    description: "false pins learned_ceiling where it stands (no probe, no backoff). It is not a safety switch: a LinkedIn refusal still holds the bucket."
+                  recommended_daily_limit:
+                    type: integer
+                    nullable: true
+                    description: "Read-time, never stored: where the platform would run this bucket for this account now (the smart limit once the warmup has computed one, else the bucket's platform ceiling). A reading, not a promise."
+                  recommended_delay_in_seconds:
+                    type: integer
+                    nullable: true
+                    description: "Read-time, never stored: the bucket's default cooldown between two actions, in seconds."
+                  risk_level:
+                    type: string
+                    nullable: true
+                    enum:
+                      - none
+                      - elevated
+                      - ban_likely
+                    description: "Read-time verdict on the values set: none at or below the recommendations; elevated up to twice the daily one (or a delay down to half); ban_likely beyond that, expect LinkedIn to restrict the account."
                   delay_in_seconds:
                     type: number
                   done_today_count:
@@ -53890,6 +54237,15 @@ components:
                   - daily_limit
                   - smart_limit
                   - target_limit
+                  - learned_ceiling
+                  - learned_ceiling_source
+                  - learned_ceiling_updated_at
+                  - clean_saturation_streak
+                  - probe_not_before
+                  - learning_enabled
+                  - recommended_daily_limit
+                  - recommended_delay_in_seconds
+                  - risk_level
                   - delay_in_seconds
                   - done_today_count
                   - last_reset_at
@@ -54804,6 +55160,10 @@ components:
                   error_message:
                     type: string
                     nullable: true
+                  archived_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC: the generation cut. A reset of this sync type stamps its finished runs when it wipes their data, since their counters describe rows the reset deleted. Null = a current-generation run (filter archived_at is_null)."
                   created_by:
                     type: object
                     properties:
@@ -54873,6 +55233,7 @@ components:
                   - started_at
                   - finished_at
                   - error_message
+                  - archived_at
                   - created_by
                   - created_at
                   - updated_at
@@ -57837,6 +58198,14 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                  full_name:
+                    type: string
+                    nullable: true
+                    description: The inviter's name as LinkedIn printed it (max 255); null when LinkedIn hides the member, and on rows stored before 2026-11-02 until a sync sees them again.
+                  avatar_url:
+                    type: string
+                    nullable: true
+                    description: The inviter's picture, LinkedIn's media URL for the card (max 2048); null when the card has none.
                   note:
                     type: string
                     nullable: true
@@ -57846,6 +58215,10 @@ components:
                   shared_secret:
                     type: string
                     nullable: true
+                  sent_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC: LinkedIn's own time of the invitation, set once; null when LinkedIn gave none, and on rows stored before 2026-11-02 until a sync sees them again. received_at is when we stored it."
                   received_at:
                     type: string
                   last_check_at:
@@ -57873,9 +58246,12 @@ components:
                   - ln_id
                   - sn_id
                   - nickname
+                  - full_name
+                  - avatar_url
                   - note
                   - linkedin_invitation_id
                   - shared_secret
+                  - sent_at
                   - received_at
                   - last_check_at
                   - removal_kind
@@ -59190,6 +59566,14 @@ components:
                         picture_url:
                           type: string
                           nullable: true
+                  is_group:
+                    type: boolean
+                    nullable: true
+                    description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+                  title:
+                    type: string
+                    nullable: true
+                    description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
                   is_muted:
                     type: boolean
                     nullable: true
@@ -59227,6 +59611,8 @@ components:
                   - recruiter_id
                   - nickname
                   - participants
+                  - is_group
+                  - title
                   - is_muted
                   - unread_count
                   - event_count
@@ -60075,6 +60461,14 @@ components:
                   nickname:
                     type: string
                     nullable: true
+                  sender_ln_id:
+                    type: string
+                    nullable: true
+                    description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+                  sender_ln_member_id:
+                    type: string
+                    nullable: true
+                    description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
                   subject:
                     type: string
                     nullable: true
@@ -60188,6 +60582,8 @@ components:
                   - sn_id
                   - recruiter_id
                   - nickname
+                  - sender_ln_id
+                  - sender_ln_member_id
                   - subject
                   - text
                   - client_reference
@@ -61232,6 +61628,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -61345,6 +61749,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -61601,6 +62007,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -61714,6 +62128,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -61957,6 +62373,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -62070,6 +62494,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -62314,6 +62740,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -62427,6 +62861,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -62646,6 +63082,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -62759,6 +63203,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -65541,6 +65987,14 @@ components:
             nickname:
               type: string
               nullable: true
+            sender_ln_id:
+              type: string
+              nullable: true
+              description: "Who wrote THIS message, as a LinkedIn profile URN (max 128; 2026-09-24): how a group thread's members are told apart. Null on an organization sender and on rows synced before it was stored."
+            sender_ln_member_id:
+              type: string
+              nullable: true
+              description: The same sender as a member id (max 64). On a 1:1 inbound message it equals ln_member_id; on an outbound one it is the account's own member id.
             subject:
               type: string
               nullable: true
@@ -65654,6 +66108,8 @@ components:
             - sn_id
             - recruiter_id
             - nickname
+            - sender_ln_id
+            - sender_ln_member_id
             - subject
             - text
             - client_reference
@@ -66329,6 +66785,14 @@ components:
             nickname:
               type: string
               nullable: true
+            full_name:
+              type: string
+              nullable: true
+              description: The inviter's name as LinkedIn printed it (max 255); null when LinkedIn hides the member, and on rows stored before 2026-11-02 until a sync sees them again.
+            avatar_url:
+              type: string
+              nullable: true
+              description: The inviter's picture, LinkedIn's media URL for the card (max 2048); null when the card has none.
             note:
               type: string
               nullable: true
@@ -66338,6 +66802,10 @@ components:
             shared_secret:
               type: string
               nullable: true
+            sent_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: LinkedIn's own time of the invitation, set once; null when LinkedIn gave none, and on rows stored before 2026-11-02 until a sync sees them again. received_at is when we stored it."
             received_at:
               type: string
             last_check_at:
@@ -66365,9 +66833,12 @@ components:
             - ln_id
             - sn_id
             - nickname
+            - full_name
+            - avatar_url
             - note
             - linkedin_invitation_id
             - shared_secret
+            - sent_at
             - received_at
             - last_check_at
             - removal_kind
@@ -66682,6 +67153,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -66719,6 +67198,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -66882,6 +67363,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -66919,6 +67408,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -67082,6 +67573,14 @@ components:
                   picture_url:
                     type: string
                     nullable: true
+            is_group:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's own group flag (2026-09-24). true = a group thread: the counterpart fields above are null and participants holds every other member. null = not observed yet (a row synced before the flag was stored)."
+            title:
+              type: string
+              nullable: true
+              description: The group's name as LinkedIn shows it (max 256), refreshed by every conversations sync; null on a 1:1 thread and on a group nobody named.
             is_muted:
               type: boolean
               nullable: true
@@ -67119,6 +67618,8 @@ components:
             - recruiter_id
             - nickname
             - participants
+            - is_group
+            - title
             - is_muted
             - unread_count
             - event_count
@@ -69245,6 +69746,48 @@ components:
             target_limit:
               type: number
               nullable: true
+            learned_ceiling:
+              type: integer
+              nullable: true
+              description: The ceiling the learner found for this account and bucket, in actions a day (1..4500); it replaces the platform maximum inside the warmup formula. Written only by the learner. Null = no evidence yet, the default applies.
+            learned_ceiling_source:
+              type: string
+              nullable: true
+              enum:
+                - probe
+                - backoff
+              description: "What last moved learned_ceiling: probe (a step up after enough qualifying days) or backoff (a step down after a LinkedIn refusal). Null while learned_ceiling is null."
+            learned_ceiling_updated_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: when learned_ceiling last moved; null while it is null."
+            clean_saturation_streak:
+              type: integer
+              minimum: 0
+              description: "Qualifying days since the last ceiling move: days the bucket spent its whole budget and that budget was the learned ceiling (other days neither count nor reset it). Enough of them is one condition for a step up."
+            probe_not_before:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: the learner will not move learned_ceiling up before this; every move sets it and each backoff in a row pushes it further. Null = no cooldown."
+            learning_enabled:
+              type: boolean
+              description: "false pins learned_ceiling where it stands (no probe, no backoff). It is not a safety switch: a LinkedIn refusal still holds the bucket."
+            recommended_daily_limit:
+              type: integer
+              nullable: true
+              description: "Read-time, never stored: where the platform would run this bucket for this account now (the smart limit once the warmup has computed one, else the bucket's platform ceiling). A reading, not a promise."
+            recommended_delay_in_seconds:
+              type: integer
+              nullable: true
+              description: "Read-time, never stored: the bucket's default cooldown between two actions, in seconds."
+            risk_level:
+              type: string
+              nullable: true
+              enum:
+                - none
+                - elevated
+                - ban_likely
+              description: "Read-time verdict on the values set: none at or below the recommendations; elevated up to twice the daily one (or a delay down to half); ban_likely beyond that, expect LinkedIn to restrict the account."
             delay_in_seconds:
               type: number
             done_today_count:
@@ -69278,6 +69821,15 @@ components:
             - daily_limit
             - smart_limit
             - target_limit
+            - learned_ceiling
+            - learned_ceiling_source
+            - learned_ceiling_updated_at
+            - clean_saturation_streak
+            - probe_not_before
+            - learning_enabled
+            - recommended_daily_limit
+            - recommended_delay_in_seconds
+            - risk_level
             - delay_in_seconds
             - done_today_count
             - last_reset_at

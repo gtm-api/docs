@@ -6550,6 +6550,13 @@ components:
               enum:
                 - manual
                 - dynamic
+            actor_kind:
+              type: string
+              nullable: true
+              enum:
+                - agent
+                - integration
+              description: "What acts through the client: agent (an AI agent that registered itself or was registered as one) or integration (an app a person set up). Null = unclassified, a client from before the field (2026-08-02), never backfilled."
             status:
               type: string
               enum:
@@ -6620,6 +6627,7 @@ components:
             - permissions
             - is_confidential
             - registration_kind
+            - actor_kind
             - status
             - created_by
             - created_at
@@ -7105,6 +7113,18 @@ components:
               enum:
                 - active
                 - suspended
+            plan:
+              type: string
+              nullable: true
+              enum:
+                - none
+                - free
+                - paid
+                - partner
+              description: "The plan kind, derived by the same recompute that writes status and limits: none, free, paid or partner. Null on a workspace that has not been recomputed since plans were stored; read it as unknown."
+            cluster_id:
+              type: integer
+              description: "Which cluster holds the workspace's LinkedIn and calendar data, assigned once at create and never writable. A routing fact: nothing a caller sends depends on it."
             limits:
               type: object
               properties:
@@ -7190,6 +7210,8 @@ components:
             - subscription_sid
             - name
             - status
+            - plan
+            - cluster_id
             - limits
             - config
             - created_by
@@ -10417,6 +10439,10 @@ components:
             failure_reason:
               type: string
               nullable: true
+            read_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC: when the recipient read an in-app notification. Every notification this platform writes is an email, so it is null here and no verb marks one read."
             retry_count:
               type: number
             created_by:
@@ -10471,6 +10497,7 @@ components:
             - delivered_at
             - failed_at
             - failure_reason
+            - read_at
             - retry_count
             - created_by
             - created_at
@@ -10825,6 +10852,13 @@ components:
               enum:
                 - manual
                 - dynamic
+            actor_kind:
+              type: string
+              nullable: true
+              enum:
+                - agent
+                - integration
+              description: "What acts through the client: agent (an AI agent that registered itself or was registered as one) or integration (an app a person set up). Null = unclassified, a client from before the field (2026-08-02), never backfilled."
             status:
               type: string
               enum:
@@ -10895,6 +10929,7 @@ components:
             - permissions
             - is_confidential
             - registration_kind
+            - actor_kind
             - status
             - created_by
             - created_at
@@ -11279,6 +11314,18 @@ components:
               enum:
                 - active
                 - suspended
+            plan:
+              type: string
+              nullable: true
+              enum:
+                - none
+                - free
+                - paid
+                - partner
+              description: "The plan kind, derived by the same recompute that writes status and limits: none, free, paid or partner. Null on a workspace that has not been recomputed since plans were stored; read it as unknown."
+            cluster_id:
+              type: integer
+              description: "Which cluster holds the workspace's LinkedIn and calendar data, assigned once at create and never writable. A routing fact: nothing a caller sends depends on it."
             limits:
               type: object
               properties:
@@ -11364,6 +11411,8 @@ components:
             - subscription_sid
             - name
             - status
+            - plan
+            - cluster_id
             - limits
             - config
             - created_by
@@ -17827,6 +17876,13 @@ components:
                       - webhooks
                   is_active:
                     type: boolean
+                  visibility:
+                    type: string
+                    nullable: true
+                    enum:
+                      - public
+                      - private
+                    description: Whether the product is listed in the public catalog. This search lists public products only, so it reads public here; a private product never appears in it.
                   created_at:
                     type: string
                   updated_at:
@@ -17842,6 +17898,7 @@ components:
                   - type
                   - limits
                   - is_active
+                  - visibility
                   - created_at
                   - updated_at
                   - deleted_at
@@ -19734,6 +19791,10 @@ components:
                   failure_reason:
                     type: string
                     nullable: true
+                  read_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC: when the recipient read an in-app notification. Every notification this platform writes is an email, so it is null here and no verb marks one read."
                   retry_count:
                     type: number
                   created_by:
@@ -19788,6 +19849,7 @@ components:
                   - delivered_at
                   - failed_at
                   - failure_reason
+                  - read_at
                   - retry_count
                   - created_by
                   - created_at
@@ -20310,6 +20372,13 @@ components:
                     enum:
                       - manual
                       - dynamic
+                  actor_kind:
+                    type: string
+                    nullable: true
+                    enum:
+                      - agent
+                      - integration
+                    description: "What acts through the client: agent (an AI agent that registered itself or was registered as one) or integration (an app a person set up). Null = unclassified, a client from before the field (2026-08-02), never backfilled."
                   status:
                     type: string
                     enum:
@@ -20380,6 +20449,7 @@ components:
                   - permissions
                   - is_confidential
                   - registration_kind
+                  - actor_kind
                   - status
                   - created_by
                   - created_at
@@ -21906,6 +21976,18 @@ components:
                     enum:
                       - active
                       - suspended
+                  plan:
+                    type: string
+                    nullable: true
+                    enum:
+                      - none
+                      - free
+                      - paid
+                      - partner
+                    description: "The plan kind, derived by the same recompute that writes status and limits: none, free, paid or partner. Null on a workspace that has not been recomputed since plans were stored; read it as unknown."
+                  cluster_id:
+                    type: integer
+                    description: "Which cluster holds the workspace's LinkedIn and calendar data, assigned once at create and never writable. A routing fact: nothing a caller sends depends on it."
                   limits:
                     type: object
                     properties:
@@ -21991,6 +22073,8 @@ components:
                   - subscription_sid
                   - name
                   - status
+                  - plan
+                  - cluster_id
                   - limits
                   - config
                   - created_by
@@ -22120,6 +22204,18 @@ components:
               enum:
                 - active
                 - suspended
+            plan:
+              type: string
+              nullable: true
+              enum:
+                - none
+                - free
+                - paid
+                - partner
+              description: "The plan kind, derived by the same recompute that writes status and limits: none, free, paid or partner. Null on a workspace that has not been recomputed since plans were stored; read it as unknown."
+            cluster_id:
+              type: integer
+              description: "Which cluster holds the workspace's LinkedIn and calendar data, assigned once at create and never writable. A routing fact: nothing a caller sends depends on it."
             limits:
               type: object
               properties:
@@ -22205,6 +22301,8 @@ components:
             - subscription_sid
             - name
             - status
+            - plan
+            - cluster_id
             - limits
             - config
             - created_by
@@ -23513,6 +23611,13 @@ components:
               enum:
                 - manual
                 - dynamic
+            actor_kind:
+              type: string
+              nullable: true
+              enum:
+                - agent
+                - integration
+              description: "What acts through the client: agent (an AI agent that registered itself or was registered as one) or integration (an app a person set up). Null = unclassified, a client from before the field (2026-08-02), never backfilled."
             status:
               type: string
               enum:
@@ -23583,6 +23688,7 @@ components:
             - permissions
             - is_confidential
             - registration_kind
+            - actor_kind
             - status
             - created_by
             - created_at
@@ -24061,6 +24167,18 @@ components:
               enum:
                 - active
                 - suspended
+            plan:
+              type: string
+              nullable: true
+              enum:
+                - none
+                - free
+                - paid
+                - partner
+              description: "The plan kind, derived by the same recompute that writes status and limits: none, free, paid or partner. Null on a workspace that has not been recomputed since plans were stored; read it as unknown."
+            cluster_id:
+              type: integer
+              description: "Which cluster holds the workspace's LinkedIn and calendar data, assigned once at create and never writable. A routing fact: nothing a caller sends depends on it."
             limits:
               type: object
               properties:
@@ -24146,6 +24264,8 @@ components:
             - subscription_sid
             - name
             - status
+            - plan
+            - cluster_id
             - limits
             - config
             - created_by
