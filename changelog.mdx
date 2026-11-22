@@ -3,6 +3,29 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-22" description="New prices for LinkedIn accounts and email servers, the price you pay today stays, and the 5G Proxy add-on is retired">
+  **LinkedIn accounts.** The per-account brackets are now $59 (1 to 4 accounts), $39 (5 to 9),
+  $29 (10 to 19), $25 (20 to 49), $22 (50 to 99) and $16 (100 to 187). From 188 accounts the
+  300-account package at $3,000 a month costs less, so no price covers 188 to 299: a plan change
+  to a count in that range is refused with `422 quantity_outside_price_bracket`, which names the
+  two counts you can choose. From 300 accounts every account is $10. See
+  [Billing and plans](/kb/billing-and-plans).
+
+  **Email servers.** Starter $59, Growth $119, Agency $249 and Dedicated $499 a month. See
+  [Email servers and mailboxes](/kb/email-servers-and-mailboxes).
+
+  **The price you pay today stays.** A subscription keeps the price it was bought at. Changing its
+  account count keeps that price while the new count fits the bracket it was bought in; a count
+  outside it takes the new prices. The prices include of `GET /api/billing-products` lists a
+  withdrawn price with `is_active: false`, so the price a subscription holds stays readable.
+
+  **5G Proxy retired.** The add-on is no longer sold, and `proxy_5g` leaves the antidetect browser:
+  the item, its filter, `POST /api/antidetect-browsers` and the proxy update no longer carry it,
+  and the seat usage read no longer returns `proxy_5g_used`. A filter on `proxy_5g` is refused
+  with `422 unknown_filter_field`. `insufficient_proxy_5g_slots` and
+  `proxy_5g_requires_managed_proxy` are no longer returned.
+</Update>
+
 <Update label="2026-11-19" description="Access limited to selected accounts stops at mass actions and webhooks, connected apps cannot act on the account itself, and email purchases and unsubscribes are safe to repeat">
   **Access limited to selected accounts.** A key or a member limited to selected accounts gets no
   webhooks and no mass actions: those routes answer `403 account_slice_not_served`, and the
