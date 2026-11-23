@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 312 reasons across 4 services.
+reason is thrown without a sentence). 318 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -39,6 +39,12 @@ reason is thrown without a sentence). 312 reasons across 4 services.
 | `app_access_denied` | The tenant does not let this application reach the mailbox: an Exchange application access policy excludes it, or the admin consent for Mail.ReadWrite and Mail.Send is missing. | email |
 | `app_only_credential_rejected` | Entra does not accept this application's client secret, or the application is unknown to the tenant (expired or rotated secret, wrong tenant); fix it at the provider and update the secret with email-oauth-apps.update. | email |
 | `archive_folder_missing` | This IMAP mailbox mirrors no folder with the archive role, so there is nowhere to archive to; move the message to a folder of your choice with email-messages.update instead. | email |
+| `article_needs_account_identity` | An article under the account's own name needs the account's own member id, which arrives with its initial sync; retry once the account has synced, or name a company page with author_organization_id. | linkedin |
+| `article_not_created` | LinkedIn answered the create without naming an article, so no draft is known to exist; check the title and the content_html, and for a company page (author_organization_id) that this account administers it, then create it again. | linkedin |
+| `article_not_deleted` | LinkedIn did not delete this article: it is not this account's, or it is already gone (context.state_before says what it was when read, null when it was not found). | linkedin |
+| `article_not_draft` | This article is already scheduled or published (context.state), and only a DRAFT can be patched or published; delete it with delete-article and create it again, or leave it as it is. | linkedin |
+| `article_not_found` | LinkedIn has no article under this article_id for this account: it was deleted, or the id is another account's; list the articles with get-articles to find the one you mean. | linkedin |
+| `article_not_published` | LinkedIn answered the publish without naming the article's share, so whether this article went out is not known yet and LinkedIn is read to find out; do not publish it again, repeat this same request after retry_after. A company page article (author_organization_id) also needs an account that administers that page. | linkedin |
 | `attachment_fetch_failed` | The attachment could not be downloaded from the provider (see context.detail). | email |
 | `attachment_store_failed` | The send's files could not be stored (see context.detail), so nothing was sent or queued; retry shortly. | email |
 | `attachment_too_large` | The attachments together exceed the size a send may carry (context.max_bytes). | email |

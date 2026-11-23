@@ -55,6 +55,47 @@ description: "What's new in the GTM API platform and this documentation."
   visibility, `read_at` on notifications and four `updated_at` fields.
 </Update>
 
+<Update label="2026-11-21" description="LinkedIn articles and newsletter issues: write, schedule, publish, list and delete them, as yourself or as a company page">
+  **`create-article` writes a LinkedIn article.** `POST /api/linkedin-posting/create-article` and the MCP
+  tool `create_linkedin_article` take a `title`, the body as `content_html` (paragraphs, one heading
+  level, bold, italic, links, bullet and numbered lists, quotes, code, a divider, pictures, a YouTube or
+  similar embed), an optional `cover_image` (`file_base64` or `url`, with a `caption`), and a `state`:
+  `DRAFT` keeps the article in your drafts and nothing is public, `SCHEDULED` with `scheduled_at`
+  queues its share for that time, `PUBLISHED` shares it now. Write it as a company page you administer
+  with `author_organization_id`, and as an issue of a newsletter with `newsletter_id` (`get-newsletters`
+  lists the newsletters you or the page may publish into; an issue takes the newsletter's visibility, so
+  `visibility` is refused next to it). `commentary` is the text shown above the article on the feed,
+  and it may be empty. The answer is the article (`article_id`, `state`, `url` once published, the
+  share's `post_urn`) and the share itself. Pictures in the body may be `data:` URLs or public `https`
+  links, which the platform downloads; all of them share the post's 35 MB budget. A tag outside the
+  subset is a `422` naming the tag, and nothing is sent.
+
+  **A scheduled or published article is sent once.** `create-article` with `SCHEDULED` or `PUBLISHED`,
+  and `publish-article`, take `client_reference` like a post: a repeat under the same key is answered
+  with what the first one made and never shares twice, and `check-sent` answers for them with
+  `verb: create-article` or `publish-article` and a `post_place`. A draft takes no key. An answer
+  that names no share is `409 article_not_published`: the article may be out, LinkedIn is read, repeat
+  the same request after `retry_after`; `context.article_id` names a draft the create left behind.
+
+  **Read, change and remove.** `get-articles` lists your drafts, your scheduled articles or your
+  published ones (`state`), yours or a page's; it is the one read that carries a scheduled article's
+  `scheduled_at`. `get-article` answers one by `article_id` in any state, or a published one by its
+  `/pulse/` link, the only read with its `activity_urn`; an article LinkedIn has nothing under is
+  `article: null`, not an error. `update-article` changes a draft's title, body, cover or newsletter;
+  `publish-article` schedules or publishes a draft. Both refuse an article that is already scheduled or
+  published with `409 article_not_draft`, and an unknown id with `404 article_not_found`.
+  `delete-article` removes an article in any state, its share first when it has one, then the article;
+  deleting the share alone through `delete-scheduled-post` leaves the article behind, so take the
+  article. A refused delete is `409 article_not_deleted`. All seven spend the account's `posting`
+  limit, like a feed post. `get-administered-companies` (`POST /api/linkedin-posting/get-administered-companies`,
+  the MCP tool `get_linkedin_administered_companies`) lists the company pages you may post as, with each
+  page's id, name, url, type, your roles on it and its follower count: a row's `company_id` is the
+  `author_organization_id` every verb here takes, and the read spends your account's own read budget
+  (`self_account_sync`), not `posting`. On MCP the tools sit on `/mcp/linkedin/content`: `create_linkedin_article`,
+  `update_linkedin_article`, `publish_linkedin_article`, `get_linkedin_articles`, `get_linkedin_article`,
+  `delete_linkedin_article`, `get_linkedin_newsletters` and `get_linkedin_administered_companies`.
+</Update>
+
 <Update label="2026-11-19" description="Access limited to selected accounts stops at mass actions and webhooks, connected apps cannot act on the account itself, and email purchases and unsubscribes are safe to repeat">
   **Access limited to selected accounts.** A key or a member limited to selected accounts gets no
   webhooks and no mass actions: those routes answer `403 account_slice_not_served`, and the
