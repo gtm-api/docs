@@ -105,7 +105,11 @@ side and nothing else about your account changes.
 
 - **Cloud-minted browsers require a proxy.** You pick the country when creating the
   browser; the platform attaches the least-loaded active proxy from the pool in that
-  country automatically.
+  country automatically. Before the profile is minted the platform checks that the proxy
+  answers and moves to the next one in that country when it does not; when none answers
+  the create is refused with `503 service_unavailable` and
+  `error.context.reason = proxy_pool_unreachable`, nothing is created, and a retry a few
+  minutes later usually succeeds.
 - **Bring-your-own browsers keep their own.** An existing vendor profile (for example
   GoLogin) arrives with its proxy; the platform reads the session and never changes the
   proxy.

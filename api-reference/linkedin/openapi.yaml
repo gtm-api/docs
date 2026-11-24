@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 192 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 200 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -263,7 +263,7 @@ paths:
       operationId: create_antidetect_browser
       summary: Create antidetect browser
       description: |-
-        Provision ONE antidetect browser for the team. The main flow mints a fresh vendor (GoLogin) profile and pushes the resolved proxy into it, so supply exactly one proxy source: proxy_country_code is the default, custom_proxy_config routes that minted profile through a proxy the caller supplies (probed first, 422 custom_proxy_unreachable_* when dead). Pick the branch yourself, never ask an end user for a sid. Bind an existing vendor_profile_id for the BYO-PROFILE path instead, with no proxy source: that profile carries its own. If no LinkedIn account signs in on it for 30 days, it is deleted and its seat freed. DANGEROUS: creates real vendor + proxy infrastructure. For SEVERAL browsers under ONE approval, do not call this per browser: author a mass action on /mcp/orchestration/mass-actions with scope {kind:"generate", count:N} and a plan of antidetect-browsers.create (+ antidetect-browsers.generate-cloud-browser-access-key), then read the connect links off each row when it finishes.
+        Provision ONE antidetect browser for the team. The main flow mints a fresh GoLogin profile and pushes the resolved proxy into it, so supply exactly one proxy source: proxy_country_code (the default; probed before the mint, 503 proxy_pool_unreachable when no proxy of that country answers) or custom_proxy_config (the caller's own, probed first, 422 custom_proxy_unreachable_* when dead). Pick the branch yourself, never ask an end user for a sid. Bind an existing vendor_profile_id for the BYO-PROFILE path instead, with no proxy source: that profile carries its own. No LinkedIn sign-in on it for 30 days: deleted, seat freed. DANGEROUS: creates real vendor + proxy infrastructure. For SEVERAL browsers under ONE approval, do not call this per browser: author a mass action on /mcp/orchestration/mass-actions with scope {kind:"generate", count:N} and a plan of antidetect-browsers.create (+ antidetect-browsers.generate-cloud-browser-access-key), then read the connect links off each row when it finishes.
 
         Contract:
         - MCP tool `create_antidetect_browser`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -389,7 +389,7 @@ paths:
       operationId: list_antidetect_browser_proxy_countries
       summary: List proxy countries
       description: |-
-        Proxy countries a new browser can be given right now, with how many active proxies back each. Empty list = the pool is dry; create refuses a country with no stock (422 proxy_pool_empty).
+        Proxy countries a new browser can be given right now, with how many active proxies back each. Empty list = the pool is dry; create refuses a country with no stock (422 proxy_pool_empty) and one whose stock does not answer its probe (503 proxy_pool_unreachable, retry later).
 
         Contract:
         - MCP tool `list_antidetect_browser_proxy_countries`, registry package `mcp.linkedin/antidetect_browsers`, mount `linkedin.browsers`.
@@ -7335,9 +7335,9 @@ paths:
   /api/linkedin-posting/check-sent:
     post:
       operationId: check_linkedin_posting_sent
-      summary: Check whether a LinkedIn comment, post or repost went out
+      summary: Check whether a LinkedIn comment, post, repost or article share went out
       description: |-
-        Ask what a LinkedIn comment, post or repost came to, without sending: by the client_reference it went out under and its verb (comment, create-post, repost), optionally at one place (entity_urn: the post a comment or a repost went to, in any of its forms, or the comment a reply answers; parent_comment_urn for a reply; post_place for a post), or by the activity_log_sid a 409 named. result.outcome: sent (item is what it made, or null with reason result_pending or caller_confirmed), in_flight, unknown (LinkedIn has not shown it yet; retry_after, send_decisive_at), or not_sent (no_send_under_key, refused, not_on_linkedin, caller_confirmed). Send the same request again only on not_sent, under the same key. result.activity_log_sid is the attempt a person's word names (confirmed_not_sent / confirmed_sent on the send). A send in doubt has LinkedIn read now when the last look is old enough. A key sent to several places is 422 place_required, a place LinkedIn could not be read for 422 place_unmatched (context.places).
+        Ask what a LinkedIn comment, post, repost or article share came to, without sending: by the client_reference it went out under and its verb (comment, create-post, repost, create-article, publish-article), optionally at one place (entity_urn: the post a comment or a repost went to, or the comment a reply answers; parent_comment_urn for a reply; post_place for a post or an article share), or by the activity_log_sid a 409 named. result.outcome: sent (item is what it made, or null with reason result_pending or caller_confirmed), in_flight, unknown (not shown yet; retry_after, send_decisive_at), or not_sent (no_send_under_key, refused, not_on_linkedin, caller_confirmed). Repeat the send only on not_sent, under the same key. result.activity_log_sid is the attempt confirmed_not_sent / confirmed_sent name on the send. A send in doubt has LinkedIn read now when the last look is old enough. A key sent to several places is 422 place_required, a place LinkedIn could not be read for 422 place_unmatched.
 
         Contract:
         - MCP tool `check_linkedin_posting_sent`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
@@ -7417,6 +7417,49 @@ paths:
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
       x-gtm-paced-bucket: comment_posts
+  /api/linkedin-posting/create-article:
+    post:
+      operationId: create_linkedin_article
+      summary: Create LinkedIn article
+      description: |-
+        Create ONE LinkedIn article (LinkedIn's long-form post) as the member or AS a company page it administers (author_organization_id), as a newsletter issue (newsletter_id; excludes visibility), with a cover_image; wire create-article. state decides: DRAFT creates and stops (nothing public, no key); SCHEDULED also schedules its share (scheduled_at REQUIRED, ISO 8601 with timezone, in the future); PUBLISHED shares now. content_html is the HTML subset the field describes; any other tag is a 422 naming it. Spends the posting bucket (20/day in series of 3 at a 1200 s pause; free plan 4). Answers the article read back and its post (a scheduled share has post_urn only). Sends once per client_reference and place (your feed or the page; a new scheduled_at is the same share): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. 409 article_not_published is send_outcome unknown: repeat after retry_after; context.article_id names a draft left behind.
+
+        Contract:
+        - MCP tool `create_linkedin_article`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateLinkedinArticleRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreateLinkedinArticleResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: create_linkedin_article
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
   /api/linkedin-posting/create-post:
     post:
       operationId: create_linkedin_post
@@ -7448,6 +7491,49 @@ paths:
         5XX:
           $ref: "#/components/responses/McpServerError"
       x-gtm-mcp-tool: create_linkedin_post
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
+  /api/linkedin-posting/delete-article:
+    post:
+      operationId: delete_linkedin_article
+      summary: Delete LinkedIn article
+      description: |-
+        Delete one of the account's LinkedIn articles by article_id, a draft, a scheduled or a published one (wire delete-article). The undo of create_linkedin_article and publish_linkedin_article: the article is read, its share is deleted first when it has one (so the queued slot or the public post goes with it), then the article itself. The handle is the ARTICLE, never its share: delete_linkedin_scheduled_post on the share alone leaves a scheduled article behind. Spends the one Content bucket, posting (20/day in series of 3 at a 1200 s pause; free plan 4), paced as an undo so a create and its delete fit back to back. A refusal, not this account's or already gone, comes back as 409 article_not_deleted with context.state_before (null when nothing was found), never as a success; on a 200 result.state_before says what it was.
+
+        Contract:
+        - MCP tool `delete_linkedin_article`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DeleteLinkedinArticleRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DeleteLinkedinArticleResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: delete_linkedin_article
       x-gtm-mcp-mount: linkedin.content
       x-gtm-entity: linkedin_posting
       x-gtm-operation: action
@@ -7589,6 +7675,178 @@ paths:
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
       x-gtm-paced-bucket: posting
+  /api/linkedin-posting/get-administered-companies:
+    post:
+      operationId: get_linkedin_administered_companies
+      summary: Get the LinkedIn company pages the account administers
+      description: |-
+        One page of the company pages (COMPANY and SHOWCASE) the account may publish as (wire get-administered-companies): the source of every author_organization_id on this surface (create_linkedin_post, create_linkedin_comment, create_linkedin_article and the three paged reads) and, through get_linkedin_newsletters, of a page's newsletter_id. Each row: company_id (the digits of urn:li:fsd_company:<id>, what author_organization_id takes), company_urn, name, universal_name, url, page_type, logo_url, roles (SUPER_ADMINISTRATOR, CONTENT_ADMINISTRATOR, as LinkedIn names them) and follower_count. The filter is LinkedIn's own (canCreateOrganicShare): a page the account may not post as never lists, an account administering no page answers rows []. A PRIVATE read that spends one self_account_sync unit (the own account's read budget), NOT the posting bucket. Offset-paged: page_size 1-100 (default 10, LinkedIn's own), pass paging.next_cursor back as cursor; paging.total is reliable here.
+
+        Contract:
+        - MCP tool `get_linkedin_administered_companies`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: paced: a call spends the `self_account_sync` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetLinkedinAdministeredCompaniesRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetLinkedinAdministeredCompaniesResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: get_linkedin_administered_companies
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: self_account_sync
+  /api/linkedin-posting/get-article:
+    post:
+      operationId: get_linkedin_article
+      summary: Get LinkedIn article
+      description: |-
+        One LinkedIn article by article_id (any state) or by its public pulse url, exactly one of the two (wire get-article). By id, LinkedIn's latestDraftById answers a DRAFT, a SCHEDULED or a PUBLISHED article; by url, the Article Reader answers a PUBLISHED one and is the only read that carries activity_urn (and none of created_at, updated_at, version). result.article is null, in a 200, when LinkedIn has nothing under the id or the url (deleted, another account's, a link that is not a pulse url): never an error. scheduled_at is null on a read by id even for a SCHEDULED article (LinkedIn's single read omits it): read state and post_urn, or list with get_linkedin_articles state SCHEDULED. A PRIVATE read that spends the one Content bucket, posting (20/day in series of 3 at a 1200 s pause; free plan 4).
+
+        Contract:
+        - MCP tool `get_linkedin_article`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetLinkedinArticleRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetLinkedinArticleResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: get_linkedin_article
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
+  /api/linkedin-posting/get-articles:
+    post:
+      operationId: get_linkedin_articles
+      summary: Get LinkedIn articles
+      description: |-
+        One page of the account's own LinkedIn articles in ONE state, DRAFT, SCHEDULED or PUBLISHED (wire get-articles): each row with article_id, title, state, post_urn, url, the timestamps and scheduled_at (this list is the one read that carries it). Pass author_organization_id (the page's numeric id) to read a COMPANY PAGE's articles the account administers instead of the member's own. A PRIVATE read, nobody on LinkedIn sees it, but it spends the one Content bucket, posting (20/day in series of 3 at a 1200 s pause; free plan 4), shared with publishing. Offset-paged, newest edit first: page_size 1-100 (default 20), pass paging.next_cursor back as cursor; paging.total is reliable here. rows[].article_id is the handle the other article verbs take.
+
+        Contract:
+        - MCP tool `get_linkedin_articles`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetLinkedinArticlesRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetLinkedinArticlesResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: get_linkedin_articles
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
+  /api/linkedin-posting/get-newsletters:
+    post:
+      operationId: get_linkedin_newsletters
+      summary: Get LinkedIn newsletters
+      description: |-
+        One page of the newsletters (LinkedIn content series) the account, or a COMPANY PAGE it administers (author_organization_id), may publish articles into (wire get-newsletters): newsletter_id (what create_linkedin_article takes), title, url, issue_count, subscriber_count, publish_frequency. An account without the newsletter feature answers rows [] (creation_enabled describes the product, not the entitlement). A PRIVATE read that spends the one Content bucket, posting (20/day in series of 3 at a 1200 s pause; free plan 4). Offset-paged: page_size 1-100 (default 20), pass paging.next_cursor back as cursor; paging.total is NOT reliable on this finder (LinkedIn answered 0 with two newsletters live), the end of the list is a null next_cursor.
+
+        Contract:
+        - MCP tool `get_linkedin_newsletters`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GetLinkedinNewslettersRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GetLinkedinNewslettersResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: get_linkedin_newsletters
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
   /api/linkedin-posting/get-scheduled-posts:
     post:
       operationId: get_linkedin_scheduled_posts
@@ -7627,6 +7885,49 @@ paths:
       x-gtm-availability: ga
       x-gtm-surface: both
       x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
+  /api/linkedin-posting/publish-article:
+    post:
+      operationId: publish_linkedin_article
+      summary: Publish LinkedIn article
+      description: |-
+        Share one of the account's DRAFT LinkedIn articles, now or at a slot (wire publish-article): scheduled_at (ISO 8601 with timezone, in the future) schedules the share; absent, the share goes out now and the article is marked PUBLISHED. The article is read first and its author (the member or the page) and newsletter come from it, so there is no author field; a SCHEDULED or PUBLISHED article is refused 409 article_not_draft, a gone one 404 article_not_found. commentary is the share's text above the article (empty when omitted); visibility and allowed_commenters_scope as on create_linkedin_post. Public; take it back with delete_linkedin_article. Spends the posting bucket (20/day in series of 3 at a 1200 s pause; free plan 4). Sends once per client_reference and article (a new scheduled_at is the same share): a repeat is answered, never sent twice; on a 409 read error.context.send_outcome, never resend under a new key. 409 article_not_published is send_outcome unknown: repeat after retry_after.
+
+        Contract:
+        - MCP tool `publish_linkedin_article`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishLinkedinArticleRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PublishLinkedinArticleResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: publish_linkedin_article
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: true
       x-gtm-mass-action: false
       x-gtm-step-eligible: false
       x-gtm-schedule-required: false
@@ -7761,6 +8062,49 @@ paths:
       x-gtm-schedule-required: false
       x-gtm-tool-class: typical
       x-gtm-paced-bucket: react_posts
+  /api/linkedin-posting/update-article:
+    post:
+      operationId: update_linkedin_article
+      summary: Update LinkedIn article draft
+      description: |-
+        Patch one of the account's DRAFT LinkedIn articles (wire update-article): title, content_html (replaces the whole body; the same HTML subset and pictures as create_linkedin_article), cover_image, newsletter_id, at least one of them. The article is read first: a SCHEDULED or PUBLISHED one is refused 409 article_not_draft (delete it with delete_linkedin_article and create it again, or leave it), an id LinkedIn has nothing under is 404 article_not_found. newsletter_id takes no null: omit it to keep the series as it is (the wire for leaving a newsletter is not captured). Spends the posting bucket (20/day in series of 3 at a 1200 s pause; free plan 4). Not a send: a draft is in front of nobody, so it takes no client_reference. Answers the draft read back after the patch (version moved by one; content_html is LinkedIn's normalized form of what was sent).
+
+        Contract:
+        - MCP tool `update_linkedin_article`, registry package `mcp.linkedin/linkedin_posting`, mount `linkedin.content`.
+        - Operation `action`, response envelope `action`.
+        - Flags: dangerous: the MCP layer gates it behind a preview/commit token, and the effect cannot be undone through this API; paced: a call spends the `posting` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_posting
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateLinkedinArticleRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UpdateLinkedinArticleResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: update_linkedin_article
+      x-gtm-mcp-mount: linkedin.content
+      x-gtm-entity: linkedin_posting
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: true
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: posting
   /api/linkedin-scraping/build-search-url:
     post:
       operationId: scrape_linkedin_build_search_url
@@ -11580,7 +11924,7 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ln_al_
-          description: The attempt a 409 or an earlier check named (ln_al_…); it takes no verb and no place. An attempt of another account, or one that is no comment, post or repost, is 404.
+          description: The attempt a 409 or an earlier check named (ln_al_…); it takes no verb and no place. An attempt of another account, or one that is no comment, post, repost or article share, is 404.
         verb:
           type: string
           nullable: true
@@ -11588,12 +11932,14 @@ components:
             - comment
             - create-post
             - repost
-          description: "Required with client_reference: the verb the key was sent by (create_linkedin_comment, create_linkedin_post, repost_linkedin_post). A key is one send per verb."
+            - create-article
+            - publish-article
+          description: "Required with client_reference: the verb the key was sent by (create_linkedin_comment, create_linkedin_post, repost_linkedin_post, create_linkedin_article with a share, publish_linkedin_article). A key is one send per verb."
         entity_urn:
           type: string
           nullable: true
           maxLength: 512
-          description: "Place, next to client_reference: the post a comment or a repost went to, as the send took it or in any other of its forms (it is read for its thread, on the post-details cache), or a comment urn for a reply. Not with create-post."
+          description: "Place, next to client_reference: the post a comment or a repost went to, as the send took it or in any other of its forms (it is read for its thread, on the post-details cache), or a comment urn for a reply. Not with create-post, create-article or publish-article."
         parent_comment_urn:
           type: string
           nullable: true
@@ -11603,8 +11949,8 @@ components:
           type: string
           nullable: true
           maxLength: 128
-          pattern: ^(?:feed:member|feed:org:\d+|group:\d+(?::org:\d+)?)(?::scheduled:\d+)?$
-          description: "Place, next to client_reference and verb create-post: where the post landed: feed:member (your own feed), feed:org:<id> (a company page it was posted as), group:<id> (a group; group:<id>:org:<id> when a page posted into it), optionally :scheduled:<unix ms> after it. A key is read at the feed, page or group whatever its slot."
+          pattern: ^(?:feed:member|feed:org:\d+|group:\d+(?::org:\d+)?|article:\d+)(?::scheduled:\d+)?$
+          description: "Place, next to client_reference and verb create-post, create-article or publish-article: where the post or the article share landed: feed:member (your own feed), feed:org:<id> (a company page it was posted as), group:<id> (a group; group:<id>:org:<id> when a page posted into it), and for publish-article article:<id> (the article shared: its author is read by the node, so no feed is named and a lost answer stays unknown until confirmed_sent or confirmed_not_sent), optionally :scheduled:<unix ms> after any of them. A key is read at the feed, page, group or article whatever its slot."
       required:
         - linkedin_account_sid
     CheckLinkedinPostingSentResponse:
@@ -11652,7 +11998,17 @@ components:
               type: string
               nullable: true
               description: "A repost: the post it reposted."
-          description: "What the send made, in the shape its own verb answers: a comment the comment_urn; a post its urns, url, time and body; a repost its kind, urns, url, time, body and the reposted post."
+            article:
+              type: object
+              nullable: true
+              properties: {}
+              description: "An article share: the article read back after it (article_id, state, post_urn, scheduled_at)."
+            post:
+              type: object
+              nullable: true
+              properties: {}
+              description: "An article share: the share itself (post_urn; activity_urn and url when published now)."
+          description: "What the send made, in the shape its own verb answers: a comment the comment_urn; a post its urns, url, time and body; a repost its kind, urns, url, time, body and the reposted post; an article share its article and post."
         result:
           type: object
           properties:
@@ -11742,12 +12098,12 @@ components:
           minLength: 18
           maxLength: 18
           pattern: ^ab_px_
-          description: Assign an already-chosen pooled proxy. Resolve the sid yourself with search_antidetect_browser_proxies; never ask an end user for one.
+          description: "Assign an already-chosen pooled proxy. Resolve the sid yourself with search_antidetect_browser_proxies; never ask an end user for one. It is probed before the mint: 422 proxy_unreachable when it does not answer, nothing created."
         proxy_country_code:
           type: string
           minLength: 2
           maxLength: 2
-          description: ISO country. Picks the least-loaded active proxy. The default way to pick a proxy.
+          description: ISO 3166-1 alpha-2. Picks the least-loaded active proxy of the country, probed before the mint, the next one when it does not answer. 503 proxy_pool_unreachable when none answers (nothing created, retry later); 422 proxy_pool_empty when it has no stock.
         custom_proxy_config:
           type: object
           properties:
@@ -12140,6 +12496,330 @@ components:
         - item
         - already_exists
         - meta
+    CreateLinkedinArticleRequest:
+      type: object
+      description: Request body of `create_linkedin_article`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        title:
+          type: string
+          minLength: 1
+          description: "The article's title, never blank (a blank one is a 422 here). No cap of ours: a title LinkedIn refuses comes back as its own answer."
+        content_html:
+          type: string
+          description: 'The body as HTML, always present; "" is legal for a DRAFT (an empty article). The subset: p, h1-h6 (LinkedIn has one heading level), blockquote, pre or pre>code, ul/ol>li, hr, img (a data: URL, or an https url we download) alone or in a figure with a figcaption, iframe[src] embeds LinkedIn can ingest (YouTube and the like), br, and inline strong/b, em/i, a[href]; u, s, code, span and unknown inline tags are unwrapped. table, video, audio, script, style or any other block tag is a 422 naming the tag. Pictures (the cover included) share one 35 MB decoded budget; the html itself is capped at 1,000,000 characters without them.'
+        state:
+          type: string
+          enum:
+            - DRAFT
+            - SCHEDULED
+            - PUBLISHED
+          description: "DRAFT: create the draft and stop. SCHEDULED: create it and schedule its share at scheduled_at (REQUIRED then). PUBLISHED: create it, share it now and mark it published. The share is what makes an article public."
+        scheduled_at:
+          type: string
+          description: "With state SCHEDULED only (REQUIRED there, refused with DRAFT or PUBLISHED): ISO 8601 with timezone, in the future (a strictly past time is a 422; within a minute of now is passed through for LinkedIn to judge). The share lives in LinkedIn's own queue (get_linkedin_scheduled_posts); the article is listed by get_linkedin_articles with state SCHEDULED. The slot is no part of a key: a retry under the same client_reference with a new scheduled_at is the same share."
+        commentary:
+          type: string
+          maxLength: 3000
+          description: The share's text above the article (3000, LinkedIn's post cap); "" when omitted, which LinkedIn accepts. Meaningless for a DRAFT and ignored there.
+        visibility:
+          type: string
+          enum:
+            - ANYONE
+            - CONNECTIONS_ONLY
+          description: "The share's visibility: ANYONE (the node default) or CONNECTIONS_ONLY. Mutually exclusive with newsletter_id: an issue takes container visibility on its newsletter."
+        allowed_commenters_scope:
+          type: string
+          enum:
+            - ALL
+            - CONNECTIONS_ONLY
+            - NONE
+          description: "Who may comment on the share: ALL (the node default), CONNECTIONS_ONLY, or NONE to disable comments."
+        author_organization_id:
+          type: string
+          maxLength: 2048
+          description: "Write AS a company page the account administers: its numeric id in any spelling (the digits, a company urn, a /company/<id>/ link), or its page link or slug when a company read of your workspace already knows the id (else 422 company_not_readable). get_linkedin_administered_companies lists the pages this account may write as, with their ids. The article and its share both go as the page. Omit to write as the member (the backend supplies the member's own id; no profile_id field exists here)."
+        newsletter_id:
+          type: string
+          pattern: ^(?:urn:li:fsd_contentSeries:)?\d{1,20}$
+          description: "Make the article an issue of this newsletter: the digits of urn:li:fsd_contentSeries:<id> (rows[].newsletter_id of get_linkedin_newsletters) or that urn. The owner must match author_organization_id (a page's newsletter needs the page). Excludes visibility."
+        cover_image:
+          type: object
+          properties:
+            file_base64:
+              type: string
+              minLength: 1
+              description: "The picture bytes of a PNG, JPEG, GIF or WEBP: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 or url. Checked before anything is dispatched (image_corrupt / image_format_unrecognized / image_not_base64 are 422s on this member). Base64 typed out by hand is the usual source of damage: prefer url."
+            url:
+              type: string
+              maxLength: 2048
+              format: uri
+              description: An https URL of the picture, downloaded by us (public hosts only, within the 35 MB article media budget the inline pictures share, typed by content). Exactly one of file_base64 or url. A request_media_upload file_url works once its upload is done.
+            file_byte_size:
+              type: integer
+              minimum: 1
+            file_name:
+              type: string
+              minLength: 1
+            file_type:
+              type: string
+              minLength: 1
+            caption:
+              type: string
+              nullable: true
+              maxLength: 1000
+              description: The caption shown under the cover; empty is what LinkedIn's editor sends for none.
+          description: ONE cover picture (file_base64 XOR url, plus an optional caption), uploaded before the create. Shares the 35 MB budget with the inline pictures.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: "Your key for this ONE article share (max 255, byte for byte): one key per article share, the same key on every repeat of it. The key and its place (where it lands: your own feed or the company page of author_organization_id) are one article share whatever it says, and a repeat never goes out twice: it answers 200 with what the first send made (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another article share in doubt holds the place). The same key at another place is another article share. Without a key the same commentary and article at the same place and slot count as a repeat for an hour after they went out. check_linkedin_posting_sent asks by it."
+        confirmed_not_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+        confirmed_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+      required:
+        - linkedin_account_sid
+        - title
+        - content_html
+        - state
+    CreateLinkedinArticleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            article:
+              type: object
+              properties:
+                article_id:
+                  type: string
+                  nullable: true
+                  description: "The digits of urn:li:fsd_firstPartyArticle:<id>: the handle update_linkedin_article, publish_linkedin_article, get_linkedin_article and delete_linkedin_article take."
+                article_urn:
+                  type: string
+                  nullable: true
+                  description: urn:li:fsd_firstPartyArticle:<id>.
+                linkedin_article_urn:
+                  type: string
+                  nullable: true
+                  description: "urn:li:linkedInArticle:<id>, the same digits: the media urn of the article's share."
+                title:
+                  type: string
+                state:
+                  type: string
+                  nullable: true
+                  description: DRAFT | SCHEDULED | PUBLISHED, the wire's own read vocabulary. Only a DRAFT can be patched or published.
+                content_html:
+                  type: string
+                  description: "LinkedIn's own html of the body, normalized server-side: not an echo of what was sent (a code block comes back as an empty pre, an inline picture gains its src, the editor's link attributes are rewritten)."
+                url:
+                  type: string
+                  nullable: true
+                  description: "https://www.linkedin.com/pulse/<permalink>, PUBLISHED only: the handle get_linkedin_article takes as url."
+                cover_image_url:
+                  type: string
+                  nullable: true
+                  description: The largest rendition of the cover picture, when one is set.
+                cover_image_caption:
+                  type: string
+                  nullable: true
+                author_profile_id:
+                  type: string
+                  nullable: true
+                  description: The member's ACoA id when the article is the member's own; null for a page article.
+                author_organization_id:
+                  type: string
+                  nullable: true
+                  description: The numeric company id when the article is a page's; null for a member article.
+                newsletter_id:
+                  type: string
+                  nullable: true
+                  description: The digits of the newsletter (content series) this article is an issue of; null when it is none.
+                post_urn:
+                  type: string
+                  nullable: true
+                  description: The share LinkedIn made for a SCHEDULED or PUBLISHED article (urn:li:ugcPost:<id>); null on a DRAFT. A scheduled article sits in get_linkedin_scheduled_posts under it.
+                activity_urn:
+                  type: string
+                  nullable: true
+                  description: The feed entry of a published article. Only the read by url (the Article Reader) carries it; null on every other read.
+                created_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url (the reader omits it).
+                updated_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url.
+                published_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601, PUBLISHED only.
+                scheduled_at:
+                  type: string
+                  nullable: true
+                  description: "ISO 8601 of the planned publication. Carried by get_linkedin_articles (state SCHEDULED) and by the create or publish answer that scheduled it. LinkedIn's single read by id answers none (probe B5 of 2026-11-21), so a null here on get_linkedin_article does NOT mean unscheduled: read state and post_urn, or list with state SCHEDULED."
+                version:
+                  type: integer
+                  nullable: true
+                  description: "LinkedIn's edit counter: 0 on create, one more per patch."
+              required:
+                - article_id
+                - article_urn
+                - linkedin_article_urn
+                - title
+                - state
+                - content_html
+                - url
+                - cover_image_url
+                - cover_image_caption
+                - author_profile_id
+                - author_organization_id
+                - newsletter_id
+                - post_urn
+                - activity_urn
+                - created_at
+                - updated_at
+                - published_at
+                - scheduled_at
+                - version
+              description: The article read back after the last write.
+            post:
+              type: object
+              nullable: true
+              properties:
+                activity_urn:
+                  type: string
+                  nullable: true
+                  description: The feed entry, PUBLISHED now only; null for a scheduled share.
+                post_urn:
+                  type: string
+                  nullable: true
+                  description: "The share, urn:li:ugcPost:<id>: the proof it was made, the same value article.post_urn carries."
+                url:
+                  type: string
+                  nullable: true
+                  description: The feed url of the share, query string stripped; null for a scheduled share.
+                created_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601.
+                text:
+                  type: string
+                  description: The commentary LinkedIn published above the article; empty when none was given.
+                lifecycle_state:
+                  type: string
+                  nullable: true
+                  description: PUBLISHED when LinkedIn said so; null for a scheduled share.
+              required:
+                - activity_urn
+                - post_urn
+                - url
+                - created_at
+                - text
+                - lifecycle_state
+              description: "The share: null when state was DRAFT (nothing is public yet); for a scheduled share post_urn alone, for one published now its activity_urn and url too."
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+            idempotent_replay:
+              type: boolean
+              description: "true when this answers a repeat (under the key, or without one the same commentary and article at the same place) with what the first send made: nothing was sent now."
+            content_differs:
+              type: boolean
+              description: "With idempotent_replay: true when this request's commentary or article differs from the send that made it."
+          required:
+            - article
+            - post
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     CreateLinkedinAutoScrapeRequest:
       type: object
       description: Request body of `create_linkedin_auto_scrape`.
@@ -12502,7 +13182,7 @@ components:
         author_organization_id:
           type: string
           maxLength: 2048
-          description: "Comment AS a company page the account administers: its numeric id in any spelling (the digits, a company urn, a /company/<id>/ link; the company_ln_id enrich_linkedin_company_posts takes), or its link or slug when your workspace already knows the id, for a top-level comment and a reply alike. Omit to comment as the member. The member and a page are two authors, so their comments at one place are two comments: give each a client_reference of its own, because check_linkedin_posting_sent takes no author and, asked by a key both share, answers for whichever went out. No read lists a comment as made by a page, so a page comment whose answer was lost stays in doubt until a person gives their word (confirmed_sent or confirmed_not_sent). A mass-action comment step does not take this field: a step comments as the member."
+          description: "Comment AS a company page the account administers: its numeric id in any spelling (the digits, a company urn, a /company/<id>/ link; the company_ln_id enrich_linkedin_company_posts takes), or its link or slug when your workspace already knows the id, for a top-level comment and a reply alike. get_linkedin_administered_companies lists the pages this account may act as, with their ids. Omit to comment as the member. The member and a page are two authors, so their comments at one place are two comments: give each a client_reference of its own, because check_linkedin_posting_sent takes no author and, asked by a key both share, answers for whichever went out. No read lists a comment as made by a page, so a page comment whose answer was lost stays in doubt until a person gives their word (confirmed_sent or confirmed_not_sent). A mass-action comment step does not take this field: a step comments as the member."
         client_reference:
           type: string
           nullable: true
@@ -12772,7 +13452,7 @@ components:
         author_organization_id:
           type: string
           maxLength: 2048
-          description: "Post AS a company page the account administers: its numeric id in any spelling (the digits, a company urn, a /company/<id>/ link), or its page link or slug when a company read of your workspace already knows the id (else 422 company_not_readable). Omit to post as the member."
+          description: "Post AS a company page the account administers: its numeric id in any spelling (the digits, a company urn, a /company/<id>/ link), or its page link or slug when a company read of your workspace already knows the id (else 422 company_not_readable). get_linkedin_administered_companies lists the pages this account may post as, with their ids. Omit to post as the member."
         group_id:
           type: string
           pattern: ^\d+$
@@ -12998,6 +13678,121 @@ components:
         - already_deleted
         - soft_deleted
         - cascade
+        - meta
+    DeleteLinkedinArticleRequest:
+      type: object
+      description: Request body of `delete_linkedin_article`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        article_id:
+          type: string
+          pattern: ^(?:urn:li:fsd_firstPartyArticle:)?\d{1,20}$
+          description: "The article: the digits of urn:li:fsd_firstPartyArticle:<id>, exactly as every article row answers article_id, or that urn."
+      required:
+        - linkedin_account_sid
+        - article_id
+    DeleteLinkedinArticleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            deleted:
+              type: boolean
+              enum:
+                - true
+              description: "Always true on a 200: a refused delete is a 409 article_not_deleted, never a success body."
+            post_urn:
+              type: string
+              nullable: true
+              description: The share that was deleted first, when the article had one (SCHEDULED or PUBLISHED); null for a draft.
+            state_before:
+              type: string
+              nullable: true
+              description: "DRAFT | SCHEDULED | PUBLISHED: what the article was when it was read, before the delete."
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+          required:
+            - deleted
+            - post_urn
+            - state_before
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
         - meta
     DeleteLinkedinAutoScrapeResponse:
       type: object
@@ -31869,6 +32664,609 @@ components:
         - operation
         - metrics
         - meta
+    GetLinkedinAdministeredCompaniesRequest:
+      type: object
+      description: Request body of `get_linkedin_administered_companies`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Rows per page, the node's own [1, 100] gate. Defaults to 10, LinkedIn's own page.
+        cursor:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The previous page's paging.next_cursor, verbatim. Omit for the first page.
+      required:
+        - linkedin_account_sid
+    GetLinkedinAdministeredCompaniesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  company_id:
+                    type: string
+                    nullable: true
+                    description: "The digits of urn:li:fsd_company:<id>: what author_organization_id takes on every verb of this surface."
+                  company_urn:
+                    type: string
+                    nullable: true
+                    description: urn:li:fsd_company:<id>.
+                  name:
+                    type: string
+                  universal_name:
+                    type: string
+                    nullable: true
+                    description: The vanity in the page url, such as jobs-psa-page.
+                  url:
+                    type: string
+                    nullable: true
+                    description: https://www.linkedin.com/company/<vanity>/ or /showcase/<vanity>/.
+                  page_type:
+                    type: string
+                    nullable: true
+                    description: COMPANY or SHOWCASE, as the wire says.
+                  logo_url:
+                    type: string
+                    nullable: true
+                    description: The largest rendition of the page logo, when it has one.
+                  roles:
+                    type: array
+                    items:
+                      type: string
+                    description: The account's roles on the page as LinkedIn names them (SUPER_ADMINISTRATOR, CONTENT_ADMINISTRATOR); empty when the wire named none.
+                  follower_count:
+                    type: integer
+                    nullable: true
+                    description: The page's follower count from LinkedIn's following row, when it rides along.
+                required:
+                  - company_id
+                  - company_urn
+                  - name
+                  - universal_name
+                  - url
+                  - page_type
+                  - logo_url
+                  - roles
+                  - follower_count
+              description: "In the order LinkedIn lists them: not alphabetical, not by id."
+            paging:
+              type: object
+              properties:
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Offset cursor for the next page; null when the list is exhausted.
+                total:
+                  type: integer
+                  nullable: true
+                  description: How many pages the account may publish as; reliable on this finder (probes O2 and O3 of 2026-11-22).
+              required:
+                - next_cursor
+                - total
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+          required:
+            - rows
+            - paging
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    GetLinkedinArticleRequest:
+      type: object
+      description: Request body of `get_linkedin_article`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        article_id:
+          type: string
+          pattern: ^(?:urn:li:fsd_firstPartyArticle:)?\d{1,20}$
+          description: "The article by id: the digits of urn:li:fsd_firstPartyArticle:<id> or that urn, every state. Exactly one of article_id or url."
+        url:
+          type: string
+          maxLength: 2048
+          format: uri
+          pattern: ^https:\/\/(?:[a-z0-9-]+\.)?linkedin\.com\/pulse\/[^\s?#]+
+          description: "The article by its public link: https://www.linkedin.com/pulse/<permalink> (a locale host such as de.linkedin.com works; the permalink may be percent-encoded). PUBLISHED articles only, the one read with activity_urn. Exactly one of article_id or url."
+      required:
+        - linkedin_account_sid
+    GetLinkedinArticleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            article:
+              type: object
+              nullable: true
+              properties:
+                article_id:
+                  type: string
+                  nullable: true
+                  description: "The digits of urn:li:fsd_firstPartyArticle:<id>: the handle update_linkedin_article, publish_linkedin_article, get_linkedin_article and delete_linkedin_article take."
+                article_urn:
+                  type: string
+                  nullable: true
+                  description: urn:li:fsd_firstPartyArticle:<id>.
+                linkedin_article_urn:
+                  type: string
+                  nullable: true
+                  description: "urn:li:linkedInArticle:<id>, the same digits: the media urn of the article's share."
+                title:
+                  type: string
+                state:
+                  type: string
+                  nullable: true
+                  description: DRAFT | SCHEDULED | PUBLISHED, the wire's own read vocabulary. Only a DRAFT can be patched or published.
+                content_html:
+                  type: string
+                  description: "LinkedIn's own html of the body, normalized server-side: not an echo of what was sent (a code block comes back as an empty pre, an inline picture gains its src, the editor's link attributes are rewritten)."
+                url:
+                  type: string
+                  nullable: true
+                  description: "https://www.linkedin.com/pulse/<permalink>, PUBLISHED only: the handle get_linkedin_article takes as url."
+                cover_image_url:
+                  type: string
+                  nullable: true
+                  description: The largest rendition of the cover picture, when one is set.
+                cover_image_caption:
+                  type: string
+                  nullable: true
+                author_profile_id:
+                  type: string
+                  nullable: true
+                  description: The member's ACoA id when the article is the member's own; null for a page article.
+                author_organization_id:
+                  type: string
+                  nullable: true
+                  description: The numeric company id when the article is a page's; null for a member article.
+                newsletter_id:
+                  type: string
+                  nullable: true
+                  description: The digits of the newsletter (content series) this article is an issue of; null when it is none.
+                post_urn:
+                  type: string
+                  nullable: true
+                  description: The share LinkedIn made for a SCHEDULED or PUBLISHED article (urn:li:ugcPost:<id>); null on a DRAFT. A scheduled article sits in get_linkedin_scheduled_posts under it.
+                activity_urn:
+                  type: string
+                  nullable: true
+                  description: The feed entry of a published article. Only the read by url (the Article Reader) carries it; null on every other read.
+                created_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url (the reader omits it).
+                updated_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url.
+                published_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601, PUBLISHED only.
+                scheduled_at:
+                  type: string
+                  nullable: true
+                  description: "ISO 8601 of the planned publication. Carried by get_linkedin_articles (state SCHEDULED) and by the create or publish answer that scheduled it. LinkedIn's single read by id answers none (probe B5 of 2026-11-21), so a null here on get_linkedin_article does NOT mean unscheduled: read state and post_urn, or list with state SCHEDULED."
+                version:
+                  type: integer
+                  nullable: true
+                  description: "LinkedIn's edit counter: 0 on create, one more per patch."
+              required:
+                - article_id
+                - article_urn
+                - linkedin_article_urn
+                - title
+                - state
+                - content_html
+                - url
+                - cover_image_url
+                - cover_image_caption
+                - author_profile_id
+                - author_organization_id
+                - newsletter_id
+                - post_urn
+                - activity_urn
+                - created_at
+                - updated_at
+                - published_at
+                - scheduled_at
+                - version
+              description: "null, in a 200, when LinkedIn has no article under the id or the url (deleted, another account's, a pulse link the reader does not resolve): never an error, as get-post answers a deleted post."
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+          required:
+            - article
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    GetLinkedinArticlesRequest:
+      type: object
+      description: Request body of `get_linkedin_articles`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        state:
+          type: string
+          enum:
+            - DRAFT
+            - SCHEDULED
+            - PUBLISHED
+          description: "Which list: DRAFT (unshared drafts), SCHEDULED (a share is queued) or PUBLISHED. One state per call."
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Rows per page, the node's own [1, 100] gate. Defaults to 20.
+        cursor:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The previous page's paging.next_cursor, verbatim. Omit for the first page.
+        author_organization_id:
+          type: string
+          maxLength: 2048
+          description: "Read a company page's articles instead of the member's own: its numeric id in any spelling (the digits, a company urn, a linkedin.com/company/<id>/ link), or its link or slug when your workspace already knows the id. The account must administer that page or the list comes back empty; get_linkedin_administered_companies lists those pages and their ids."
+      required:
+        - linkedin_account_sid
+        - state
+    GetLinkedinArticlesResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  article_id:
+                    type: string
+                    nullable: true
+                    description: "The digits of urn:li:fsd_firstPartyArticle:<id>: the handle update_linkedin_article, publish_linkedin_article, get_linkedin_article and delete_linkedin_article take."
+                  article_urn:
+                    type: string
+                    nullable: true
+                    description: urn:li:fsd_firstPartyArticle:<id>.
+                  linkedin_article_urn:
+                    type: string
+                    nullable: true
+                    description: "urn:li:linkedInArticle:<id>, the same digits: the media urn of the article's share."
+                  title:
+                    type: string
+                  state:
+                    type: string
+                    nullable: true
+                    description: DRAFT | SCHEDULED | PUBLISHED, the wire's own read vocabulary. Only a DRAFT can be patched or published.
+                  content_html:
+                    type: string
+                    description: "LinkedIn's own html of the body, normalized server-side: not an echo of what was sent (a code block comes back as an empty pre, an inline picture gains its src, the editor's link attributes are rewritten)."
+                  url:
+                    type: string
+                    nullable: true
+                    description: "https://www.linkedin.com/pulse/<permalink>, PUBLISHED only: the handle get_linkedin_article takes as url."
+                  cover_image_url:
+                    type: string
+                    nullable: true
+                    description: The largest rendition of the cover picture, when one is set.
+                  cover_image_caption:
+                    type: string
+                    nullable: true
+                  author_profile_id:
+                    type: string
+                    nullable: true
+                    description: The member's ACoA id when the article is the member's own; null for a page article.
+                  author_organization_id:
+                    type: string
+                    nullable: true
+                    description: The numeric company id when the article is a page's; null for a member article.
+                  newsletter_id:
+                    type: string
+                    nullable: true
+                    description: The digits of the newsletter (content series) this article is an issue of; null when it is none.
+                  post_urn:
+                    type: string
+                    nullable: true
+                    description: The share LinkedIn made for a SCHEDULED or PUBLISHED article (urn:li:ugcPost:<id>); null on a DRAFT. A scheduled article sits in get_linkedin_scheduled_posts under it.
+                  activity_urn:
+                    type: string
+                    nullable: true
+                    description: The feed entry of a published article. Only the read by url (the Article Reader) carries it; null on every other read.
+                  created_at:
+                    type: string
+                    nullable: true
+                    description: ISO 8601; null on a read by url (the reader omits it).
+                  updated_at:
+                    type: string
+                    nullable: true
+                    description: ISO 8601; null on a read by url.
+                  published_at:
+                    type: string
+                    nullable: true
+                    description: ISO 8601, PUBLISHED only.
+                  scheduled_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 of the planned publication. Carried by get_linkedin_articles (state SCHEDULED) and by the create or publish answer that scheduled it. LinkedIn's single read by id answers none (probe B5 of 2026-11-21), so a null here on get_linkedin_article does NOT mean unscheduled: read state and post_urn, or list with state SCHEDULED."
+                  version:
+                    type: integer
+                    nullable: true
+                    description: "LinkedIn's edit counter: 0 on create, one more per patch."
+                required:
+                  - article_id
+                  - article_urn
+                  - linkedin_article_urn
+                  - title
+                  - state
+                  - content_html
+                  - url
+                  - cover_image_url
+                  - cover_image_caption
+                  - author_profile_id
+                  - author_organization_id
+                  - newsletter_id
+                  - post_urn
+                  - activity_urn
+                  - created_at
+                  - updated_at
+                  - published_at
+                  - scheduled_at
+                  - version
+              description: "Newest edit first: LinkedIn orders the list by updated_at descending."
+            paging:
+              type: object
+              properties:
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: Offset cursor for the next page; null when the list is exhausted.
+                total:
+                  type: integer
+                  nullable: true
+                  description: LinkedIn's total for this author and state; reliable on this finder (probe F1 of 2026-11-21).
+              required:
+                - next_cursor
+                - total
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+          required:
+            - rows
+            - paging
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     GetLinkedinAutoScrapeResponse:
       type: object
       properties:
@@ -33571,6 +34969,199 @@ components:
         - operation
         - metrics
         - meta
+    GetLinkedinNewslettersRequest:
+      type: object
+      description: Request body of `get_linkedin_newsletters`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        page_size:
+          type: integer
+          minimum: 1
+          maximum: 100
+          description: Rows per page, the node's own [1, 100] gate. Defaults to 20.
+        cursor:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: The previous page's paging.next_cursor, verbatim. Omit for the first page.
+        author_organization_id:
+          type: string
+          maxLength: 2048
+          description: "Read a company page's newsletters instead of the member's own: its numeric id in any spelling (the digits, a company urn, a linkedin.com/company/<id>/ link), or its link or slug when your workspace already knows the id. The account must administer that page or the list comes back empty; get_linkedin_administered_companies lists those pages and their ids."
+      required:
+        - linkedin_account_sid
+    GetLinkedinNewslettersResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            rows:
+              type: array
+              items:
+                type: object
+                properties:
+                  newsletter_id:
+                    type: string
+                    nullable: true
+                    description: "The digits of urn:li:fsd_contentSeries:<id>: what create_linkedin_article and update_linkedin_article take as newsletter_id."
+                  newsletter_urn:
+                    type: string
+                    nullable: true
+                    description: urn:li:fsd_contentSeries:<id>.
+                  title:
+                    type: string
+                  description:
+                    type: string
+                    nullable: true
+                  url:
+                    type: string
+                    nullable: true
+                    description: https://www.linkedin.com/newsletters/<slug>-<id>.
+                  issue_count:
+                    type: integer
+                    nullable: true
+                  subscriber_count:
+                    type: integer
+                    nullable: true
+                    description: From LinkedIn's subscribe row, when it rides along.
+                  publish_frequency:
+                    type: object
+                    nullable: true
+                    properties:
+                      duration:
+                        type: integer
+                      unit:
+                        type: string
+                    required:
+                      - duration
+                      - unit
+                    description: "The cadence LinkedIn states for it, such as {duration: 2, unit: MONTH}."
+                  author_profile_id:
+                    type: string
+                    nullable: true
+                    description: The member's ACoA id when the newsletter is the member's own.
+                  author_organization_id:
+                    type: string
+                    nullable: true
+                    description: The numeric company id when the newsletter is a page's.
+                  logo_url:
+                    type: string
+                    nullable: true
+                required:
+                  - newsletter_id
+                  - newsletter_urn
+                  - title
+                  - description
+                  - url
+                  - issue_count
+                  - subscriber_count
+                  - publish_frequency
+                  - author_profile_id
+                  - author_organization_id
+                  - logo_url
+            paging:
+              type: object
+              properties:
+                next_cursor:
+                  type: string
+                  nullable: true
+                  description: "Offset cursor for the next page; null when the list is exhausted: the ONLY end-of-list signal here."
+                total:
+                  type: integer
+                  nullable: true
+                  description: "NOT reliable on this finder: LinkedIn answered 0 with two newsletters live (probe F4 of 2026-11-21). Read next_cursor instead."
+              required:
+                - next_cursor
+                - total
+            creation_enabled:
+              type: boolean
+              nullable: true
+              description: "LinkedIn's metadata.creationEnabled: whether this owner may create newsletters. A product flag, not the entitlement to publish into one: an account with no newsletter answers rows [] with creation_enabled true (probe A6)."
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+          required:
+            - rows
+            - paging
+            - creation_enabled
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     GetLinkedinScheduledPostsRequest:
       type: object
       description: Request body of `get_linkedin_scheduled_posts`.
@@ -33594,7 +35185,7 @@ components:
         author_organization_id:
           type: string
           maxLength: 2048
-          description: "Read a company page's queue instead of the member's own: its numeric id in any spelling (the digits, a company urn, a linkedin.com/company/<id>/ link), or its link or slug when your workspace already knows the id. The account must administer that page or the queue comes back empty."
+          description: "Read a company page's queue instead of the member's own: its numeric id in any spelling (the digits, a company urn, a linkedin.com/company/<id>/ link), or its link or slug when your workspace already knows the id. The account must administer that page or the queue comes back empty; get_linkedin_administered_companies lists those pages and their ids."
       required:
         - linkedin_account_sid
     GetLinkedinScheduledPostsResponse:
@@ -38878,6 +40469,283 @@ components:
             - span_id
             - timestamp
             - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    PublishLinkedinArticleRequest:
+      type: object
+      description: Request body of `publish_linkedin_article`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        article_id:
+          type: string
+          pattern: ^(?:urn:li:fsd_firstPartyArticle:)?\d{1,20}$
+          description: "The article: the digits of urn:li:fsd_firstPartyArticle:<id>, exactly as every article row answers article_id, or that urn."
+        scheduled_at:
+          type: string
+          description: "Schedule the share instead of publishing now: ISO 8601 with timezone, in the future (a strictly past time is a 422; within a minute of now is passed through for LinkedIn to judge). The share lives in LinkedIn's own queue. The slot is no part of a key: a retry under the same client_reference with a new scheduled_at is the same share."
+        commentary:
+          type: string
+          maxLength: 3000
+          description: The share's text above the article (3000, LinkedIn's post cap); "" when omitted, which LinkedIn accepts.
+        visibility:
+          type: string
+          enum:
+            - ANYONE
+            - CONNECTIONS_ONLY
+          description: ANYONE (the node default) or CONNECTIONS_ONLY. Ignored for a newsletter issue, whose share takes container visibility on its newsletter.
+        allowed_commenters_scope:
+          type: string
+          enum:
+            - ALL
+            - CONNECTIONS_ONLY
+            - NONE
+          description: "Who may comment on the share: ALL (the node default), CONNECTIONS_ONLY, or NONE to disable comments."
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 255
+          description: "Your key for this ONE article share (max 255, byte for byte): one key per article share, the same key on every repeat of it. The key and its place (the article it shares, article:<id> with the slot after it when scheduled, whatever the article's author: the author is read from the article after the key is taken, so no feed is named and a lost answer stays unknown until a person confirms it) are one article share whatever it says, and a repeat never goes out twice: it answers 200 with what the first send made (result.idempotent_replay, result.content_differs when this request says something else) or 409 naming error.context.send_outcome (in_flight, unknown with retry_after and send_decisive_at, or sent; not_sent with blocking_activity_log_sid when another article share in doubt holds the place). The same key at another place is another article share. Without a key the same commentary and article at the same place and slot count as a repeat for an hour after they went out. check_linkedin_posting_sent asks by it."
+        confirmed_not_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send is not on LinkedIn: its activity_log_sid (ln_al_...), from the 409 or check_linkedin_posting_sent, given only after someone looked on LinkedIn. Taken once the attempt can no longer land (before that: 409 send_outcome_unknown, waiting_for may_still_land, retry_after and send_decisive_at that moment): it settles that attempt not_sent and this request goes out. Moot when the attempt is no longer in doubt; another send's sid is 422 not_this_message."
+        confirmed_sent:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_al_
+          description: "A person's word that an earlier attempt of THIS send IS on LinkedIn: its activity_log_sid, as for confirmed_not_sent (never both). Taken at once; it settles the attempt sent and sends nothing: the answer is 409 concurrent_send_in_flight with send_outcome sent while what it made is not known (LinkedIn is read for it), or 200 with it once a read has found it. Another send's sid is 422 not_this_message; an attempt already proved not sent is 409 confirmed_sent_contradicts."
+      required:
+        - linkedin_account_sid
+        - article_id
+    PublishLinkedinArticleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            article:
+              type: object
+              properties:
+                article_id:
+                  type: string
+                  nullable: true
+                  description: "The digits of urn:li:fsd_firstPartyArticle:<id>: the handle update_linkedin_article, publish_linkedin_article, get_linkedin_article and delete_linkedin_article take."
+                article_urn:
+                  type: string
+                  nullable: true
+                  description: urn:li:fsd_firstPartyArticle:<id>.
+                linkedin_article_urn:
+                  type: string
+                  nullable: true
+                  description: "urn:li:linkedInArticle:<id>, the same digits: the media urn of the article's share."
+                title:
+                  type: string
+                state:
+                  type: string
+                  nullable: true
+                  description: DRAFT | SCHEDULED | PUBLISHED, the wire's own read vocabulary. Only a DRAFT can be patched or published.
+                content_html:
+                  type: string
+                  description: "LinkedIn's own html of the body, normalized server-side: not an echo of what was sent (a code block comes back as an empty pre, an inline picture gains its src, the editor's link attributes are rewritten)."
+                url:
+                  type: string
+                  nullable: true
+                  description: "https://www.linkedin.com/pulse/<permalink>, PUBLISHED only: the handle get_linkedin_article takes as url."
+                cover_image_url:
+                  type: string
+                  nullable: true
+                  description: The largest rendition of the cover picture, when one is set.
+                cover_image_caption:
+                  type: string
+                  nullable: true
+                author_profile_id:
+                  type: string
+                  nullable: true
+                  description: The member's ACoA id when the article is the member's own; null for a page article.
+                author_organization_id:
+                  type: string
+                  nullable: true
+                  description: The numeric company id when the article is a page's; null for a member article.
+                newsletter_id:
+                  type: string
+                  nullable: true
+                  description: The digits of the newsletter (content series) this article is an issue of; null when it is none.
+                post_urn:
+                  type: string
+                  nullable: true
+                  description: The share LinkedIn made for a SCHEDULED or PUBLISHED article (urn:li:ugcPost:<id>); null on a DRAFT. A scheduled article sits in get_linkedin_scheduled_posts under it.
+                activity_urn:
+                  type: string
+                  nullable: true
+                  description: The feed entry of a published article. Only the read by url (the Article Reader) carries it; null on every other read.
+                created_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url (the reader omits it).
+                updated_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url.
+                published_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601, PUBLISHED only.
+                scheduled_at:
+                  type: string
+                  nullable: true
+                  description: "ISO 8601 of the planned publication. Carried by get_linkedin_articles (state SCHEDULED) and by the create or publish answer that scheduled it. LinkedIn's single read by id answers none (probe B5 of 2026-11-21), so a null here on get_linkedin_article does NOT mean unscheduled: read state and post_urn, or list with state SCHEDULED."
+                version:
+                  type: integer
+                  nullable: true
+                  description: "LinkedIn's edit counter: 0 on create, one more per patch."
+              required:
+                - article_id
+                - article_urn
+                - linkedin_article_urn
+                - title
+                - state
+                - content_html
+                - url
+                - cover_image_url
+                - cover_image_caption
+                - author_profile_id
+                - author_organization_id
+                - newsletter_id
+                - post_urn
+                - activity_urn
+                - created_at
+                - updated_at
+                - published_at
+                - scheduled_at
+                - version
+              description: The article read back after the last write.
+            post:
+              type: object
+              nullable: true
+              properties:
+                activity_urn:
+                  type: string
+                  nullable: true
+                  description: The feed entry, PUBLISHED now only; null for a scheduled share.
+                post_urn:
+                  type: string
+                  nullable: true
+                  description: "The share, urn:li:ugcPost:<id>: the proof it was made, the same value article.post_urn carries."
+                url:
+                  type: string
+                  nullable: true
+                  description: The feed url of the share, query string stripped; null for a scheduled share.
+                created_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601.
+                text:
+                  type: string
+                  description: The commentary LinkedIn published above the article; empty when none was given.
+                lifecycle_state:
+                  type: string
+                  nullable: true
+                  description: PUBLISHED when LinkedIn said so; null for a scheduled share.
+              required:
+                - activity_urn
+                - post_urn
+                - url
+                - created_at
+                - text
+                - lifecycle_state
+              description: "The share: null when state was DRAFT (nothing is public yet); for a scheduled share post_urn alone, for one published now its activity_urn and url too."
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+            idempotent_replay:
+              type: boolean
+              description: "true when this answers a repeat (under the key, or without one the same commentary and article at the same place) with what the first send made: nothing was sent now."
+            content_differs:
+              type: boolean
+              description: "With idempotent_replay: true when this request's commentary or article differs from the send that made it."
+          required:
+            - article
+            - post
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
@@ -70432,6 +72300,240 @@ components:
             - span_id
             - timestamp
             - duration_ms
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
+    UpdateLinkedinArticleRequest:
+      type: object
+      description: Request body of `update_linkedin_article`.
+      properties:
+        linkedin_account_sid:
+          type: string
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "LinkedIn account sid (ln_ac_…), the authoring account. Identity-bound: REQUIRED, posts publish AS this account."
+        article_id:
+          type: string
+          pattern: ^(?:urn:li:fsd_firstPartyArticle:)?\d{1,20}$
+          description: "The article: the digits of urn:li:fsd_firstPartyArticle:<id>, exactly as every article row answers article_id, or that urn."
+        title:
+          type: string
+          minLength: 1
+          description: A new title, never blank. Omit to keep the title.
+        content_html:
+          type: string
+          description: 'A new body, replacing the whole one: the same HTML subset, pictures and ceilings as create_linkedin_article; "" empties the draft. Omit to keep the body.'
+        newsletter_id:
+          type: string
+          pattern: ^(?:urn:li:fsd_contentSeries:)?\d{1,20}$
+          description: "Move the draft into this newsletter: the digits of urn:li:fsd_contentSeries:<id> or that urn. Not nullable: omit it to keep the series."
+        cover_image:
+          type: object
+          properties:
+            file_base64:
+              type: string
+              minLength: 1
+              description: "The picture bytes of a PNG, JPEG, GIF or WEBP: a data:<mime>;base64,<...> URL or bare base64. Exactly one of file_base64 or url. Checked before anything is dispatched (image_corrupt / image_format_unrecognized / image_not_base64 are 422s on this member). Base64 typed out by hand is the usual source of damage: prefer url."
+            url:
+              type: string
+              maxLength: 2048
+              format: uri
+              description: An https URL of the picture, downloaded by us (public hosts only, within the 35 MB article media budget the inline pictures share, typed by content). Exactly one of file_base64 or url. A request_media_upload file_url works once its upload is done.
+            file_byte_size:
+              type: integer
+              minimum: 1
+            file_name:
+              type: string
+              minLength: 1
+            file_type:
+              type: string
+              minLength: 1
+            caption:
+              type: string
+              nullable: true
+              maxLength: 1000
+              description: The caption shown under the cover; empty is what LinkedIn's editor sends for none.
+          description: A new cover picture (file_base64 XOR url, plus an optional caption), replacing the current one. Omit to keep it.
+      required:
+        - linkedin_account_sid
+        - article_id
+    UpdateLinkedinArticleResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            article:
+              type: object
+              properties:
+                article_id:
+                  type: string
+                  nullable: true
+                  description: "The digits of urn:li:fsd_firstPartyArticle:<id>: the handle update_linkedin_article, publish_linkedin_article, get_linkedin_article and delete_linkedin_article take."
+                article_urn:
+                  type: string
+                  nullable: true
+                  description: urn:li:fsd_firstPartyArticle:<id>.
+                linkedin_article_urn:
+                  type: string
+                  nullable: true
+                  description: "urn:li:linkedInArticle:<id>, the same digits: the media urn of the article's share."
+                title:
+                  type: string
+                state:
+                  type: string
+                  nullable: true
+                  description: DRAFT | SCHEDULED | PUBLISHED, the wire's own read vocabulary. Only a DRAFT can be patched or published.
+                content_html:
+                  type: string
+                  description: "LinkedIn's own html of the body, normalized server-side: not an echo of what was sent (a code block comes back as an empty pre, an inline picture gains its src, the editor's link attributes are rewritten)."
+                url:
+                  type: string
+                  nullable: true
+                  description: "https://www.linkedin.com/pulse/<permalink>, PUBLISHED only: the handle get_linkedin_article takes as url."
+                cover_image_url:
+                  type: string
+                  nullable: true
+                  description: The largest rendition of the cover picture, when one is set.
+                cover_image_caption:
+                  type: string
+                  nullable: true
+                author_profile_id:
+                  type: string
+                  nullable: true
+                  description: The member's ACoA id when the article is the member's own; null for a page article.
+                author_organization_id:
+                  type: string
+                  nullable: true
+                  description: The numeric company id when the article is a page's; null for a member article.
+                newsletter_id:
+                  type: string
+                  nullable: true
+                  description: The digits of the newsletter (content series) this article is an issue of; null when it is none.
+                post_urn:
+                  type: string
+                  nullable: true
+                  description: The share LinkedIn made for a SCHEDULED or PUBLISHED article (urn:li:ugcPost:<id>); null on a DRAFT. A scheduled article sits in get_linkedin_scheduled_posts under it.
+                activity_urn:
+                  type: string
+                  nullable: true
+                  description: The feed entry of a published article. Only the read by url (the Article Reader) carries it; null on every other read.
+                created_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url (the reader omits it).
+                updated_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601; null on a read by url.
+                published_at:
+                  type: string
+                  nullable: true
+                  description: ISO 8601, PUBLISHED only.
+                scheduled_at:
+                  type: string
+                  nullable: true
+                  description: "ISO 8601 of the planned publication. Carried by get_linkedin_articles (state SCHEDULED) and by the create or publish answer that scheduled it. LinkedIn's single read by id answers none (probe B5 of 2026-11-21), so a null here on get_linkedin_article does NOT mean unscheduled: read state and post_urn, or list with state SCHEDULED."
+                version:
+                  type: integer
+                  nullable: true
+                  description: "LinkedIn's edit counter: 0 on create, one more per patch."
+              required:
+                - article_id
+                - article_urn
+                - linkedin_article_urn
+                - title
+                - state
+                - content_html
+                - url
+                - cover_image_url
+                - cover_image_caption
+                - author_profile_id
+                - author_organization_id
+                - newsletter_id
+                - post_urn
+                - activity_urn
+                - created_at
+                - updated_at
+                - published_at
+                - scheduled_at
+                - version
+              description: "The draft read back after the patch: version moved by one, content_html LinkedIn's normalized form of what was sent, post_urn null."
+            activity_log:
+              type: object
+              properties: {}
+              description: Full dispatch row (linkedin-account-activity-log) per §4.12a. Poll it there by sid for the terminal outcome.
+          required:
+            - article
+            - activity_log
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
       required:
         - success
         - operation
