@@ -24,6 +24,18 @@ description: "What's new in the GTM API platform and this documentation."
   out now: together with `scheduled_at` it is refused with `422 require_to_with_schedule`.
 </Update>
 
+<Update label="2026-11-23" description="A browser created on a pool proxy checks the proxy before the profile is minted, moves to the next proxy of the country when it does not answer, and is refused honestly when none answers">
+  **A pool proxy is checked before the browser is minted.** Creating a browser on a pool proxy
+  (`POST /api/antidetect-browsers` with `proxy_country_code`, the MCP tool `create_antidetect_browser`)
+  now checks the proxy before the GoLogin profile is minted and moves to the next proxy of the
+  country when it does not answer. When none answers, the create is refused with
+  `503 service_unavailable`, `error.context.reason = proxy_pool_unreachable` (context
+  `proxy_country_code`, `probed`, `active`), nothing is created, and a retry a few minutes later
+  usually succeeds. A proxy named by `antidetect_browser_proxy_sid` that does not answer is refused
+  `422 proxy_unreachable` on that field. `422 proxy_pool_empty` keeps its meaning: the country has no
+  active proxy at all. See [Antidetect browsers and proxies](/kb/antidetect-browsers-and-proxies).
+</Update>
+
 <Update label="2026-11-22" description="New prices for LinkedIn accounts and email servers, an InMail from a Sales Navigator seat goes out through Sales Navigator, and a tracking domain turns verified only when its host serves the tracking links">
   **LinkedIn accounts.** The per-account brackets are now $59 (1 to 4 accounts), $39 (5 to 9),
   $29 (10 to 19), $25 (20 to 49), $22 (50 to 99) and $16 (100 to 187). From 188 accounts the
