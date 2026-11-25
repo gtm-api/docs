@@ -15,7 +15,7 @@ One action per client, then approve the consent screen that opens. That is the w
 
 <CardGroup cols={2}>
   <Card title="Claude" icon="message" href="https://claude.ai/customize/connectors">
-    Open Customize, Connectors, then Add, "Add custom connector". Name it, paste `https://mcp.gtm-api.com/mcp`, click Continue, keep the detected sign-in settings and click Add, then Connect and approve access. Works for claude.ai and Claude Desktop. On Team and Enterprise plans an Owner adds it under Organization settings, Connectors, and each member clicks Connect.
+    Open Customize, Connectors, then Add, "Add custom connector". Name it, paste `https://mcp.gtm-api.com/mcp`, click Continue, on the sign-in screen pick Sign in now under Authentication and Register automatically under OAuth client (Claude usually marks both Detected) and click Add, then Connect and approve access. Works for claude.ai and Claude Desktop. On Team and Enterprise plans an Owner adds it under Organization settings, Connectors, and each member clicks Connect.
   </Card>
   <Card title="Cursor" icon="arrow-pointer" href="cursor://anysphere.cursor-deeplink/mcp/install?name=gtm-api&config=eyJ1cmwiOiJodHRwczovL21jcC5ndG0tYXBpLmNvbS9tY3AifQ==">
     One-click install (the button opens Cursor). Sign in on the consent page that follows.
@@ -27,6 +27,8 @@ One action per client, then approve the consent screen that opens. That is the w
     Open Plugins, select the plus button, then Add custom MCP server. Enter a name and the URL above, choose OAuth, review the risk warning and tick "I understand and want to continue", then select Create as a plugin, complete the sign-in when ChatGPT asks for it, and install the plugin. Developer mode is not required. OpenAI offers custom servers on ChatGPT web: Business, Enterprise and Edu get write actions (on Business only admins and owners add one, on Enterprise and Edu an admin can grant it by role), Pro gets read and fetch only, and OpenAI lists no other plan.
   </Card>
 </CardGroup>
+
+<Warning>Use Claude's published identity and No sign-in do not work with this server, and Claude does not let you edit a connector's sign-in settings after it is added. If Connect fails, remove the connector and add it again with Sign in now and Register automatically.</Warning>
 
 ### Claude Code
 
