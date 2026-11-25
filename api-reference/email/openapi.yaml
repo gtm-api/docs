@@ -512,7 +512,7 @@ paths:
       operationId: request_email_account_connect_link
       summary: Request email account connect link
       description: |-
-        Get a link the owner of a mailbox opens to connect it: they sign in with Google or Microsoft, or type their IMAP and SMTP details, on a hosted page, so no password ever passes through you. result.connect_url lives 24 hours; hand it to the person. The mailbox appears (search_email_accounts) once they finish, on the server this call named. Without provider the page lets them choose. With no free seat on the server the mailbox lands held (subscription_required). A mailbox that needs new credentials takes reconnect_email_account instead. Requires can_manage_email_accounts.
+        Get a link the owner of a mailbox opens to connect it: they sign in with Google or Microsoft, or type their IMAP and SMTP details, on a hosted page, so no password ever passes through you. result.connect_url lives 24 hours; hand it to the person. The mailbox appears (search_email_accounts) once they finish, on the server this call named: the email-accounts.signed-in webhook says so at once, email-accounts.connected when its first sync ends. With no free seat on the server the mailbox lands held (subscription_required). A mailbox that needs new credentials takes reconnect_email_account instead. Requires can_manage_email_accounts.
 
         Contract:
         - MCP tool `request_email_account_connect_link`, registry package `mcp.email/email_accounts`, mount `email.accounts`.
@@ -2879,7 +2879,7 @@ paths:
       operationId: create_email_tracking_domain
       summary: Create email tracking domain
       description: |-
-        Register a hostname for open, click and unsubscribe tracking and get the CNAME record to install (item.dns_records). The hostname must be a subdomain, e.g. link.acme.com: a CNAME cannot sit at the top of a zone. The row starts pending and nothing is checked yet: have the record installed, then call verify_email_tracking_domain_dns. A hostname the team already registered is answered as it is (already_exists). Requires can_manage_email_tracking_domains.
+        Register a hostname for open, click and unsubscribe tracking and get the CNAME record to install (item.dns_records: its value is an address dealt to this workspace, and the record must be DNS only, never proxied). The hostname must be a subdomain, e.g. link.acme.com: a CNAME cannot sit at the top of a zone. The row starts pending and nothing is checked yet: have the record installed, then call verify_email_tracking_domain_dns. A hostname the team already registered is answered as it is (already_exists). Refused with 409 when another email server of the workspace holds the hostname (hostname_registered_elsewhere) or it was deleted a moment ago and is still being taken down (hostname_being_removed: try again in a few minutes), and with 503 when the platform cannot register it now (tracking_edge_unavailable, tracking_edge_not_configured): nothing was written, try again later. Requires can_manage_email_tracking_domains.
 
         Contract:
         - MCP tool `create_email_tracking_domain`, registry package `mcp.email/email_tracking_domains`, mount `email.infrastructure`.
@@ -3014,7 +3014,7 @@ paths:
       operationId: verify_email_tracking_domain_dns
       summary: Verify email tracking domain DNS
       description: |-
-        Check a tracking domain's DNS record now, against public DNS, and answer the refreshed row: item.status and, per record in item.dns_records, what was seen; result.previous_status is what it was before. Use it after the CNAME was installed or to see why a domain is still pending or failed (the invalid record names the host and value to fix). A valid record is not enough: once it is in place the host itself is asked, and the domain turns verified only when the host serves the tracking links. A domain whose record reads valid and that stays pending waits on its host: result.host_served is false, result.host_reason says why (host_no_address, host_not_public, host_no_certificate, host_not_routed, host_did_not_answer) and result.host_message says it in words; null means the host was not asked or the look did not complete. DNS takes time to spread, so do not call it in a loop: a daily check moves the status by itself. Requires can_manage_email_tracking_domains.
+        Check a tracking domain's DNS record now, against public DNS, and answer the refreshed row: item.status and, per record in item.dns_records, what was seen; result.previous_status is what it was before. Use it after the CNAME was installed or to see why a domain is still pending or failed (the invalid record names the host and value to fix). A valid record is not enough: the domain turns verified only when the host serves the tracking links. Until then result.host_served is false, result.host_reason says why and result.host_message says it in words (null: the host was not asked, or the look did not complete). host_being_set_up needs nothing and ends by itself within two to six minutes: read the row with search_email_tracking_domains, do not call this again. host_certificate_refused and host_certificate_not_issued are the customer's move, and each call then asks for the certificate again, paced: call it once after their zone changed, never in a loop. Requires can_manage_email_tracking_domains.
 
         Contract:
         - MCP tool `verify_email_tracking_domain_dns`, registry package `mcp.email/email_tracking_domains`, mount `email.infrastructure`.
@@ -13203,6 +13203,12 @@ components:
           nullable: true
           maxLength: 64
           description: The customer's own tag; carried by the IMAP form.
+        client_reference:
+          type: string
+          nullable: true
+          maxLength: 128
+          pattern: ^[A-Za-z0-9._:-]+$
+          description: "Your own id of this link, an id and not text: up to 128 ASCII letters, digits, '.', '_', ':' and '-'. email-accounts.signed-in says it when the owner signs the mailbox in. No other webhook carries it and the mailbox keeps none."
     RequestEmailAccountConnectLinkResponse:
       type: object
       properties:
@@ -13229,6 +13235,10 @@ components:
               type: string
               nullable: true
               description: "The application the sign-in will run through; null: the platform's."
+            client_reference:
+              type: string
+              nullable: true
+              description: The reference the link carries, as it was taken; null for none.
           required:
             - connect_url
             - expires_at
@@ -24423,6 +24433,10 @@ components:
           type: boolean
           nullable: true
           description: Send to addresses on the stop-list anyway. Requires can_manage_email_suppressions; each one is audited.
+        require_to:
+          type: boolean
+          nullable: true
+          description: "true: when every address in to is on the stop-list, refuse the whole send (409 recipient_suppressed) and send nothing to the cc and bcc that remain. Default false: it goes to them. Never with scheduled_at (422)."
         track_opens:
           type: boolean
           nullable: true
@@ -27734,7 +27748,7 @@ components:
             host_reason:
               type: string
               nullable: true
-              description: "Why the host does not serve them, as a token: host_no_address, host_not_public, host_no_certificate, host_not_routed or host_did_not_answer; null when it serves them or was not asked."
+              description: "Why the host does not serve them, as a token; null when it serves them or was not asked. host_no_address, host_not_public, host_no_certificate, host_not_routed: the host behind the record is not right yet, the message says what. host_did_not_answer: nothing answered in time, check again in a minute. host_being_set_up: the platform is still setting the host up, nothing to do. host_in_use_elsewhere: the hostname is taken by another workspace or by another provider at the edge; have it removed there or use another subdomain. host_certificate_refused: a CAA record of the customer's zone does not allow Amazon to issue the certificate, the message names the record to add. host_certificate_not_issued: the certificate was not issued, check once more."
             host_message:
               type: string
               nullable: true

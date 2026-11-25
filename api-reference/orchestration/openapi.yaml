@@ -2146,6 +2146,7 @@ components:
               - email-accounts.sync-completed
               - email-accounts.subscription-hold-applied
               - email-accounts.subscription-hold-released
+              - email-accounts.signed-in
               - email-messages.received
               - email-messages.sent
               - email-messages.bounced
@@ -2166,6 +2167,9 @@ components:
               - email-sending-domains.verified
               - email-sending-domains.failed
               - email-boxes.ready
+              - email-boxes.deletion-warning
+              - email-boxes.destroyed
+              - email-boxes.replaced
               - mass-actions.created
               - mass-actions.paused
               - mass-actions.resumed
@@ -4668,6 +4672,7 @@ components:
               - email-accounts.sync-completed
               - email-accounts.subscription-hold-applied
               - email-accounts.subscription-hold-released
+              - email-accounts.signed-in
               - email-messages.received
               - email-messages.sent
               - email-messages.bounced
@@ -4688,6 +4693,9 @@ components:
               - email-sending-domains.verified
               - email-sending-domains.failed
               - email-boxes.ready
+              - email-boxes.deletion-warning
+              - email-boxes.destroyed
+              - email-boxes.replaced
               - mass-actions.created
               - mass-actions.paused
               - mass-actions.resumed
@@ -7837,6 +7845,7 @@ components:
               - email-accounts.sync-completed
               - email-accounts.subscription-hold-applied
               - email-accounts.subscription-hold-released
+              - email-accounts.signed-in
               - email-messages.received
               - email-messages.sent
               - email-messages.bounced
@@ -7857,6 +7866,9 @@ components:
               - email-sending-domains.verified
               - email-sending-domains.failed
               - email-boxes.ready
+              - email-boxes.deletion-warning
+              - email-boxes.destroyed
+              - email-boxes.replaced
               - mass-actions.created
               - mass-actions.paused
               - mass-actions.resumed

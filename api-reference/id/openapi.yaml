@@ -5303,6 +5303,10 @@ components:
                       - payment_failed
                       - unpaid
                     description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+                  destroy_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC, on a server suspended for billing: when it is deleted with every mailbox on it unless it is paid for again. Set with the first warning mail, seven days ahead; a final warning sent late moves it. Null otherwise, and once it is paid for again."
                   complimentary:
                     type: boolean
                     description: The server granted without a paid unit; it cannot be resized or deleted.
@@ -6288,6 +6292,10 @@ components:
                 - payment_failed
                 - unpaid
               description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            destroy_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC, on a server suspended for billing: when it is deleted with every mailbox on it unless it is paid for again. Set with the first warning mail, seven days ahead; a final warning sent late moves it. Null otherwise, and once it is paid for again."
             complimentary:
               type: boolean
               description: The server granted without a paid unit; it cannot be resized or deleted.
@@ -6747,6 +6755,14 @@ components:
             last_error:
               type: string
               nullable: true
+            provider:
+              type: string
+              nullable: true
+              description: "The edge provider that issued the certificate, where one does; always null here: the platform issues it itself."
+            cname_target:
+              type: string
+              nullable: true
+              description: "The CNAME target an edge provider deals for the domain; always null here: the target to point at is challenge.cname_target."
             created_by:
               type: object
               properties:
@@ -6794,6 +6810,8 @@ components:
             - issued_at
             - expires_at
             - last_error
+            - provider
+            - cname_target
             - created_by
             - created_at
             - updated_at
@@ -7433,6 +7451,10 @@ components:
                 - payment_failed
                 - unpaid
               description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            destroy_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC, on a server suspended for billing: when it is deleted with every mailbox on it unless it is paid for again. Set with the first warning mail, seven days ahead; a final warning sent late moves it. Null otherwise, and once it is paid for again."
             complimentary:
               type: boolean
               description: The server granted without a paid unit; it cannot be resized or deleted.
@@ -11045,6 +11067,14 @@ components:
             last_error:
               type: string
               nullable: true
+            provider:
+              type: string
+              nullable: true
+              description: "The edge provider that issued the certificate, where one does; always null here: the platform issues it itself."
+            cname_target:
+              type: string
+              nullable: true
+              description: "The CNAME target an edge provider deals for the domain; always null here: the target to point at is challenge.cname_target."
             created_by:
               type: object
               properties:
@@ -11092,6 +11122,8 @@ components:
             - issued_at
             - expires_at
             - last_error
+            - provider
+            - cname_target
             - created_by
             - created_at
             - updated_at
@@ -11538,6 +11570,14 @@ components:
             last_error:
               type: string
               nullable: true
+            provider:
+              type: string
+              nullable: true
+              description: "The edge provider that issued the certificate, where one does; always null here: the platform issues it itself."
+            cname_target:
+              type: string
+              nullable: true
+              description: "The CNAME target an edge provider deals for the domain; always null here: the target to point at is challenge.cname_target."
             created_by:
               type: object
               properties:
@@ -11585,6 +11625,8 @@ components:
             - issued_at
             - expires_at
             - last_error
+            - provider
+            - cname_target
             - created_by
             - created_at
             - updated_at
@@ -14126,6 +14168,14 @@ components:
             last_error:
               type: string
               nullable: true
+            provider:
+              type: string
+              nullable: true
+              description: "The edge provider that issued the certificate, where one does; always null here: the platform issues it itself."
+            cname_target:
+              type: string
+              nullable: true
+              description: "The CNAME target an edge provider deals for the domain; always null here: the target to point at is challenge.cname_target."
             created_by:
               type: object
               properties:
@@ -14173,6 +14223,8 @@ components:
             - issued_at
             - expires_at
             - last_error
+            - provider
+            - cname_target
             - created_by
             - created_at
             - updated_at
@@ -14597,6 +14649,10 @@ components:
                 - payment_failed
                 - unpaid
               description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            destroy_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC, on a server suspended for billing: when it is deleted with every mailbox on it unless it is paid for again. Set with the first warning mail, seven days ahead; a final warning sent late moves it. Null otherwise, and once it is paid for again."
             complimentary:
               type: boolean
               description: The server granted without a paid unit; it cannot be resized or deleted.
@@ -15020,6 +15076,10 @@ components:
                 - payment_failed
                 - unpaid
               description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            destroy_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC, on a server suspended for billing: when it is deleted with every mailbox on it unless it is paid for again. Set with the first warning mail, seven days ahead; a final warning sent late moves it. Null otherwise, and once it is paid for again."
             complimentary:
               type: boolean
               description: The server granted without a paid unit; it cannot be resized or deleted.
@@ -19356,6 +19416,10 @@ components:
                       - payment_failed
                       - unpaid
                     description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+                  destroy_at:
+                    type: string
+                    nullable: true
+                    description: "ISO 8601 UTC, on a server suspended for billing: when it is deleted with every mailbox on it unless it is paid for again. Set with the first warning mail, seven days ahead; a final warning sent late moves it. Null otherwise, and once it is paid for again."
                   complimentary:
                     type: boolean
                     description: The server granted without a paid unit; it cannot be resized or deleted.
@@ -21048,6 +21112,14 @@ components:
                   last_error:
                     type: string
                     nullable: true
+                  provider:
+                    type: string
+                    nullable: true
+                    description: "The edge provider that issued the certificate, where one does; always null here: the platform issues it itself."
+                  cname_target:
+                    type: string
+                    nullable: true
+                    description: "The CNAME target an edge provider deals for the domain; always null here: the target to point at is challenge.cname_target."
                   created_by:
                     type: object
                     properties:
@@ -21095,6 +21167,8 @@ components:
                   - issued_at
                   - expires_at
                   - last_error
+                  - provider
+                  - cname_target
                   - created_by
                   - created_at
                   - updated_at
@@ -23240,6 +23314,10 @@ components:
                 - payment_failed
                 - unpaid
               description: "payment_failed: the subscription is past due beyond its grace, or paused. unpaid: more servers of the plan than paid units."
+            destroy_at:
+              type: string
+              nullable: true
+              description: "ISO 8601 UTC, on a server suspended for billing: when it is deleted with every mailbox on it unless it is paid for again. Set with the first warning mail, seven days ahead; a final warning sent late moves it. Null otherwise, and once it is paid for again."
             complimentary:
               type: boolean
               description: The server granted without a paid unit; it cannot be resized or deleted.
@@ -23804,6 +23882,14 @@ components:
             last_error:
               type: string
               nullable: true
+            provider:
+              type: string
+              nullable: true
+              description: "The edge provider that issued the certificate, where one does; always null here: the platform issues it itself."
+            cname_target:
+              type: string
+              nullable: true
+              description: "The CNAME target an edge provider deals for the domain; always null here: the target to point at is challenge.cname_target."
             created_by:
               type: object
               properties:
@@ -23851,6 +23937,8 @@ components:
             - issued_at
             - expires_at
             - last_error
+            - provider
+            - cname_target
             - created_by
             - created_at
             - updated_at
