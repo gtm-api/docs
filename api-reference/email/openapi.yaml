@@ -600,7 +600,7 @@ paths:
       operationId: get_email_account
       summary: Get email account
       description: |-
-        Read one mailbox by sid: its status and why it is held or needs a reconnect, the sending limits, window and warmup ramp, tracking, signature, sync and webhook settings, and the IMAP and SMTP servers of an imap_smtp mailbox (never a password). include health adds the latest health snapshot: score, bounce and complaint rates, DNS state and what to fix. Requires can_view_email_accounts.
+        Read one mailbox by sid: its status and why it is held or needs a reconnect, the sending limits, window and warmup ramp, tracking, sync and webhook settings, the stored signature (read-only, deprecated), and the IMAP and SMTP servers of an imap_smtp mailbox (never a password). include health adds the latest health snapshot: score, bounce and complaint rates, DNS state and what to fix. Requires can_view_email_accounts.
 
         Contract:
         - MCP tool `get_email_account`, registry package `mcp.email/email_accounts`, mount `email.accounts`.
@@ -658,7 +658,7 @@ paths:
       operationId: update_email_account
       summary: Update email account
       description: |-
-        Change a mailbox's settings: display name, label, signature, sending limits, the warmup ramp, open and click tracking, the tracking domain, sync cadence and which events it emits. Only the fields sent change. sending_limits and warmup_config are replaced whole: send every key of the object, with sending_window null for no window. Turning warmup on starts the ramp at ramp_start_daily. Credentials are not changed here: reconnect_email_account. To stop sending without touching limits use pause_email_account_sending. Requires can_update_email_accounts.
+        Change a mailbox's settings: display name, label, sending limits, the warmup ramp, open and click tracking, the tracking domain, sync cadence and which events it emits. Only the fields sent change. sending_limits and warmup_config are replaced whole: send every key of the object, with sending_window null for no window. Turning warmup on starts the ramp at ramp_start_daily. The signature is not kept here: write it into body_html of each send. Credentials are not changed here: reconnect_email_account. To stop sending without touching limits use pause_email_account_sending. Requires can_update_email_accounts.
 
         Contract:
         - MCP tool `update_email_account`, registry package `mcp.email/email_accounts`, mount `email.accounts`.
@@ -4193,6 +4193,7 @@ components:
                       signature_html:
                         type: string
                         nullable: true
+                        description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                       track_opens:
                         type: boolean
                       track_clicks:
@@ -4652,6 +4653,7 @@ components:
                       signature_html:
                         type: string
                         nullable: true
+                        description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                       track_opens:
                         type: boolean
                       track_clicks:
@@ -6658,6 +6660,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -8569,6 +8572,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -9097,6 +9101,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -12085,6 +12090,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -12684,6 +12690,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -13437,6 +13444,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -14408,6 +14416,7 @@ components:
                       signature_html:
                         type: string
                         nullable: true
+                        description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                       track_opens:
                         type: boolean
                       track_clicks:
@@ -15388,6 +15397,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -16445,6 +16455,7 @@ components:
                       signature_html:
                         type: string
                         nullable: true
+                        description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                       track_opens:
                         type: boolean
                       track_clicks:
@@ -17223,6 +17234,7 @@ components:
                   signature_html:
                     type: string
                     nullable: true
+                    description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                   track_opens:
                     type: boolean
                   track_clicks:
@@ -18050,6 +18062,7 @@ components:
                       signature_html:
                         type: string
                         nullable: true
+                        description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                       track_opens:
                         type: boolean
                       track_clicks:
@@ -20328,6 +20341,7 @@ components:
                       signature_html:
                         type: string
                         nullable: true
+                        description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                       track_opens:
                         type: boolean
                       track_clicks:
@@ -23321,6 +23335,7 @@ components:
                       signature_html:
                         type: string
                         nullable: true
+                        description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
                       track_opens:
                         type: boolean
                       track_clicks:
@@ -24375,7 +24390,7 @@ components:
         include_signature:
           type: boolean
           nullable: true
-          description: Append the mailbox's signature. Default true.
+          description: "Deprecated and ignored: no signature is added to any mail. Accepted so a call that still sends it is not refused. Write the signature into body_html."
         scheduled_at:
           type: string
           nullable: true
@@ -25316,6 +25331,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:
@@ -25816,10 +25832,6 @@ components:
           nullable: true
           maxLength: 64
           description: null or an empty string clears it.
-        signature_html:
-          type: string
-          nullable: true
-          maxLength: 8192
         sending_limits:
           type: object
           properties:
@@ -26083,6 +26095,7 @@ components:
             signature_html:
               type: string
               nullable: true
+              description: "Read-only and deprecated: the value stored before 2026-11-24, kept for one release. No mail gets it added; write the signature into body_html of each send."
             track_opens:
               type: boolean
             track_clicks:

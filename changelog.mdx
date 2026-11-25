@@ -3,6 +3,27 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-24" description="No signature is added to any mail any more, and a send can ask to be refused when every address in to is on the stop-list">
+  **No signature is added to your mail.** The platform no longer adds a signature to any message:
+  a send goes out with the body you hand it, and the only things written into it are the ones you
+  ask for by name (the open pixel and tracked links with `track_opens` and `track_clicks`, and the
+  signed link in place of `{{unsubscribe_url}}`). Mail sent through the API stops carrying the
+  mailbox signature from this release on. To keep a signature, write it into `body_html` (or
+  `body_text`) of each send. `include_signature` on `send` (`send_email_message`) is still accepted
+  and ignored, so a call that sends it is not refused. The mailbox update
+  (`update_email_account`) no longer takes `signature_html`: a request that names it is refused
+  with `422` on that field and changes nothing. The mailbox read still returns `signature_html`, as
+  stored, for one more release; it is read-only and no mail gets it.
+
+  **Email sends.** `send` (`send_email_message`) takes a new optional field, `require_to`. By
+  default nothing changes: when every address in `to` is on the stop-list and a `cc` or `bcc`
+  remains, the message goes to those copies and `result.suppressed_recipients` lists who was left
+  out. With `require_to: true` such a send is refused whole with `409 recipient_suppressed`, the
+  answer a send with no copies gets, and nothing is sent. Use it when the copies only make sense
+  beside the message itself, such as a CRM address in `bcc`. `require_to` is read when a send goes
+  out now: together with `scheduled_at` it is refused with `422 require_to_with_schedule`.
+</Update>
+
 <Update label="2026-11-22" description="New prices for LinkedIn accounts and email servers, an InMail from a Sales Navigator seat goes out through Sales Navigator, and a tracking domain turns verified only when its host serves the tracking links">
   **LinkedIn accounts.** The per-account brackets are now $59 (1 to 4 accounts), $39 (5 to 9),
   $29 (10 to 19), $25 (20 to 49), $22 (50 to 99) and $16 (100 to 187). From 188 accounts the
