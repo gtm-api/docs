@@ -28,6 +28,18 @@ Once it runs you can rename a server, change its size, move mailboxes to another
 when it holds no mailbox. Deleting the only server of a subscription leaves the subscription and its
 paid seat as they are: the next server of the same size takes that seat with no new charge.
 
+## When a server is not paid for
+
+A server whose subscription is past due beyond its grace or paused, or that is one more than the subscription
+pays for, is paused: its mailboxes do not sync and nothing is sent from them. An email to the workspace's owner
+then names the moment it is deleted with every mailbox on it, seven days ahead; a deleted server cannot be
+restored. Two more emails follow, three days before that moment and the day before, each naming it in UTC, and one
+more once the server is gone. Paid for again before it, the server comes back with everything on it. Over the API,
+a paused server's `destroy_at` says when, and the webhook events `email-boxes.deletion-warning` (each step, with
+`destroy_at`) and `email-boxes.destroyed` (with the cause and the mailboxes that went with it) say it to your own
+systems. A plan change that moves a server to a new machine sends `email-boxes.replaced` with the new and the old
+server.
+
 ## Connecting mailboxes
 
 - Google and Microsoft mailboxes connect through their own sign-in.
