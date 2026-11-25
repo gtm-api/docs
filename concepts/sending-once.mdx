@@ -9,7 +9,7 @@ This page covers every LinkedIn endpoint that puts something in front of another
 
 - the message sends under `/api/linkedin-messages/`: `send`, `send-voice`, `send-inmail`, `send-sales-nav`, `send-recruiter` and `start-group`
 - the connection request, `POST /api/linkedin-connection-requests/send`
-- the posting verbs under `/api/linkedin-posting/`: `comment` (a comment or a reply), `create-post` and `repost`
+- the posting verbs under `/api/linkedin-posting/`: `comment` (a comment or a reply), `create-post`, `repost`, and the two that share a LinkedIn article: `create-article` with `state` `SCHEDULED` or `PUBLISHED`, and `publish-article` (a draft is in front of nobody and takes no key)
 
 A reaction is the one write left outside the rule, for the reason given [below](#reactions).
 
@@ -27,6 +27,7 @@ A key and its place make one send. The place depends on what is sent:
 | A reply | The comment it answers, in either of its forms |
 | A post | Where it lands: your own feed, the company page you post as, or the group you post into |
 | A repost | The post it reposts, as LinkedIn files it |
+| An article's share | Where it lands, as a post: your own feed or the company page you write as (`create-article`); for `publish-article` your own feed, whatever the article's author, because the share is keyed before the article is read |
 
 - A repeat to the same place is the same send, whatever its text says. If the first send went out, the repeat answers `200` with what it made (the message or the connection request row, the comment, the post or the repost) and `result.idempotent_replay: true`, plus `result.content_differs: true` when the repeat said something else (a re-rendered template, an edited draft). Nothing is sent.
 - The same key at another place is another send. That is how a bulk run can tag all of its sends with one value.
@@ -74,7 +75,7 @@ Three endpoints answer the same question and send nothing. Ask by the key, by th
 |---|---|---|---|
 | A message | `POST /api/linkedin-messages/check-sent` | `check_linkedin_message_sent` | `linkedin_conversation_sid`, `ln_member_id` or `profile_urn` |
 | A connection request | `POST /api/linkedin-connection-requests/check-sent` | `check_linkedin_connection_request_sent` | `profile_id` or `ln_member_id` |
-| A comment, a post, a repost | `POST /api/linkedin-posting/check-sent` | `check_linkedin_posting_sent` | `entity_urn` (the post of a comment or a repost, in any of its forms), `parent_comment_urn` (a reply) or `post_place` (a post). The key also needs its `verb`: `comment`, `create-post` or `repost` |
+| A comment, a post, a repost, an article's share | `POST /api/linkedin-posting/check-sent` | `check_linkedin_posting_sent` | `entity_urn` (the post of a comment or a repost, in any of its forms), `parent_comment_urn` (a reply) or `post_place` (a post or an article's share). The key also needs its `verb`: `comment`, `create-post`, `repost`, `create-article` or `publish-article` |
 
 ```json POST /linkedin/v4/api/linkedin-messages/check-sent
 {
@@ -111,9 +112,9 @@ A comment is asked about with its verb and, when the key went to more than one p
 }
 ```
 
-`item` is what the send made once it is known: the message row, the connection request row, a comment's `comment_urn`, or a post's or a repost's urns and url. `result.reason` says why. For `not_sent` it is `no_send_under_key`, `refused`, or the read that proved it (`not_in_thread`, `not_in_invitations`, `not_on_linkedin`). While the send is in doubt it is `answer_lost`, `may_still_land`, `unprovable`, or a read that could not be done (`thread_unreadable` for a message, `unreadable` for the others). The tools list a few more. When the last read is old enough, check-sent reads LinkedIn during the call, so it can take as long as an inbox read.
+`item` is what the send made once it is known: the message row, the connection request row, a comment's `comment_urn`, a post's or a repost's urns and url, or for an article's share the article and the share (`{article, post}`). `result.reason` says why. For `not_sent` it is `no_send_under_key`, `refused`, or the read that proved it (`not_in_thread`, `not_in_invitations`, `not_on_linkedin`). While the send is in doubt it is `answer_lost`, `may_still_land`, `unprovable`, or a read that could not be done (`thread_unreadable` for a message, `unreadable` for the others). The tools list a few more. When the last read is old enough, check-sent reads LinkedIn during the call, so it can take as long as an inbox read.
 
-`post_place` is where a post landed: `feed:member` for your own feed, `feed:org:<id>` for a company page, `group:<id>` for a group (`group:<id>:org:<id>` when a page posted into it).
+`post_place` is where a post landed: `feed:member` for your own feed, `feed:org:<id>` for a company page, `group:<id>` for a group (`group:<id>:org:<id>` when a page posted into it). An article's share sent by `create-article` is at your feed or the page's the same way; one sent by `publish-article` is at `article:<id>`, the article it publishes, because the article's author is read on LinkedIn only after the request is placed (no read proves that place, so a lost answer waits for your word).
 
 A key that went to more than one place, such as a bulk run's tag, answers `422 place_required` when you ask by the key alone. `error.context.places` lists the places. Ask again with one of them. A place the platform cannot tell from the key's own (named in another form than the sends recorded, or a post LinkedIn could not be read for) answers `422 place_unmatched`, with the places too.
 
