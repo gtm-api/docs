@@ -3,6 +3,21 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-26" description="A conversations sync no longer stops on one thread, and a sync page that keeps failing is retried less often">
+  **A conversations sync no longer stops on one thread.** LinkedIn can report a negative unread count
+  for a thread. The conversations sync (basic and Sales Navigator) refused the page that carried it
+  and tried the same page again every five minutes, so the sync of that account went no further: one
+  account's first sync waited two days on it. A count below zero now reads as no unread messages, and
+  the sync goes on.
+
+  **A sync page that keeps failing is retried less often.** A run whose page fails on our side waits
+  with `wait_reason: "worker:exception"`. Its first retry still comes five minutes later; each repeat
+  on the same page now waits longer, a quarter of the time since the run last moved and at most six
+  hours, so its `next_attempt_at` reads further out. We get an alert once a page has failed for two
+  hours, and the run goes on from its cursor as soon as the page goes through. See
+  [why a message may not appear yet](/kb/inbox-and-message-sync#why-a-message-may-not-appear-yet).
+</Update>
+
 <Update label="2026-11-26" description="A tracking domain is served through our edge and turns verified once its host answers, and a hosted connect link says who asked for it">
   **A tracking domain is served through our edge.** The host of a tracking domain (`link.yourdomain.com`) is now
   served through the platform's edge. Point its CNAME at the target `create_email_tracking_domain`

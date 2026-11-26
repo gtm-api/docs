@@ -196,7 +196,12 @@ newer than stored means the thread is already flagged and the next run drains it
 7. **It was a push drop and the sweep has not run.** Your own reply typed on LinkedIn, a
    duplicate signal, a burst above 10 refreshes a minute and free plan accounts all skip the fast
    path: the wait is then up to 180 minutes (regular), 120 (Sales Navigator and Recruiter), 1440 (free plan).
-8. **Still nothing?** Send support the account sid (`ln_ac_…`), the **Account Sync** row with
+8. **A page of the sync could not be stored.** The run waits with `wait_reason: "worker:exception"`:
+   one page failed on our side, and the run tries it again five minutes later. A page that keeps
+   failing waits longer each time, a quarter of the time since the run last moved and at most six
+   hours, so `next_attempt_at` moves further out. We get an alert once a page has failed for two
+   hours, and the run goes on from where it stopped as soon as the page goes through.
+9. **Still nothing?** Send support the account sid (`ln_ac_…`), the **Account Sync** row with
    its status and next due time, and the sync run sid (`ln_sy_…`) with its `wait_reason`.
 
 A sync run never has a "failed" status: runs go `pending`, then `in_progress`, then `completed`
