@@ -3,6 +3,44 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-26" description="A tracking domain is served through our edge and turns verified once its host answers, and a hosted connect link says who asked for it">
+  **A tracking domain is served through our edge.** The host of a tracking domain (`link.yourdomain.com`) is now
+  served through the platform's edge. Point its CNAME at the target `create_email_tracking_domain`
+  hands out and the edge takes the hostname on and gets its certificate by itself. `verify-dns`
+  (`verify_email_tracking_domain_dns`) turns the domain `verified` only once the host answers, and
+  until then `host_reason` names which of nine reasons holds it and `host_message` says what to do;
+  `host_being_set_up` ends by itself within a few minutes. Opens, clicks and the unsubscribe link of
+  mail from a mailbox bound to the domain reach you from then on. A hostname another workspace holds
+  is refused with `409 hostname_registered_elsewhere`.
+
+  **A hosted connect link says who asked for it.** `request-connect-link`
+  (`request_email_account_connect_link`) takes an optional `client_reference`, an id of your own, and
+  answers it back. When the owner signs the mailbox in through the link, the webhook event
+  `email-accounts.signed-in` carries it, so your system knows which of its records the mailbox
+  belongs to before the first sync ends. No other `email-accounts.*` event carries it.
+</Update>
+
+<Update label="2026-11-26" description="No signature is added to any mail any more, and a send can ask to be refused when every address in to is on the stop-list">
+  **No signature is added to your mail.** The platform no longer adds a signature to any message:
+  a send goes out with the body you hand it, and the only things written into it are the ones you
+  ask for by name (the open pixel and tracked links with `track_opens` and `track_clicks`, and the
+  signed link in place of `{{unsubscribe_url}}`). Mail sent through the API stops carrying the
+  mailbox signature from this release on. To keep a signature, write it into `body_html` (or
+  `body_text`) of each send. `include_signature` on `send` (`send_email_message`) is still accepted
+  and ignored, so a call that sends it is not refused. The mailbox update
+  (`update_email_account`) no longer takes `signature_html`: a request that names it is refused
+  with `422` on that field and changes nothing. The mailbox read still returns `signature_html`, as
+  stored, for one more release; it is read-only and no mail gets it.
+
+  **Email sends.** `send` (`send_email_message`) takes a new optional field, `require_to`. By
+  default nothing changes: when every address in `to` is on the stop-list and a `cc` or `bcc`
+  remains, the message goes to those copies and `result.suppressed_recipients` lists who was left
+  out. With `require_to: true` such a send is refused whole with `409 recipient_suppressed`, the
+  answer a send with no copies gets, and nothing is sent. Use it when the copies only make sense
+  beside the message itself, such as a CRM address in `bcc`. `require_to` is read when a send goes
+  out now: together with `scheduled_at` it is refused with `422 require_to_with_schedule`.
+</Update>
+
 <Update label="2026-11-25" description="LinkedIn articles and newsletter issues: write, schedule, publish, list and delete them, as yourself or as a company page">
   **`create-article` writes a LinkedIn article.** `POST /api/linkedin-posting/create-article` and the MCP
   tool `create_linkedin_article` take a `title`, the body as `content_html` (paragraphs, one heading
@@ -42,27 +80,6 @@ description: "What's new in the GTM API platform and this documentation."
   (`self_account_sync`), not `posting`. On MCP the tools sit on `/mcp/linkedin/content`: `create_linkedin_article`,
   `update_linkedin_article`, `publish_linkedin_article`, `get_linkedin_articles`, `get_linkedin_article`,
   `delete_linkedin_article`, `get_linkedin_newsletters` and `get_linkedin_administered_companies`.
-</Update>
-
-<Update label="2026-11-25" description="No signature is added to any mail any more, and a send can ask to be refused when every address in to is on the stop-list">
-  **No signature is added to your mail.** The platform no longer adds a signature to any message:
-  a send goes out with the body you hand it, and the only things written into it are the ones you
-  ask for by name (the open pixel and tracked links with `track_opens` and `track_clicks`, and the
-  signed link in place of `{{unsubscribe_url}}`). Mail sent through the API stops carrying the
-  mailbox signature from this release on. To keep a signature, write it into `body_html` (or
-  `body_text`) of each send. `include_signature` on `send` (`send_email_message`) is still accepted
-  and ignored, so a call that sends it is not refused. The mailbox update
-  (`update_email_account`) no longer takes `signature_html`: a request that names it is refused
-  with `422` on that field and changes nothing. The mailbox read still returns `signature_html`, as
-  stored, for one more release; it is read-only and no mail gets it.
-
-  **Email sends.** `send` (`send_email_message`) takes a new optional field, `require_to`. By
-  default nothing changes: when every address in `to` is on the stop-list and a `cc` or `bcc`
-  remains, the message goes to those copies and `result.suppressed_recipients` lists who was left
-  out. With `require_to: true` such a send is refused whole with `409 recipient_suppressed`, the
-  answer a send with no copies gets, and nothing is sent. Use it when the copies only make sense
-  beside the message itself, such as a CRM address in `bcc`. `require_to` is read when a send goes
-  out now: together with `scheduled_at` it is refused with `422 require_to_with_schedule`.
 </Update>
 
 <Update label="2026-11-25" description="A browser created on a pool proxy checks the proxy before the profile is minted, moves to the next proxy of the country when it does not answer, and is refused honestly when none answers">
