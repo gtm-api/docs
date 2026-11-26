@@ -10,7 +10,7 @@ sentence below, so an agent branches on the reason and a person reads the messag
 refers to are in `error.context` (a `retry_after` timestamp, a `resend_available_at`, a `max_bytes`).
 
 This page is generated from the same table the backends answer from (one catalog per service, checked in CI so no
-reason is thrown without a sentence). 318 reasons across 4 services.
+reason is thrown without a sentence). 323 reasons across 4 services.
 
 | Reason | What it means | Service |
 |---|---|---|
@@ -99,7 +99,7 @@ reason is thrown without a sentence). 318 reasons across 4 services.
 | `dns_resolvers_unavailable` | The DNS resolvers did not answer, so the domain could not be verified; retry in a minute. | email |
 | `domain_active_in_another_team` | This domain has an active certificate in another workspace. | id |
 | `domain_already_active` | This domain already has an active certificate. | id |
-| `domain_bound_other_team` | This domain is already registered in another workspace. | email |
+| `domain_bound_other_team` | **id:** This hostname is already a tracking domain of another workspace.<br/>**email:** This domain is already registered in another workspace. | id, email |
 | `domain_required` | domain is required. | id |
 | `duplicate_host_port` | An automation server is already registered at this ip and port. | linkedin |
 | `email_account_on_another_box` | Some of these mailboxes are on a different email server than the one named as the source. | id |
@@ -140,6 +140,8 @@ reason is thrown without a sentence). 318 reasons across 4 services.
 | `header_value_invalid` | A header value cannot hold a line break, and Reply-To takes one or more email addresses separated by commas; fix the value _the field_ names. | email |
 | `held_by_another_send` | Another send of the same mail to the same recipients is on its way or may already have gone out (context.blocking_activity_log_sid names its attempt, context.blocking_email_message_sid its row, when known), so this one was not sent; ask again after context.retry_after. | email |
 | `holder_team_unavailable` | The receiving workspace does not exist or is not active. | id |
+| `hostname_being_removed` | **id:** This hostname is still being taken off the edge after its tracking domain was deleted; try again in a few minutes.<br/>**email:** This host name was removed a moment ago and is still being taken down. Try again in a few minutes. | id, email |
+| `hostname_registered_elsewhere` | **id:** This hostname is already a tracking domain on another email server of this workspace.<br/>**email:** This host name is already a tracking domain on another email server of your workspace. | id, email |
 | `idempotency_key_busy` | A send with this idempotency_key is in progress; ask again after context.retry_after. | email |
 | `idempotency_key_reused` | This idempotency_key was used for a different send; use a new key for a new message. | email |
 | `imap_all_mail_hidden` | Gmail hides All Mail from IMAP for this mailbox, and All Mail is the folder its mail is read from; in Gmail open Settings, Labels, tick "Show in IMAP" for All Mail, then connect again. | email |
@@ -289,6 +291,7 @@ reason is thrown without a sentence). 318 reasons across 4 services.
 | `session_already_disconnected` | This session is already disconnected. | linkedin |
 | `shadowban_check_not_pending` | This check is not pending, so its send cannot be confirmed. | linkedin |
 | `share_not_active` | This share is not active, so it cannot be recalled or returned. | id |
+| `sid_names_another_hostname` | This tracking domain is registered under another hostname; a tracking domain keeps the hostname it was made with. | id |
 | `sid_xor_filter_required` | Provide sid for one item or filter for a set, not neither. | orchestration |
 | `skill_discovery_failed` | Reading the target's skills from LinkedIn failed; retry, or endorse a skill by id. | linkedin |
 | `slug_collision` | Another product already carries this slug; the catalog cannot map two products to one slug. | id |
@@ -321,6 +324,8 @@ reason is thrown without a sentence). 318 reasons across 4 services.
 | `tool_disabled` | The shadowban checker is switched off right now. | linkedin |
 | `tool_misconfigured` | The shadowban checker is not available right now. | linkedin |
 | `tracking_domain_not_verified` | The account's tracking domain is not verified, so tracking cannot be injected; verify the domain or send without tracking. | email |
+| `tracking_edge_not_configured` | Custom tracking domains are not available on this deployment yet. | id, email |
+| `tracking_edge_unavailable` | The tracking domain could not be registered right now. Try again in a minute. | email |
 | `trash_folder_missing` | This IMAP mailbox mirrors no folder with the trash role, so the message cannot be moved to Trash; move it to a folder of your choice with email-messages.update instead. | email |
 | `unknown_filter_operator` | _the field_ uses an operator this filter does not know; use eq, in or is_null. | id |
 | `unpark_giver_not_supported` | A share has no giver-side unpark; recall it instead. | linkedin |
