@@ -3,6 +3,25 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-26" description="An InMail is no longer refused on the stored credit balance: every send goes to LinkedIn, and LinkedIn's own refusal is the answer">
+  **No send is refused on the stored InMail balance.** `send-inmail` (`send_linkedin_inmail`),
+  `send-sales-nav` (`send_linkedin_sales_nav_message`) opening a new thread with someone outside
+  the network, and `send-recruiter` (`send_linkedin_recruiter_message`) opening a new thread are
+  no longer refused up front when the account's stored InMail balance reads 0. Every send goes to
+  LinkedIn, and LinkedIn decides. When LinkedIn refuses it with `NOT_ENOUGH_INMAIL_CREDIT`, the
+  answer is `422 no_inmail_credits` (as before on `send-inmail` and `send-sales-nav`;
+  `send-recruiter` reads the same code when LinkedIn's answer carries it, and its `suggestion`
+  then names the empty pool, not the 24-hour rule or a re-sign-in); that refusal sets the
+  stored balance to 0 (the pool the send spends: `inmail_credits`, `premium_inmail_credits` or
+  `recruiter_inmail_credits`), and
+  `check_linkedin_account_premium_subscription` with `checks: ["inmail_credits"]` reads it again.
+  The balance LinkedIn reports after a send is still written back, so the three fields stay there
+  to read and to filter on. Why: the stored number is a copy that lags LinkedIn (it refreshes on a
+  cycle, and a refusal sets it to 0), and an Open Profile recipient costs no credit, so sends
+  LinkedIn would have taken were refused. The rest is unchanged: an InMail still needs a Premium
+  account (`422 inmail_requires_premium`), and the daily `send_inmails` cap still holds.
+</Update>
+
 <Update label="2026-11-27" description="A full profile is paced to its eight requests and never answers its lists empty">
   **A full profile is paced to what it costs.** `person-full-profile` (`enrich_linkedin_person_full_profile`) makes
   eight LinkedIn requests, so on one account the next one waits eight times the enrichment delay after the account's

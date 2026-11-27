@@ -51,7 +51,7 @@ While the seat is signed out, every Recruiter call answers `409 recruiter_reauth
 
 Recruiter InMails come out of the contract's own pool, which LinkedIn keeps apart from the Sales Navigator seat's grant and from the Premium plan's balance. The account carries it as `recruiter_inmail_credits`, what Recruiter's Usage Overview shows as InMail credits. The premium check reads it for an `active` seat as part of its `inmail_credits` step, every 6 hours in the background or on demand with `check_linkedin_account_premium_subscription` and `checks: ["inmail_credits"]`. Null means the platform has not read it yet, never zero.
 
-A new thread on a balance known to be zero is refused before anything reaches LinkedIn (rule `no_inmail_credits`); a reply into an existing thread is never guarded. A signed-out seat keeps its last number until the seat holder signs in again. `search_linkedin_accounts` filters on the field, so `recruiter_inmail_credits: {eq: 0}` lists the seats that cannot open a thread until the monthly refresh.
+The platform does not check that number before a send: every new Recruiter thread goes to LinkedIn, and LinkedIn decides. When LinkedIn refuses it with `NOT_ENOUGH_INMAIL_CREDIT`, the answer is `422 no_inmail_credits` and the stored number is set to 0 until the next read. A signed-out seat keeps its last number until the seat holder signs in again. The field is there to read and to filter on: `search_linkedin_accounts` filters on it, so `recruiter_inmail_credits: {eq: 0}` lists the seats whose last read was zero, a hint and not a block, since the stored number lags LinkedIn.
 
 ## Limits that come from LinkedIn, not from us
 
