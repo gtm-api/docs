@@ -3,6 +3,17 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-27" description="A cloud browser session whose window never reached the host ends after three minutes, with its own reason">
+  **A cloud browser session whose window never reached the host ends after three minutes.** When a person opens a
+  cloud browser and the remote window never connects (their network, or something on the way to it, does not let the
+  connection through), the session used to stay open for its full hour with an empty frame, and the seat with it. It
+  is now closed three minutes after the connect, the seat is free again at once, and the page says that the browser
+  could not be reached from where they are and that another network or a VPN is the thing to try.
+
+  **A new `disconnect_cause` value.** Such a session reads `disconnect_cause: "tunnel_never_connected"` in
+  `search_cloud_browser_sessions` (the `disconnect_cause` filter takes it too). The other values are unchanged.
+</Update>
+
 <Update label="2026-11-26" description="An InMail is no longer refused on the stored credit balance: every send goes to LinkedIn, and LinkedIn's own refusal is the answer">
   **No send is refused on the stored InMail balance.** `send-inmail` (`send_linkedin_inmail`),
   `send-sales-nav` (`send_linkedin_sales_nav_message`) opening a new thread with someone outside

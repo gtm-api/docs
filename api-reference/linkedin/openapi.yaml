@@ -53466,6 +53466,7 @@ components:
                       - keep_alive_stale
                       - ttl_expired
                       - stuck_disconnecting
+                      - tunnel_never_connected
                       - maintenance
                   disconnect_reason:
                     type: string
