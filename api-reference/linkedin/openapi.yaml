@@ -16733,12 +16733,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinCompanyLiteProfileResponse:
       type: object
       properties:
@@ -17224,12 +17218,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
       required:
         - company
     EnrichLinkedinCompanyPostsResponse:
@@ -17502,12 +17490,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinCompanyProfileResponse:
       type: object
       properties:
@@ -17668,12 +17650,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
       required:
         - company_id
     EnrichLinkedinCompanyPublicIdentifierResponse:
@@ -17783,12 +17759,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
       required:
         - url
     EnrichLinkedinGetActivityUrnByUrlResponse:
@@ -17909,12 +17879,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonCertificationsResponse:
       type: object
       properties:
@@ -18068,12 +18032,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonCommentActivityResponse:
       type: object
       properties:
@@ -18264,12 +18222,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonContactInfoResponse:
       type: object
       properties:
@@ -18482,12 +18434,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonEducationResponse:
       type: object
       properties:
@@ -18657,12 +18603,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonExperienceResponse:
       type: object
       properties:
@@ -18833,12 +18773,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonFeaturedResponse:
       type: object
       properties:
@@ -18992,12 +18926,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonFullProfileResponse:
       type: object
       properties:
@@ -19511,12 +19439,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonInterestsResponse:
       type: object
       properties:
@@ -19697,12 +19619,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonLanguagesResponse:
       type: object
       properties:
@@ -19831,12 +19747,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonLiteProfileResponse:
       type: object
       properties:
@@ -20208,12 +20118,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonPostsResponse:
       type: object
       properties:
@@ -20499,12 +20403,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonReactionActivityResponse:
       type: object
       properties:
@@ -20704,12 +20602,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonRecommendationsResponse:
       type: object
       properties:
@@ -20877,12 +20769,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonServicesResponse:
       type: object
       properties:
@@ -21042,12 +20928,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPersonSkillsResponse:
       type: object
       properties:
@@ -21185,12 +21065,6 @@ components:
           nullable: true
           maxLength: 128
           description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
-        trust_cache_max_age_days:
-          type: integer
-          nullable: true
-          minimum: 1
-          maximum: 3650
-          description: 'Accept a stored payload this many days old instead of fetching (probe tier 2, §9.5): a hit answers with served_from_cache / cache_source "data_cluster", spending no browser run and no bucket slot. Omitted, the stored payload is never consulted and the call always dispatches.'
     EnrichLinkedinPostDetailsResponse:
       type: object
       properties:
