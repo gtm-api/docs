@@ -3,6 +3,22 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-27" description="A full profile is paced to its eight requests and never answers its lists empty">
+  **A full profile is paced to what it costs.** `person-full-profile` (`enrich_linkedin_person_full_profile`) makes
+  eight LinkedIn requests, so on one account the next one waits eight times the enrichment delay after the account's
+  previous call: 40 seconds at the default delay of 5 seconds. A run over many people on one account takes longer than
+  before; spread it over several accounts to go faster.
+
+  **A full profile never answers its lists empty.** When LinkedIn throttles the experience, education or skills list
+  of a profile, the call is answered `429 rate_limited` (`linkedin_rate_limited`) with a `retry_after` about a minute
+  away, and nothing is stored. A cached full profile without its lists is never served.
+
+  **Three smaller fixes.** Post links in `person-posts` and `company-posts` no longer carry the reader's `rcm=`
+  parameter. A search page LinkedIn never rendered is answered with the retryable `503 plugin_unavailable`
+  (`page_not_rendered`) on every search, not with an empty page. The regular people search (`search-people`) carries
+  each row's headline, location and degree again.
+</Update>
+
 <Update label="2026-11-27" description="trust_cache_max_age_days is no longer an argument of the enrichment methods">
   **`trust_cache_max_age_days` is no longer an argument of the enrichment methods.** It is gone from
   the `enrich_linkedin_*` tools and from the API reference of `/api/linkedin-enrichment/*`. Every
