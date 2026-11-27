@@ -102,12 +102,34 @@ Here `linkedin_account_sid` is a preference, not a command: another connected ac
 picked if the one you named does not qualify, and accounts out of budget, on hold or
 LinkedIn rate-limited are dropped before the pick.
 
+## Three reads of a whole profile
+
+When you need the profile itself rather than the contact card, there are three reads of one
+person. All three take the same identifiers, the same `linkedin_account_sid` and the same
+`idempotency_key`.
+
+| | `person-lite-profile` | `person-standard-profile` | `person-full-profile` |
+|---|---|---|---|
+| LinkedIn requests | one | one | eight or nine |
+| About | no | yes | yes |
+| Experience, education, skills | no | the first page of each | the whole list |
+| Certifications, languages, honors, publications, patents, projects, courses, test scores, organizations, volunteering | no | the first page of each | no |
+| Contact card, follower and connection counts | no | no | yes |
+
+Every list on `person-standard-profile` comes as `{elements, total}`: up to 10 stays with
+employers, each with its first 20 positions, and up to 20 rows of every other list, while
+`total` is LinkedIn's count of the whole list, so a cut list reads as cut. For a whole list,
+call its own method (`person-experience`, `person-skills`, `person-education`,
+`person-certifications`, `person-languages`). `person-standard-profile` leaves out the
+verification mark, the Top Voice badge, pronouns and the reading account's degree and
+connection date: read those with `person-lite-profile`.
+
 ## How long a result is cached
 
 | Method | Cache TTL |
 |---|---|
 | `person-contact-info`, `person-full-profile` | 24 hours |
-| `person-lite-profile` | 24 hours |
+| `person-lite-profile`, `person-standard-profile` | 24 hours |
 | The rest (experience, skills, education, posts, certifications, company reads) | 7 days |
 | `company-public-identifier` | 30 days |
 

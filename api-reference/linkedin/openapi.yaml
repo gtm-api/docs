@@ -11,7 +11,7 @@ info:
 
     GENERATED. This document is projected from the Zod MCP tool registry in `product/mcp/gtm.mcp` (one tool per public endpoint, 1:1). Do not edit it by hand; edit the tool definition and regenerate with `pnpm openapi:public`.
 
-    Surface: the public `/api` contract of `gtm.service.linkedin`, 200 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
+    Surface: the public `/api` contract of `gtm.service.linkedin`, 201 operations. This is the only OpenAPI document the platform publishes. Internal (`/internal`) and health endpoints are deliberately absent: they are not part of any contract, they can change without notice, and the service source is their only description.
 
     Conventions:
     - Auth is a bearer JWT, optionally narrowed by the `Team-SID` header.
@@ -6363,6 +6363,49 @@ paths:
         5XX:
           $ref: "#/components/responses/McpServerError"
       x-gtm-mcp-tool: enrich_linkedin_person_skills
+      x-gtm-mcp-mount: linkedin.enrichment
+      x-gtm-entity: linkedin_enrichment
+      x-gtm-operation: action
+      x-gtm-envelope: action
+      x-gtm-availability: ga
+      x-gtm-surface: both
+      x-gtm-dangerous: false
+      x-gtm-mass-action: false
+      x-gtm-step-eligible: false
+      x-gtm-schedule-required: false
+      x-gtm-tool-class: typical
+      x-gtm-paced-bucket: enrichment
+  /api/linkedin-enrichment/person-standard-profile:
+    post:
+      operationId: enrich_linkedin_person_standard_profile
+      summary: Enrich person standard profile
+      description: |-
+        The middle person read: ONE LinkedIn request (one delay of the bucket, where the full profile waits eight), and the header, About and the FIRST PAGE of every list on the profile with LinkedIn's count of each: the first 10 stays with employers (each with its first 20 positions and the employer's industry and staff bracket), and 20 rows of educations, skills, certifications, languages, honors, publications, patents, projects, courses, test scores, organizations and volunteering. A list longer than its first page comes cut and its total says so. No contact card, follower or connection counts, verification or relationship to your account: enrich_linkedin_person_full_profile and enrich_linkedin_person_lite_profile. cached 24h. Address by ONE identifier of any kind.
+
+        Contract:
+        - MCP tool `enrich_linkedin_person_standard_profile`, registry package `mcp.linkedin/linkedin_enrichment`, mount `linkedin.enrichment`.
+        - Operation `action`, response envelope `action`.
+        - Flags: paced: a call spends the `enrichment` smart-limit bucket of the account it runs on, and calls of one bucket are spaced per account. A short wait is slept by the server; a longer one answers 429 `rate_limited` with `context.retry_after`, and the same call succeeds from that moment. Parallel calls on one account queue behind each other.
+      tags:
+        - linkedin_enrichment
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EnrichLinkedinPersonStandardProfileRequest"
+      responses:
+        "200":
+          description: "`action` success envelope."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EnrichLinkedinPersonStandardProfileResponse"
+        4XX:
+          $ref: "#/components/responses/McpClientError"
+        5XX:
+          $ref: "#/components/responses/McpServerError"
+      x-gtm-mcp-tool: enrich_linkedin_person_standard_profile
       x-gtm-mcp-mount: linkedin.enrichment
       x-gtm-entity: linkedin_enrichment
       x-gtm-operation: action
@@ -21041,6 +21084,1759 @@ components:
         - item
         - result
         - meta
+    EnrichLinkedinPersonStandardProfileRequest:
+      type: object
+      description: Request body of `enrich_linkedin_person_standard_profile`.
+      properties:
+        profile_id:
+          type: string
+          maxLength: 2048
+          description: "The person by any identifier, read by its shape: a profile URN (ACoAA…), a Sales Navigator id (ACwAA…), a Recruiter id (AEMAA…), urn:li:fsd_profile:…, urn:li:member:<n>, a vanity slug or any profile link. Provide exactly one of profile_id / public_identifier / ln_member_id / recruiter_id."
+        public_identifier:
+          type: string
+          maxLength: 2048
+          description: "The same field under the slug's name: a vanity slug from /in/…, the whole profile link (any linkedin.com host, a Sales Navigator lead link too) or a URN; read by its shape, so a URN here and a slug in profile_id both work, and a link and its slug share one ledger entry. A value that names no member (a company page, a feed link) is 422 public_identifier_not_resolvable. Whatever key the method's wire takes is found for you: from your team's own history or the stored corpus for free, else by ONE extra LinkedIn request, and the receipt says which (data_request.target_resolved_via: \"ledger\" | \"corpus\" | \"browser\", null when nothing had to be resolved). A slug LinkedIn does not know is 422 public_identifier_unresolved."
+        ln_member_id:
+          type: string
+          maxLength: 64
+          description: "The member number: the digits, or urn:li:member:<n>. It resolves from your team's history or the stored corpus; a number nobody knows is 422 ln_member_id_unresolved, since LinkedIn opens no profile by the number."
+        recruiter_id:
+          type: string
+          maxLength: 128
+          description: "A Recruiter (talent) id (AEMAA…): it names the member it decodes to."
+        linkedin_account_sid:
+          type: string
+          nullable: true
+          minLength: 18
+          maxLength: 18
+          pattern: ^ln_ac_
+          description: "Executor account (ln_ac_...). Given: the call runs on that account ONLY; a saturated or held enrichment bucket refuses 429 bucket_saturated (with retry_after). Omitted: the service auto-picks one of your connected accounts with remaining capacity (422 no_connected_accounts when none is ready, 429 when all are at capacity)."
+        idempotency_key:
+          type: string
+          nullable: true
+          maxLength: 128
+          description: 'Replay guard (team_sid, idempotency_key). A repeat with the same key returns the stored ledger outcome without running again, except a failure that answered with retry_after: once that time has passed, a repeat under the same key runs again. A target named by another key than the one the wire takes spends at most ONE resolve read, journaled under this key plus ":resolve" (sha256:<64 hex>:resolve past 120 characters), which a repeat replays; a stored read of another target never answers. While that read runs, a repeat is 429 target_resolve_in_progress (retry_after). A refusal after it names it (error.context.data_request_sid, target_resolved_via "browser").'
+    EnrichLinkedinPersonStandardProfileResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        operation:
+          type: string
+          enum:
+            - action
+        action:
+          type: string
+          description: kebab-case verb; matches the route segment.
+        item: {}
+        result:
+          type: object
+          properties:
+            profile:
+              type: object
+              properties:
+                ln_member_id:
+                  type: string
+                  nullable: true
+                ln_id:
+                  type: string
+                  nullable: true
+                sn_id:
+                  type: string
+                  nullable: true
+                nickname:
+                  type: string
+                  nullable: true
+                first_name:
+                  type: string
+                last_name:
+                  type: string
+                full_name:
+                  type: string
+                  description: "The name as one line: first_name and last_name joined; '' when unknown."
+                maiden_name:
+                  type: string
+                  nullable: true
+                headline:
+                  type: string
+                  nullable: true
+                localized:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      locale:
+                        type: string
+                      first_name:
+                        type: string
+                        nullable: true
+                      last_name:
+                        type: string
+                        nullable: true
+                      maiden_name:
+                        type: string
+                        nullable: true
+                      headline:
+                        type: string
+                        nullable: true
+                      about:
+                        type: string
+                        nullable: true
+                    required:
+                      - locale
+                      - first_name
+                      - last_name
+                      - maiden_name
+                      - headline
+                      - about
+                  description: The name, the headline and About in every language the member wrote them in.
+                about:
+                  type: string
+                  nullable: true
+                  description: About. For some members LinkedIn answers it with the paragraph breaks collapsed; enrich_linkedin_person_full_profile keeps them.
+                avatar_url:
+                  type: string
+                  nullable: true
+                  description: The photo, re-hosted on our storage (a durable link). Null when the member shows none.
+                location:
+                  type: string
+                  nullable: true
+                location_without_country:
+                  type: string
+                  nullable: true
+                location_geo_id:
+                  type: string
+                  nullable: true
+                  description: The location's geo id, the value LinkedIn's location search filter takes.
+                country:
+                  type: string
+                  nullable: true
+                country_geo_id:
+                  type: string
+                  nullable: true
+                country_code:
+                  type: string
+                  nullable: true
+                industry:
+                  type: string
+                  nullable: true
+                  description: The industry the member chose for the profile ('Software Development').
+                industry_id:
+                  type: string
+                  nullable: true
+                primary_locale:
+                  type: string
+                  nullable: true
+                  description: The profile's primary locale ('en_US'), not a spoken language.
+                primary_language:
+                  type: string
+                  nullable: true
+                supported_locales:
+                  type: array
+                  items:
+                    type: string
+                supported_languages:
+                  type: array
+                  items:
+                    type: string
+                  description: "Profile locales, not spoken languages: those are `languages`."
+                is_premium:
+                  type: boolean
+                  nullable: true
+                has_premium_subscriber_badge:
+                  type: boolean
+                  nullable: true
+                is_influencer:
+                  type: boolean
+                  nullable: true
+                is_creator:
+                  type: boolean
+                  nullable: true
+                is_open_to_work:
+                  type: boolean
+                  nullable: true
+                  description: "The public #OpenToWork frame on the photo; false = no public frame (not 'not looking'); null with no photo."
+                is_hiring:
+                  type: boolean
+                  nullable: true
+                  description: "The public #Hiring frame on the photo; false = no #Hiring frame; null with no photo."
+                is_memorialized:
+                  type: boolean
+                  nullable: true
+                birthday:
+                  type: object
+                  nullable: true
+                  properties:
+                    day:
+                      type: number
+                      nullable: true
+                    month:
+                      type: number
+                      nullable: true
+                    year:
+                      type: number
+                      nullable: true
+                  required:
+                    - day
+                    - month
+                    - year
+                  description: Shared with the reading account only.
+                name_pronunciation:
+                  type: object
+                  nullable: true
+                  properties:
+                    audio_url:
+                      type: string
+                      nullable: true
+                    duration_ms:
+                      type: number
+                      nullable: true
+                  required:
+                    - audio_url
+                    - duration_ms
+                volunteer_causes:
+                  type: array
+                  items:
+                    type: string
+                position_groups:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          company_name:
+                            type: string
+                            nullable: true
+                          company:
+                            type: object
+                            nullable: true
+                            properties:
+                              id:
+                                type: string
+                              urn:
+                                type: string
+                              name:
+                                type: string
+                                nullable: true
+                              public_identifier:
+                                type: string
+                                nullable: true
+                                description: "The page vanity: linkedin.com/company/<vanity>/."
+                              url:
+                                type: string
+                                nullable: true
+                              industries:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                    name:
+                                      type: string
+                                      nullable: true
+                                  required:
+                                    - id
+                                    - name
+                                description: The page's industries, on a position's employer only ([] elsewhere).
+                              employee_count_range:
+                                type: object
+                                nullable: true
+                                properties:
+                                  start:
+                                    type: number
+                                    nullable: true
+                                  end:
+                                    type: number
+                                    nullable: true
+                                required:
+                                  - start
+                                  - end
+                                description: The staff bracket the page states (51..200); an open top bracket has no end. On a position's employer only.
+                            required:
+                              - id
+                              - urn
+                              - name
+                              - public_identifier
+                              - url
+                              - industries
+                              - employee_count_range
+                            description: Null for an employer with no LinkedIn page.
+                          start:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          end:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: Null while the member still works there.
+                          positions:
+                            type: object
+                            properties:
+                              elements:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                      nullable: true
+                                      description: The position id, the one the position editing verbs take on your own profile.
+                                    urn:
+                                      type: string
+                                    title:
+                                      type: string
+                                      nullable: true
+                                    company_name:
+                                      type: string
+                                      nullable: true
+                                    company:
+                                      type: object
+                                      nullable: true
+                                      properties:
+                                        id:
+                                          type: string
+                                        urn:
+                                          type: string
+                                        name:
+                                          type: string
+                                          nullable: true
+                                        public_identifier:
+                                          type: string
+                                          nullable: true
+                                          description: "The page vanity: linkedin.com/company/<vanity>/."
+                                        url:
+                                          type: string
+                                          nullable: true
+                                        industries:
+                                          type: array
+                                          items:
+                                            type: object
+                                            properties:
+                                              id:
+                                                type: string
+                                              name:
+                                                type: string
+                                                nullable: true
+                                            required:
+                                              - id
+                                              - name
+                                          description: The page's industries, on a position's employer only ([] elsewhere).
+                                        employee_count_range:
+                                          type: object
+                                          nullable: true
+                                          properties:
+                                            start:
+                                              type: number
+                                              nullable: true
+                                            end:
+                                              type: number
+                                              nullable: true
+                                          required:
+                                            - start
+                                            - end
+                                          description: The staff bracket the page states (51..200); an open top bracket has no end. On a position's employer only.
+                                      required:
+                                        - id
+                                        - urn
+                                        - name
+                                        - public_identifier
+                                        - url
+                                        - industries
+                                        - employee_count_range
+                                      description: "The page a row points at. No logo here: enrich_linkedin_company_lite_profile saves and answers it."
+                                    employment_type:
+                                      type: string
+                                      nullable: true
+                                    location:
+                                      type: string
+                                      nullable: true
+                                    location_geo_id:
+                                      type: string
+                                      nullable: true
+                                    description:
+                                      type: string
+                                      nullable: true
+                                    start:
+                                      type: object
+                                      nullable: true
+                                      properties:
+                                        year:
+                                          type: number
+                                          nullable: true
+                                        month:
+                                          type: number
+                                          nullable: true
+                                        day:
+                                          type: number
+                                          nullable: true
+                                      required:
+                                        - year
+                                        - month
+                                        - day
+                                      description: A year alone, a month of a year, or a whole day.
+                                    end:
+                                      type: object
+                                      nullable: true
+                                      properties:
+                                        year:
+                                          type: number
+                                          nullable: true
+                                        month:
+                                          type: number
+                                          nullable: true
+                                        day:
+                                          type: number
+                                          nullable: true
+                                      required:
+                                        - year
+                                        - month
+                                        - day
+                                      description: Null while the position is current.
+                                    source_of_hire:
+                                      type: string
+                                      nullable: true
+                                      description: How the member says they got the job, LinkedIn's value (REFERRAL, CONTACTED_BY_RECRUITER, LINKEDIN, COMPANY_WEBSITE, OTHER).
+                                    media:
+                                      type: object
+                                      properties:
+                                        elements:
+                                          type: array
+                                          items:
+                                            type: object
+                                            properties:
+                                              urn:
+                                                type: string
+                                              title:
+                                                type: string
+                                                nullable: true
+                                              description:
+                                                type: string
+                                                nullable: true
+                                              kind:
+                                                type: string
+                                                nullable: true
+                                                description: '"link", "image" or "document"; null for a kind this reader does not know.'
+                                              url:
+                                                type: string
+                                                nullable: true
+                                                description: A link item's address.
+                                              provider_name:
+                                                type: string
+                                                nullable: true
+                                              document:
+                                                type: object
+                                                nullable: true
+                                                properties:
+                                                  title:
+                                                    type: string
+                                                    nullable: true
+                                                  page_count:
+                                                    type: number
+                                                    nullable: true
+                                                required:
+                                                  - title
+                                                  - page_count
+                                            required:
+                                              - urn
+                                              - title
+                                              - description
+                                              - kind
+                                              - url
+                                              - provider_name
+                                              - document
+                                            description: A link, an image or a document attached to the profile, a position or an education (its picture and file links are not served).
+                                        total:
+                                          type: number
+                                          nullable: true
+                                          description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                                      required:
+                                        - elements
+                                        - total
+                                  required:
+                                    - id
+                                    - urn
+                                    - title
+                                    - company_name
+                                    - company
+                                    - employment_type
+                                    - location
+                                    - location_geo_id
+                                    - description
+                                    - start
+                                    - end
+                                    - source_of_hire
+                                    - media
+                              total:
+                                type: number
+                                nullable: true
+                                description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                            required:
+                              - elements
+                              - total
+                            description: "The positions of the stay: its first 20, with their count."
+                        required:
+                          - urn
+                          - company_name
+                          - company
+                          - start
+                          - end
+                          - positions
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                  description: "The stays with employers, newest first: the first 10 of them."
+                educations:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            nullable: true
+                          urn:
+                            type: string
+                          school_name:
+                            type: string
+                            nullable: true
+                          school_id:
+                            type: string
+                            nullable: true
+                          company_id:
+                            type: string
+                            nullable: true
+                          school_public_identifier:
+                            type: string
+                            nullable: true
+                          school_url:
+                            type: string
+                            nullable: true
+                          school_logo_url:
+                            type: string
+                            nullable: true
+                            description: The school's logo, re-hosted on our storage.
+                          degree:
+                            type: string
+                            nullable: true
+                          field_of_study:
+                            type: string
+                            nullable: true
+                          grade:
+                            type: string
+                            nullable: true
+                          activities:
+                            type: string
+                            nullable: true
+                          description:
+                            type: string
+                            nullable: true
+                          start:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          end:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          media:
+                            type: object
+                            properties:
+                              elements:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    urn:
+                                      type: string
+                                    title:
+                                      type: string
+                                      nullable: true
+                                    description:
+                                      type: string
+                                      nullable: true
+                                    kind:
+                                      type: string
+                                      nullable: true
+                                      description: '"link", "image" or "document"; null for a kind this reader does not know.'
+                                    url:
+                                      type: string
+                                      nullable: true
+                                      description: A link item's address.
+                                    provider_name:
+                                      type: string
+                                      nullable: true
+                                    document:
+                                      type: object
+                                      nullable: true
+                                      properties:
+                                        title:
+                                          type: string
+                                          nullable: true
+                                        page_count:
+                                          type: number
+                                          nullable: true
+                                      required:
+                                        - title
+                                        - page_count
+                                  required:
+                                    - urn
+                                    - title
+                                    - description
+                                    - kind
+                                    - url
+                                    - provider_name
+                                    - document
+                                  description: A link, an image or a document attached to the profile, a position or an education (its picture and file links are not served).
+                              total:
+                                type: number
+                                nullable: true
+                                description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                            required:
+                              - elements
+                              - total
+                        required:
+                          - id
+                          - urn
+                          - school_name
+                          - school_id
+                          - company_id
+                          - school_public_identifier
+                          - school_url
+                          - school_logo_url
+                          - degree
+                          - field_of_study
+                          - grade
+                          - activities
+                          - description
+                          - start
+                          - end
+                          - media
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                skills:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: string
+                            nullable: true
+                          urn:
+                            type: string
+                          name:
+                            type: string
+                        required:
+                          - id
+                          - urn
+                          - name
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                  description: The first 20 skills; the whole list is enrich_linkedin_person_skills.
+                certifications:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          name:
+                            type: string
+                            nullable: true
+                          authority:
+                            type: string
+                            nullable: true
+                          company:
+                            type: object
+                            nullable: true
+                            properties:
+                              id:
+                                type: string
+                              urn:
+                                type: string
+                              name:
+                                type: string
+                                nullable: true
+                              public_identifier:
+                                type: string
+                                nullable: true
+                                description: "The page vanity: linkedin.com/company/<vanity>/."
+                              url:
+                                type: string
+                                nullable: true
+                              industries:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                    name:
+                                      type: string
+                                      nullable: true
+                                  required:
+                                    - id
+                                    - name
+                                description: The page's industries, on a position's employer only ([] elsewhere).
+                              employee_count_range:
+                                type: object
+                                nullable: true
+                                properties:
+                                  start:
+                                    type: number
+                                    nullable: true
+                                  end:
+                                    type: number
+                                    nullable: true
+                                required:
+                                  - start
+                                  - end
+                                description: The staff bracket the page states (51..200); an open top bracket has no end. On a position's employer only.
+                            required:
+                              - id
+                              - urn
+                              - name
+                              - public_identifier
+                              - url
+                              - industries
+                              - employee_count_range
+                            description: "The page a row points at. No logo here: enrich_linkedin_company_lite_profile saves and answers it."
+                          license_number:
+                            type: string
+                            nullable: true
+                          url:
+                            type: string
+                            nullable: true
+                          display_source:
+                            type: string
+                            nullable: true
+                          start:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: Issued.
+                          end:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: Expires; null for one that does not.
+                        required:
+                          - urn
+                          - name
+                          - authority
+                          - company
+                          - license_number
+                          - url
+                          - display_source
+                          - start
+                          - end
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                languages:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          name:
+                            type: string
+                            nullable: true
+                          proficiency:
+                            type: string
+                            nullable: true
+                        required:
+                          - urn
+                          - name
+                          - proficiency
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                  description: Spoken languages; proficiency is LinkedIn's value (ELEMENTARY, LIMITED_WORKING, PROFESSIONAL_WORKING, FULL_PROFESSIONAL, NATIVE_OR_BILINGUAL).
+                honors:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          title:
+                            type: string
+                            nullable: true
+                          issuer:
+                            type: string
+                            nullable: true
+                          issued_on:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          description:
+                            type: string
+                            nullable: true
+                          position_urn:
+                            type: string
+                            nullable: true
+                            description: The position the row is associated with (a urn of position_groups[].positions).
+                          education_urn:
+                            type: string
+                            nullable: true
+                            description: The education the row is associated with (a urn of educations).
+                        required:
+                          - urn
+                          - title
+                          - issuer
+                          - issued_on
+                          - description
+                          - position_urn
+                          - education_urn
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                publications:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          name:
+                            type: string
+                            nullable: true
+                          publisher:
+                            type: string
+                            nullable: true
+                          published_on:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          description:
+                            type: string
+                            nullable: true
+                          url:
+                            type: string
+                            nullable: true
+                          authors:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  nullable: true
+                                urn:
+                                  type: string
+                                  nullable: true
+                                public_identifier:
+                                  type: string
+                                  nullable: true
+                                first_name:
+                                  type: string
+                                  nullable: true
+                                last_name:
+                                  type: string
+                                  nullable: true
+                                name:
+                                  type: string
+                                  nullable: true
+                                  description: For a person named by text alone, not a LinkedIn member.
+                                headline:
+                                  type: string
+                                  nullable: true
+                              required:
+                                - id
+                                - urn
+                                - public_identifier
+                                - first_name
+                                - last_name
+                                - name
+                                - headline
+                        required:
+                          - urn
+                          - name
+                          - publisher
+                          - published_on
+                          - description
+                          - url
+                          - authors
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                patents:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          title:
+                            type: string
+                            nullable: true
+                          issuer:
+                            type: string
+                            nullable: true
+                          patent_number:
+                            type: string
+                            nullable: true
+                          application_number:
+                            type: string
+                            nullable: true
+                          is_pending:
+                            type: boolean
+                            nullable: true
+                          issued_on:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          filed_on:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          url:
+                            type: string
+                            nullable: true
+                          description:
+                            type: string
+                            nullable: true
+                          inventors:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  nullable: true
+                                urn:
+                                  type: string
+                                  nullable: true
+                                public_identifier:
+                                  type: string
+                                  nullable: true
+                                first_name:
+                                  type: string
+                                  nullable: true
+                                last_name:
+                                  type: string
+                                  nullable: true
+                                name:
+                                  type: string
+                                  nullable: true
+                                  description: For a person named by text alone, not a LinkedIn member.
+                                headline:
+                                  type: string
+                                  nullable: true
+                              required:
+                                - id
+                                - urn
+                                - public_identifier
+                                - first_name
+                                - last_name
+                                - name
+                                - headline
+                        required:
+                          - urn
+                          - title
+                          - issuer
+                          - patent_number
+                          - application_number
+                          - is_pending
+                          - issued_on
+                          - filed_on
+                          - url
+                          - description
+                          - inventors
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                projects:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          title:
+                            type: string
+                            nullable: true
+                          description:
+                            type: string
+                            nullable: true
+                          url:
+                            type: string
+                            nullable: true
+                          start:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          end:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          contributors:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                id:
+                                  type: string
+                                  nullable: true
+                                urn:
+                                  type: string
+                                  nullable: true
+                                public_identifier:
+                                  type: string
+                                  nullable: true
+                                first_name:
+                                  type: string
+                                  nullable: true
+                                last_name:
+                                  type: string
+                                  nullable: true
+                                name:
+                                  type: string
+                                  nullable: true
+                                  description: For a person named by text alone, not a LinkedIn member.
+                                headline:
+                                  type: string
+                                  nullable: true
+                              required:
+                                - id
+                                - urn
+                                - public_identifier
+                                - first_name
+                                - last_name
+                                - name
+                                - headline
+                          position_urn:
+                            type: string
+                            nullable: true
+                            description: The position the row is associated with (a urn of position_groups[].positions).
+                          education_urn:
+                            type: string
+                            nullable: true
+                            description: The education the row is associated with (a urn of educations).
+                        required:
+                          - urn
+                          - title
+                          - description
+                          - url
+                          - start
+                          - end
+                          - contributors
+                          - position_urn
+                          - education_urn
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                courses:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          name:
+                            type: string
+                            nullable: true
+                          number:
+                            type: string
+                            nullable: true
+                          position_urn:
+                            type: string
+                            nullable: true
+                            description: The position the row is associated with (a urn of position_groups[].positions).
+                          education_urn:
+                            type: string
+                            nullable: true
+                            description: The education the row is associated with (a urn of educations).
+                        required:
+                          - urn
+                          - name
+                          - number
+                          - position_urn
+                          - education_urn
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                test_scores:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          name:
+                            type: string
+                            nullable: true
+                          score:
+                            type: string
+                            nullable: true
+                          date_on:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          description:
+                            type: string
+                            nullable: true
+                          position_urn:
+                            type: string
+                            nullable: true
+                            description: The position the row is associated with (a urn of position_groups[].positions).
+                          education_urn:
+                            type: string
+                            nullable: true
+                            description: The education the row is associated with (a urn of educations).
+                        required:
+                          - urn
+                          - name
+                          - score
+                          - date_on
+                          - description
+                          - position_urn
+                          - education_urn
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                organizations:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          name:
+                            type: string
+                            nullable: true
+                          position_held:
+                            type: string
+                            nullable: true
+                          description:
+                            type: string
+                            nullable: true
+                          start:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          end:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          position_urn:
+                            type: string
+                            nullable: true
+                            description: The position the row is associated with (a urn of position_groups[].positions).
+                          education_urn:
+                            type: string
+                            nullable: true
+                            description: The education the row is associated with (a urn of educations).
+                        required:
+                          - urn
+                          - name
+                          - position_held
+                          - description
+                          - start
+                          - end
+                          - position_urn
+                          - education_urn
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                volunteer_experiences:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          role:
+                            type: string
+                            nullable: true
+                          company_name:
+                            type: string
+                            nullable: true
+                          company:
+                            type: object
+                            nullable: true
+                            properties:
+                              id:
+                                type: string
+                              urn:
+                                type: string
+                              name:
+                                type: string
+                                nullable: true
+                              public_identifier:
+                                type: string
+                                nullable: true
+                                description: "The page vanity: linkedin.com/company/<vanity>/."
+                              url:
+                                type: string
+                                nullable: true
+                              industries:
+                                type: array
+                                items:
+                                  type: object
+                                  properties:
+                                    id:
+                                      type: string
+                                    name:
+                                      type: string
+                                      nullable: true
+                                  required:
+                                    - id
+                                    - name
+                                description: The page's industries, on a position's employer only ([] elsewhere).
+                              employee_count_range:
+                                type: object
+                                nullable: true
+                                properties:
+                                  start:
+                                    type: number
+                                    nullable: true
+                                  end:
+                                    type: number
+                                    nullable: true
+                                required:
+                                  - start
+                                  - end
+                                description: The staff bracket the page states (51..200); an open top bracket has no end. On a position's employer only.
+                            required:
+                              - id
+                              - urn
+                              - name
+                              - public_identifier
+                              - url
+                              - industries
+                              - employee_count_range
+                            description: "The page a row points at. No logo here: enrich_linkedin_company_lite_profile saves and answers it."
+                          cause:
+                            type: string
+                            nullable: true
+                          description:
+                            type: string
+                            nullable: true
+                          start:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                          end:
+                            type: object
+                            nullable: true
+                            properties:
+                              year:
+                                type: number
+                                nullable: true
+                              month:
+                                type: number
+                                nullable: true
+                              day:
+                                type: number
+                                nullable: true
+                            required:
+                              - year
+                              - month
+                              - day
+                            description: A year alone, a month of a year, or a whole day.
+                        required:
+                          - urn
+                          - role
+                          - company_name
+                          - company
+                          - cause
+                          - description
+                          - start
+                          - end
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                media:
+                  type: object
+                  properties:
+                    elements:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          urn:
+                            type: string
+                          title:
+                            type: string
+                            nullable: true
+                          description:
+                            type: string
+                            nullable: true
+                          kind:
+                            type: string
+                            nullable: true
+                            description: '"link", "image" or "document"; null for a kind this reader does not know.'
+                          url:
+                            type: string
+                            nullable: true
+                            description: A link item's address.
+                          provider_name:
+                            type: string
+                            nullable: true
+                          document:
+                            type: object
+                            nullable: true
+                            properties:
+                              title:
+                                type: string
+                                nullable: true
+                              page_count:
+                                type: number
+                                nullable: true
+                            required:
+                              - title
+                              - page_count
+                        required:
+                          - urn
+                          - title
+                          - description
+                          - kind
+                          - url
+                          - provider_name
+                          - document
+                        description: A link, an image or a document attached to the profile, a position or an education (its picture and file links are not served).
+                    total:
+                      type: number
+                      nullable: true
+                      description: "LinkedIn's count of the whole list: more than elements.length when the list is longer than its first page; null when the answer states none."
+                  required:
+                    - elements
+                    - total
+                  description: The media attached to the profile; the first page of 10 can be shorter than total.
+              required:
+                - ln_member_id
+                - ln_id
+                - sn_id
+                - nickname
+                - first_name
+                - last_name
+                - full_name
+                - maiden_name
+                - headline
+                - localized
+                - about
+                - avatar_url
+                - location
+                - location_without_country
+                - location_geo_id
+                - country
+                - country_geo_id
+                - country_code
+                - industry
+                - industry_id
+                - primary_locale
+                - primary_language
+                - supported_locales
+                - supported_languages
+                - is_premium
+                - has_premium_subscriber_badge
+                - is_influencer
+                - is_creator
+                - is_open_to_work
+                - is_hiring
+                - is_memorialized
+                - birthday
+                - name_pronunciation
+                - volunteer_causes
+                - position_groups
+                - educations
+                - skills
+                - certifications
+                - languages
+                - honors
+                - publications
+                - patents
+                - projects
+                - courses
+                - test_scores
+                - organizations
+                - volunteer_experiences
+                - media
+            data_request:
+              type: object
+              properties: {}
+              description: "The kind=\"enrich\" DataRequest journal row (status / served_from_cache / cached_from_sid / target_resolved_via). The public audit anchor for this call. A receipt: its result_ref is null here, the payload is the item next to it; get_data_request by sid reads the stored payload back. target_resolved_via says how the key the wire takes was come by when you addressed the target by another one: null (nothing to resolve, or a cache answered), \"ledger\" (your team's own history knew it), \"corpus\" (the stored corpus did), \"browser\" (ONE extra LinkedIn request was spent on it)."
+          required:
+            - profile
+            - data_request
+        meta:
+          type: object
+          properties:
+            trace_id:
+              type: string
+              description: UUID v7; same 128-bit value as the X-Trace-Id header.
+            span_id:
+              type: string
+              pattern: ^[0-9a-f]{16}$
+              description: 16 hex chars, root span of this request.
+            timestamp:
+              type: string
+              description: ISO 8601 UTC (Y-m-dTH:i:sZ), response time.
+            duration_ms:
+              type: integer
+              minimum: 0
+              description: Server-side wall clock.
+            team_sid:
+              type: string
+              nullable: true
+              description: The team this call ran in (the token team, or the team_sid override). Null when unauthenticated; absent from pre-2026-08-20 backends.
+            actor_type:
+              type: string
+              nullable: true
+              description: user | agent | api_key | system. Null when unauthenticated; absent from pre-2026-08-20 backends.
+          required:
+            - trace_id
+            - span_id
+            - timestamp
+            - duration_ms
+        pacing:
+          type: object
+          properties:
+            linkedin_account_sid:
+              type: string
+              description: The account whose bucket the call spent.
+            limit_type:
+              type: string
+              description: The smart-limit bucket the call spent, e.g. send_messages.
+            next_call_after:
+              type: string
+              description: "ISO 8601, the same form as retry_after: the moment this same call goes through again without waiting. The next pacing slot while the day has budget left, the daily reset when it has none, the end of a LinkedIn lock while one stands."
+            remaining_today:
+              type: integer
+              minimum: 0
+              description: daily_limit minus done_today_count of that bucket, after this call.
+          required:
+            - linkedin_account_sid
+            - limit_type
+            - next_call_after
+            - remaining_today
+      required:
+        - success
+        - operation
+        - action
+        - item
+        - result
+        - meta
     EnrichLinkedinPostDetailsRequest:
       type: object
       description: Request body of `enrich_linkedin_post_details`.
@@ -23340,6 +25136,7 @@ components:
               enum:
                 - person_lite_profile
                 - person_full_profile
+                - person_standard_profile
                 - person_experience
                 - person_skills
                 - person_education
@@ -53612,6 +55409,7 @@ components:
                   enum:
                     - person_lite_profile
                     - person_full_profile
+                    - person_standard_profile
                     - person_experience
                     - person_skills
                     - person_education
@@ -53675,6 +55473,7 @@ components:
                     enum:
                       - person_lite_profile
                       - person_full_profile
+                      - person_standard_profile
                       - person_experience
                       - person_skills
                       - person_education
@@ -53738,6 +55537,7 @@ components:
                     enum:
                       - person_lite_profile
                       - person_full_profile
+                      - person_standard_profile
                       - person_experience
                       - person_skills
                       - person_education
@@ -54110,6 +55910,7 @@ components:
                     enum:
                       - person_lite_profile
                       - person_full_profile
+                      - person_standard_profile
                       - person_experience
                       - person_skills
                       - person_education

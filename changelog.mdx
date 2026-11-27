@@ -3,6 +3,22 @@ title: "Changelog"
 description: "What's new in the GTM API platform and this documentation."
 ---
 
+<Update label="2026-11-27" description="person-standard-profile: the header, About and the first page of every list, in one LinkedIn request">
+  **A third read of a whole profile, between the lite and the full one.** `person-standard-profile`
+  (`enrich_linkedin_person_standard_profile`) makes one LinkedIn request and answers the header, About, the
+  member's industry and the first page of every list on the profile: stays with employers (up to 10, each with its
+  first 20 positions), education, skills, certifications, languages, honors, publications, patents, projects,
+  courses, test scores, organizations, volunteering and media. Each list comes as `{elements, total}`, and `total`
+  is LinkedIn's count of the whole list, so a cut list reads as cut. A whole list is still its own method's
+  (`person-experience`, `person-skills`, `person-education`, `person-certifications`, `person-languages`).
+
+  **What it costs and what it leaves out.** One request and one enrichment delay on the account, a 24-hour team
+  cache, and the same arguments as the other person reads. There is no contact card and no follower or connection
+  count (those are `person-full-profile`'s, eight or nine requests), and no verification mark, Top Voice badge,
+  pronouns or degree of the reading account (those are `person-lite-profile`'s). See
+  [enrichment](/kb/enrichment).
+</Update>
+
 <Update label="2026-11-27" description="A cloud browser session whose window never reached the host ends after three minutes, with its own reason">
   **A cloud browser session whose window never reached the host ends after three minutes.** When a person opens a
   cloud browser and the remote window never connects (their network, or something on the way to it, does not let the
